@@ -1,0 +1,83 @@
+
+# GitHub Actions CI script for Perl-Dist-APPerl
+# (C) 2022 Gavin Hayes
+
+name: Build Actually Portable Perl
+on:   [ push, pull_request ]
+
+jobs:
+  build-linux:
+    name:    Build Perl-Dist-APPerl
+    runs-on: ubuntu-latest
+    steps:
+    - name: Fetch repo and submodules
+      uses: actions/checkout@v3
+      with:
+        path: 'Perl-Dist-APPerl'
+    - name: Install Perl
+      uses: shogo82148/actions-setup-perl@v1
+      with:
+        perl-version: '5.36'
+    - name: Test in-tree
+      run: |
+        cd Perl-Dist-APPerl
+        prove -lv t
+    - name: Build Perl-Dist-APPerl release
+      run: |
+        cd Perl-Dist-APPerl
+        perl Makefile.PL
+        make manifest
+        make dist
+        mv Perl-Dist-APPerl-v*.tar.gz ../
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: cpan
+        if-no-files-found: error
+        path: Perl-Dist-APPerl-v*.tar.gz
+
+  build-apperl:
+    name:    Build perl.com
+    runs-on: ubuntu-latest
+    steps:
+    - name: Fetch Perl fork
+      uses: actions/checkout@v3
+      with:
+        repository: 'G4Vi/perl5'
+        ref: 'cosmo'
+        path: 'perl5'
+    - name: Fetch cosmopolitan
+      uses: actions/checkout@v3
+      with:
+        repository: 'jart/cosmopolitan'
+        path: 'cosmopolitan'
+    - name: Configure and Build Perl
+      run: |
+        cd perl5
+        cosmo/superConfigure -de
+        make
+        cosmo/buildAPPerl.sh
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: apperl
+        if-no-files-found: error
+        path: perl5/cosmo/o/perl.com
+
+  create-release:
+    name:    Create release
+    runs-on: ubuntu-latest
+    needs:   [ build-linux, build-apperl ]
+    steps:
+    - name: Fetch build artifacts
+      if:   ${{ github.ref_type == 'tag' }}
+      uses: actions/download-artifact@v3
+    - name: Publish release
+      if:   ${{ github.ref_type == 'tag' }}
+      uses: softprops/action-gh-release@v1
+      with:
+        fail_on_unmatched_files: true
+        draft: true
+        files: |
+          cpan/Perl-Dist-APPerl-v*.tar.gz
+          apperl/perl.com
