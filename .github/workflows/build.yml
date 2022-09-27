@@ -39,17 +39,21 @@ jobs:
   build-apperl:
     name:    Build perl.com
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        config: [{name: apperl, perl-ref: cosmo, cosmo-repo: 'jart/cosmopolitan', cosmo-ref: master }, {name: 'apperl-vista', perl-ref: 'cosmo-vista', cosmo-repo: 'G4Vi/cosmopolitan', cosmo-ref: fix_vista_via_revert  }]
     steps:
     - name: Fetch Perl fork
       uses: actions/checkout@v3
       with:
         repository: 'G4Vi/perl5'
-        ref: 'cosmo'
+        ref: ${{ matrix.config.perl-ref }}
         path: 'perl5'
     - name: Fetch cosmopolitan
       uses: actions/checkout@v3
       with:
-        repository: 'jart/cosmopolitan'
+        repository: ${{ matrix.config.cosmo-repo }}
+        ref: ${{ matrix.config.cosmo-ref }}
         path: 'cosmopolitan'
     - name: support ape bins
       run: sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
@@ -62,7 +66,7 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: apperl
+        name: ${{ matrix.config.name }}
         if-no-files-found: error
         path: perl5/cosmo/o/perl.com
 
@@ -83,3 +87,4 @@ jobs:
         files: |
           cpan/Perl-Dist-APPerl-v*.tar.gz
           apperl/perl.com
+          apperl-vista/perl.com

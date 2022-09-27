@@ -64,3 +64,5 @@
 # Avoid MYMETA files
 ^MYMETA\.
 
+# Avoid github actions
+\B\.github\b
