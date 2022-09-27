@@ -58,9 +58,12 @@ jobs:
     - name: support ape bins
       run: sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
     - name: Configure and Build Perl
+      env:
+        CF_BY: ${{ secrets.CF_BY }}
+        CF_EMAIL: ${{ secrets.CF_EMAIL }}
       run: |
         cd perl5
-        cosmo/superConfigure -de
+        cosmo/superConfigure -Dcf_by="$CF_BY" -Dcf_email="$CF_EMAIL" -de
         make
         cosmo/buildAPPerl.sh
     - name: Upload build artifacts
