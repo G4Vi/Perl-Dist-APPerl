@@ -51,6 +51,8 @@ jobs:
       with:
         repository: 'jart/cosmopolitan'
         path: 'cosmopolitan'
+    - name: support ape bins
+      run: sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
     - name: Configure and Build Perl
       run: |
         cd perl5
