@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+use strict; use warnings;
+use JSON::PP qw(decode_json);
+
+my $configdir = $ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config');
+$configdir .= '/apperl';
+my $configpath = "$configdir/apperl.json";
+open(my $fh, '<', $configpath) or die "Failed to open config file, did you run apperl-init ?";
+my $file_content = do { local $/; <$fh> };
+close($fh);
+my $config = decode_json($file_content);
+
+print "cd ".$config->{perl_repo}."\n";
+chdir($config->{perl_repo}) or die "Failed to enter perl repo";
+command_or_die('make');
+command_or_die('cosmo/buildAPPerl.sh');
+
+sub command_or_die {
+    print join(' ', @_), "\n";
+    system(@_) == 0 or die;
+}

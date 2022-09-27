@@ -1,0 +1,50 @@
+#!/usr/bin/perl
+use strict; use warnings;
+use JSON::PP qw(decode_json);
+use Data::Dumper qw(Dumper);
+
+scalar(@ARGV) == 1 or die('bad args');
+my $cfgname = $ARGV[0];
+
+my $configdir = $ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config');
+$configdir .= '/apperl';
+my $configpath = "$configdir/apperl.json";
+open(my $fh, '<', $configpath) or die "Failed to open config file, did you run apperl-init ?";
+my $file_content = do { local $/; <$fh> };
+close($fh);
+my $config = decode_json($file_content);
+
+exists $config->{apperl_configs}{$cfgname} or die "Unknown config: $cfgname";
+my %itemconfig = %{$config->{apperl_configs}{$cfgname}};
+for(my $item = \%itemconfig; exists $item->{base}; ) {
+    my $previtem = $item;
+    $item = $config->{apperl_configs}{$item->{base}};
+    delete $previtem->{base};
+    foreach my $key (keys %{$item}) {
+        $itemconfig{$key} = $item->{$key} if(! exists $itemconfig{$key});
+    }
+}
+print Dumper(\%itemconfig);
+
+unlink("$configdir/current");
+
+print "cd ".$config->{cosmo_repo}."\n";
+chdir($config->{cosmo_repo}) or die "Failed to enter cosmo repo";
+command_or_die('git', 'checkout', $itemconfig{cosmo_id});
+
+print "cd ".$config->{perl_repo}."\n";
+chdir($config->{perl_repo}) or die "Failed to enter perl repo";
+print "make veryclean\n";
+system("make", "veryclean");
+command_or_die('rm', '-f', 'miniperl.com', 'miniperl.elf', 'perl.com', 'perl.elf');
+command_or_die('git', 'checkout', $itemconfig{perl_id});
+
+open(my $oh, '>', "$configdir/current") or die "failed to open current config file";
+print $oh $cfgname;
+close($oh);
+print "Successfully switched to $cfgname\n";
+
+sub command_or_die {
+    print join(' ', @_), "\n";
+    system(@_) == 0 or die;
+}
