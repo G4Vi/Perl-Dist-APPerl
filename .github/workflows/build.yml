@@ -41,7 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        config: [{name: apperl, perl-ref: cosmo, cosmo-repo: 'jart/cosmopolitan', cosmo-ref: master }, {name: 'apperl-vista', perl-ref: 'cosmo-vista', cosmo-repo: 'G4Vi/cosmopolitan', cosmo-ref: fix_vista_via_revert  }]
+        config: [{name: apperl, perl-ref: cosmo-apperl, cosmo-repo: 'jart/cosmopolitan', cosmo-ref: master }, {name: 'apperl-vista', perl-ref: 'cosmo-apperl-vista', cosmo-repo: 'G4Vi/cosmopolitan', cosmo-ref: fix_vista_via_revert  }]
     steps:
     - name: Fetch Perl fork
       uses: actions/checkout@v3

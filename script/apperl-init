@@ -16,7 +16,7 @@ my %defconfig = (
     },
     apperl_configs => {
         base => {
-            perl_id => 'cosmo',
+            perl_id => 'cosmo-apperl',
             cosmo_id => 'master',
         },
         'v5.36.0-full' => {
@@ -24,7 +24,7 @@ my %defconfig = (
         },
         'v5.36.0-full-vista' => {
             base => 'base',
-            perl_id => 'cosmo-vista',
+            perl_id => 'cosmo-apperl-vista',
             cosmo_id => 'fix_vista_via_revert',
         },
     }
