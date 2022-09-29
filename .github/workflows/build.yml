@@ -61,7 +61,7 @@ jobs:
       uses: actions/download-artifact@v3
     - name: prepare for installing module
       run: |
-        mv Perl-Dist-APPerl-v*.tar.gz Perl-Dist-APPerl.tar.gz
+        mv cpan/Perl-Dist-APPerl-v*.tar.gz Perl-Dist-APPerl.tar.gz
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
       with:
