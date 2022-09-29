@@ -68,7 +68,7 @@ jobs:
         perl-version: '5.36'
         install-modules-with: cpanm
         install-modules: Perl-Dist-APPerl.tar.gz
-    - name: Configure and Build Perl.com
+    - name: Configure and Build perl.com
       env:
         CF_BY: ${{ secrets.CF_BY }}
         CF_EMAIL: ${{ secrets.CF_EMAIL }}
@@ -77,7 +77,7 @@ jobs:
         apperl-init -p perl5 -c cosmopolitan
         apperl-set ${{ matrix.config.apperl-config }}
         apperl-list
-        apperl-configure
+        apperl-configure -Dcf_by="$CF_BY" -Dcf_email="$CF_EMAIL"
         apperl-build
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3

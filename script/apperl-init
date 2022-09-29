@@ -42,6 +42,7 @@ my %defconfig = (
     },
     apperl_configs => {
         base => {
+            desc => 'Most configs build off of this',
             perl_id => 'cosmo-apperl',
             cosmo_id => 'master',
             cosmo_mode => '',
@@ -56,6 +57,11 @@ my %defconfig = (
             base => 'base',
             perl_id => 'cosmo-apperl-vista',
             cosmo_id => 'fix_vista_via_revert',
+        },
+        perl_cosmo_dev => {
+            desc => "For developing cosmo platform perl without apperl additions",
+            base => 'base',
+            perl_id => 'cosmo'
         },
     }
 );
