@@ -1,7 +1,9 @@
 #!/usr/bin/perl
 use strict; use warnings;
 use JSON::PP qw(decode_json);
+use Data::Dumper qw(Dumper);
 
+# load config file
 my $configdir = $ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config');
 $configdir .= '/apperl';
 my $configpath = "$configdir/apperl.json";
@@ -9,11 +11,50 @@ open(my $fh, '<', $configpath) or die "Failed to open config file, did you run a
 my $file_content = do { local $/; <$fh> };
 close($fh);
 my $config = decode_json($file_content);
+-d $config->{cosmo_repo} or die $config->{cosmo_repo} .' is not directory';
+-d $config->{perl_repo} or die $config->{perl_repo} .' is not directory';
 
+# load name of current apperl config
+open(my $ch, '<', "$configdir/current") or die "Failed to open current config";
+my $cfgname = do { local $/; <$ch> };
+close($ch);
+print "$0: current apperl config is $cfgname\n";
+
+# load apperl config
+exists $config->{apperl_configs}{$cfgname} or die "Unknown config: $cfgname";
+my %itemconfig = %{$config->{apperl_configs}{$cfgname}};
+for(my $item = \%itemconfig; exists $item->{base}; ) {
+    my $previtem = $item;
+    $item = $config->{apperl_configs}{$item->{base}};
+    delete $previtem->{base};
+    foreach my $key (keys %{$item}) {
+        $itemconfig{$key} = $item->{$key} if(! exists $itemconfig{$key});
+    }
+}
+print Dumper(\%itemconfig);
+
+# verify apperl config sanity
+$itemconfig{cosmo_ape_loader} //= 'ape-no-modify-self.o';
+($itemconfig{cosmo_ape_loader} eq 'ape-no-modify-self.o') || ($itemconfig{cosmo_ape_loader} eq 'ape.o') or die "Unknown ape loader: " . $itemconfig{cosmo_ape_loader};
+
+# build cosmo
+print "$0: Building cosmo, COSMO_MODE=$itemconfig{cosmo_mode} COSMO_APE_LOADER=$itemconfig{cosmo_ape_loader}\n";
+command_or_die('make', '-C', $config->{cosmo_repo}, '-j4', "MODE=$itemconfig{cosmo_mode}",
+"o/$itemconfig{cosmo_mode}/cosmopolitan.a",
+"o/$itemconfig{cosmo_mode}/libc/crt/crt.o",
+"o/$itemconfig{cosmo_mode}/ape/public/ape.lds",
+"o/$itemconfig{cosmo_mode}/ape/$itemconfig{cosmo_ape_loader}",
+);
+
+# Finally Configure perl
 print "cd ".$config->{perl_repo}."\n";
 chdir($config->{perl_repo}) or die "Failed to enter perl repo";
-command_or_die('cosmo/superConfigure', @ARGV, '-de');
-
+system("pwd");
+$ENV{COSMO_REPO} = $config->{cosmo_repo};
+$ENV{COSMO_MODE} = $itemconfig{cosmo_mode};
+$ENV{COSMO_APE_LOADER} = $itemconfig{cosmo_ape_loader};
+command_or_die('sh', 'Configure', @{$itemconfig{perl_flags}}, @{$itemconfig{perl_extra_flags}}, @ARGV);
+print "$0: Configure successful, time for apperl-build\n";
 sub command_or_die {
     print join(' ', @_), "\n";
     system(@_) == 0 or die;

@@ -42,7 +42,7 @@ command_or_die('git', 'checkout', $itemconfig{perl_id});
 open(my $oh, '>', "$configdir/current") or die "failed to open current config file";
 print $oh $cfgname;
 close($oh);
-print "Successfully switched to $cfgname\n";
+print "$0: Successfully switched to $cfgname\n";
 
 sub command_or_die {
     print join(' ', @_), "\n";
