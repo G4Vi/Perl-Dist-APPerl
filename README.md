@@ -1,5 +1,5 @@
 # Perl-Dist-APPerl
-[Actually Portable Perl](https://computoid.com/APPerl/)
+[Actually Portable Perl](https://computoid.com/APPerl/) - Build-once run-anywhere Perl using the cosmopolitan libc
 
 ## INSTALLATION
 
