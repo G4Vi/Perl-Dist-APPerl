@@ -48,7 +48,18 @@ my %defconfig = (
             cosmo_mode => '',
             cosmo_ape_loader => 'ape-no-modify-self.o',
             perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
-            perl_extra_flags => ['-Doptimize=-Os', '-DDEBUGGING', '-de'],
+            perl_extra_flags => ['-Doptimize=-Os', '-de'],
+        },
+        threads_dontuse => {
+            desc => "threaded build is buggy",
+            base => 'base',
+            perl_extra_flags => ['-Doptimize=-Os', '-Dusethreads', '-de'],
+            perl_id => 'cosmo'
+        },
+        smallwip => {
+            desc => "smaller build",
+            perl_extra_flags => ['-Doptimize=-Os', "-Donlyextensions= Cwd Fcntl File/Glob IO  re SDBM_File ", '-de'],
+            base => 'base',
         },
         'v5.36.0-full' => {
             base => 'base',
@@ -62,6 +73,11 @@ my %defconfig = (
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'base',
             perl_id => 'cosmo'
+        },
+        perl_cosmo_dev_on_vista => {
+            desc => "For developing cosmo platform perl without apperl additions on vista",
+            base => "v5.36.0-full-vista",
+            perl_id => "cosmo",
         },
     }
 );
