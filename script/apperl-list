@@ -1,25 +1,5 @@
 #!/usr/bin/perl
 use strict; use warnings;
-use JSON::PP qw(decode_json);
+use Perl::Dist::APPerl;
 
-my $configdir = $ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config');
-$configdir .= '/apperl';
-my $configpath = "$configdir/apperl.json";
-open(my $fh, '<', $configpath) or die "Failed to open config file, did you run apperl-init ?";
-my $file_content = do { local $/; <$fh> };
-close($fh);
-my $config = decode_json($file_content);
-
-my $curconfig;
-if( -e "$configdir/current") {
-    open(my $ch, '<', "$configdir/current") or die "Failed to open current config";
-    $curconfig = do { local $/; <$ch> };
-    close($ch);
-    if(! exists $config->{apperl_configs}{$curconfig}) {
-        warn("Unknown current config $curconfig");
-    }
-}
-
-foreach my $item (keys %{$config->{apperl_configs}}) {
-    print (sprintf "%s $item\n", (defined $curconfig && ($item eq $curconfig)) ? '*' : ' ');
-}
+Perl::Dist::APPerl::Status();

@@ -1,33 +1,6 @@
 #!/usr/bin/perl
 use strict; use warnings;
-use JSON::PP qw(decode_json);
-use Data::Dumper qw(Dumper);
 use FindBin qw();
+use Perl::Dist::APPerl;
 
-my $configdir = $ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config');
-$configdir .= '/apperl';
-my $configpath = "$configdir/apperl.json";
-open(my $fh, '<', $configpath) or die "Failed to open config file, did you run apperl-init ?";
-my $file_content = do { local $/; <$fh> };
-close($fh);
-my $config = decode_json($file_content);
-
-# load name of current apperl config
-open(my $ch, '<', "$configdir/current") or die "Failed to open current config";
-my $cfgname = do { local $/; <$ch> };
-close($ch);
-print "$0: current apperl config is $cfgname\n";
-exists $config->{apperl_configs}{$cfgname} or die "Unknown config: $cfgname";
-
-print "cd ".$config->{perl_repo}."\n";
-chdir($config->{perl_repo}) or die "Failed to enter perl repo";
-command_or_die('make');
-
-$ENV{PERL_APE} = "$config->{perl_repo}/perl.com";
-$ENV{OUTPUTDIR} = "$config->{apperl_output}/$cfgname";
-command_or_die('sh', "$FindBin::Bin/_buildAPPerl.sh");
-
-sub command_or_die {
-    print join(' ', @_), "\n";
-    system(@_) == 0 or die;
-}
+Perl::Dist::APPerl::Build("$FindBin::Bin/_buildAPPerl.sh");

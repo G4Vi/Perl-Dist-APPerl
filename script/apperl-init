@@ -1,10 +1,8 @@
 #!/usr/bin/perl
 use strict; use warnings;
-use File::Path qw(make_path);
-use JSON::PP qw();
 use Getopt::Long qw(GetOptions);
 Getopt::Long::Configure qw(gnu_getopt);
-use Cwd 'abs_path';
+use Perl::Dist::APPerl;
 
 my $usage = <<'END_USAGE';
 apperl-init [-h|--help] [-p|--perlrepo <path>] [-c|--cosmorepo <path>]
@@ -23,103 +21,7 @@ if($help) {
     print $usage;
     exit 0;
 }
-if(defined $perlrepo) {
-    $perlrepo = abs_path($perlrepo);
-    die "bad perlrepo $perlrepo" unless defined($perlrepo) && -d $perlrepo;
-}
-if(defined $cosmorepo) {
-    $cosmorepo = abs_path($cosmorepo);
-    die "bad cosmorepo $cosmorepo" unless defined($cosmorepo) && -d $cosmorepo;
-}
 
-my %defconfig = (
-    cosmo_remotes => {
-        origin => 'https://github.com/G4Vi/cosmopolitan',
-        upstream => 'https://github.com/jart/cosmopolitan',
-    },
-    perl_remotes => {
-        origin => 'https://github.com/G4Vi/perl5',
-    },
-    apperl_configs => {
-        base => {
-            desc => 'Most configs build off of this',
-            perl_id => 'cosmo-apperl',
-            cosmo_id => 'af24c19db395b8edd3f8aab194675eadad173cca',
-            cosmo_mode => '',
-            cosmo_ape_loader => 'ape-no-modify-self.o',
-            perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
-            perl_extra_flags => ['-Doptimize=-Os', '-de'],
-        },
-        threads_dontuse => {
-            desc => "threaded build is buggy",
-            base => 'base',
-            perl_extra_flags => ['-Doptimize=-Os', '-Dusethreads', '-de'],
-            perl_id => 'cosmo'
-        },
-        smallwip => {
-            desc => "smaller build",
-            perl_extra_flags => ['-Doptimize=-Os', "-Donlyextensions= Cwd Fcntl File/Glob IO  re SDBM_File ", '-de'],
-            base => 'base',
-        },
-        'v5.36.0-full' => {
-            base => 'base',
-        },
-        'v5.36.0-full-vista' => {
-            base => 'base',
-            perl_id => 'cosmo-apperl-vista',
-            cosmo_id => '4381b3d9254d6001f4bead71b458a377e854fbc5',
-        },
-        perl_cosmo_dev => {
-            desc => "For developing cosmo platform perl without apperl additions",
-            base => 'base',
-            perl_id => 'cosmo'
-        },
-        perl_cosmo_dev_on_vista => {
-            desc => "For developing cosmo platform perl without apperl additions on vista",
-            base => "v5.36.0-full-vista",
-            perl_id => "cosmo",
-        },
-    }
-);
-
-my $configdir = $ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config');
-$configdir .= '/apperl';
-$defconfig{perl_repo} = $perlrepo // "$configdir/perl5";
-$defconfig{cosmo_repo} = $cosmorepo // "$configdir/cosmopolitan";
-$defconfig{apperl_output} = "$configdir/o";
-my $configpath = "$configdir/apperl.json";
-die "Error, '$configpath' already exists" if( -e $configpath);
-make_path($configdir);
-open(my $fh, '>', $configpath) or die("Failed to open $configpath for writing");
-print $fh JSON::PP->new->pretty->encode(\%defconfig);
-close($fh);
-print "Success, wrote default settings to $configpath\n";
-unless($cosmorepo) {
-    setup_repo($defconfig{cosmo_repo}, $defconfig{cosmo_remotes});
-    print "Success, setup cosmo repo\n";
-}
-unless($perlrepo) {
-    setup_repo($defconfig{perl_repo}, $defconfig{perl_remotes});
-    print "Success, setup perl repo\n";
-}
+Perl::Dist::APPerl::CreateSiteConfig($perlrepo, $cosmorepo);
 
 print "apperl-init SUCCESS\n";
-
-sub command_or_die {
-    print join(' ', @_), "\n";
-    system(@_) == 0 or die;
-}
-
-sub setup_repo {
-    my ($repopath, $remotes) = @_;
-    print "mkdir -p $repopath\n";
-    make_path($repopath);
-    print "cd $repopath\n";
-    chdir($repopath) or die "Failed to chdir $repopath";
-    command_or_die('git', 'init');
-    command_or_die('git', 'checkout', '-b', 'placeholder_dont_use');
-    foreach my $remote (keys %{$remotes}) {
-        command_or_die('git', 'remote', 'add', $remote, $remotes->{$remote});
-        command_or_die('git', 'fetch', $remote);
-    }
-}
