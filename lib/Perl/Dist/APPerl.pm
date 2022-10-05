@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use JSON::PP qw(decode_json);
 use File::Path qw(make_path);
-use Cwd 'abs_path';
+use Cwd qw(abs_path getcwd);
 use Data::Dumper qw(Dumper);
 
 my %defconfig = (
@@ -17,48 +17,70 @@ my %defconfig = (
         origin => 'https://github.com/G4Vi/perl5',
     },
     apperl_configs => {
-        base => {
-            desc => 'Most configs build off of this',
+        'v5.36.0-full-v0.1.0' => {
+            desc => 'Full perl v5.36.0',
             perl_id => 'cosmo-apperl',
             cosmo_id => 'af24c19db395b8edd3f8aab194675eadad173cca',
             cosmo_mode => '',
             cosmo_ape_loader => 'ape-no-modify-self.o',
             perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
             perl_extra_flags => ['-Doptimize=-Os', '-de'],
+            dest => 'perl.com',
         },
-        threads_dontuse => {
-            desc => "threaded build is buggy",
-            base => 'base',
-            perl_extra_flags => ['-Doptimize=-Os', '-Dusethreads', '-de'],
-            perl_id => 'cosmo'
-        },
-        smallwip => {
-            desc => "smaller build",
-            perl_extra_flags => ['-Doptimize=-Os', "-Donlyextensions= Cwd Fcntl File/Glob IO  re SDBM_File ", '-de'],
-            base => 'base',
-        },
-        'v5.36.0-full' => {
-            base => 'base',
-        },
-        'v5.36.0-full-vista' => {
-            base => 'base',
+        'v5.36.0-full-v0.1.0-vista' => {
+            desc => 'Full perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
+            base => 'v5.36.0-full-v0.1.0',
             perl_id => 'cosmo-apperl-vista',
             cosmo_id => '4381b3d9254d6001f4bead71b458a377e854fbc5',
         },
+        'v5.36.0-small-v0.1.0' => {
+            desc => 'small perl v5.36.0',
+            base => 'v5.36.0-full-v0.1.0',
+            perl_extra_flags => ['-Doptimize=-Os', "-Donlyextensions= Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re ", '-de'],
+        },
+        'v5.36.0-small-v0.1.0-vista' => {
+            desc => 'small perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
+            base => 'v5.36.0-small-v0.1.0',
+            perl_id => 'cosmo-apperl-vista',
+            cosmo_id => '4381b3d9254d6001f4bead71b458a377e854fbc5',
+        },
+        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0' },
+        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista' },
+        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0' },
+        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista' },
+        # development configs
+        dontuse_threads => {
+            desc => "not recommended, threaded build is buggy",
+            base => 'v5.36.0-full-v0.1.0',
+            perl_extra_flags => ['-Doptimize=-Os', '-Dusethreads', '-de'],
+            perl_id => 'cosmo'
+        },
         perl_cosmo_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
-            base => 'base',
+            base => 'v5.36.0-full-v0.1.0',
             perl_id => 'cosmo'
         },
         perl_cosmo_dev_on_vista => {
             desc => "For developing cosmo platform perl without apperl additions on vista",
-            base => "v5.36.0-full-vista",
-            perl_id => "cosmo",
+            base => "perl_cosmo_dev",
+            cosmo_id => '4381b3d9254d6001f4bead71b458a377e854fbc5',
         },
     }
 );
 my %Configs = %defconfig;
-
+my $projectjsonname = 'apperl-project.json';
+my $projectconfig = _load_json($projectjsonname);
+if($projectconfig) {
+    foreach my $projkey (keys %$projectconfig) {
+        if($projkey ne 'apperl_configs') {
+            $Configs{$projkey} = $projectconfig->{$projkey};
+        }
+        else {
+            $Configs{$projkey} = {%{$Configs{$projkey}}, %{$projectconfig->{$projkey}}};
+        }
+    }
+}
+my $StartDir = getcwd();
 my $configdir = $ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config');
 $configdir .= '/apperl';
 my $siteconfigpath = "$configdir/site.json";
@@ -70,43 +92,75 @@ if($SiteConfig) {
     if(exists $SiteConfig->{current_apperl}) {
         $CurAPPerlName = $SiteConfig->{current_apperl};
         exists $Configs{apperl_configs}{$CurAPPerlName} or die("non-existent apperl config $CurAPPerlName in $siteconfigpath");
-        $Configs{apperl_configs}{$CurAPPerlName}{iscurrent} = 1;
     }
 }
 
-sub CreateSiteConfig {
-    my ($perlrepo, $cosmorepo) = @_;
+sub Init {
+    # determine and validate configuration
+    my ($perlrepo, $cosmorepo, $noproject) = @_;
+    my $createsiteconfig = ! -e $siteconfigpath;
+    die "apperl-init: site config already exists, cannot set repos " if( (defined $perlrepo || defined $cosmorepo) && (! $createsiteconfig));
+    my $createprojectconfig = !$noproject && ! -e 'apperl-project.json';
+    if(!$createsiteconfig && !$createprojectconfig) {
+        print "apperl-init: nothing to init\n";
+        return;
+    }
     if(defined $perlrepo) {
         $perlrepo = abs_path($perlrepo);
-        die "bad perlrepo $perlrepo" unless defined($perlrepo) && -d $perlrepo;
+        die "apperl-init: bad perlrepo $perlrepo" unless defined($perlrepo) && -d $perlrepo;
     }
     if(defined $cosmorepo) {
         $cosmorepo = abs_path($cosmorepo);
-        die "bad cosmorepo $cosmorepo" unless defined($cosmorepo) && -d $cosmorepo;
+        die "apperl-init: bad cosmorepo $cosmorepo" unless defined($cosmorepo) && -d $cosmorepo;
     }
-    my %siteconfig = (
-        perl_repo     => $perlrepo // "$configdir/perl5",
-        cosmo_repo    => $cosmorepo // "$configdir/cosmopolitan",
-        apperl_output => "$configdir/o"
-    );
-    my $configpath = "$configdir/site.json";
-    die "Error, '$configpath' already exists" if( -e $configpath);
-    make_path($configdir);
-    _write_json($configpath, \%siteconfig);
-    print "Success, wrote default settings to $configpath\n";
-    unless($cosmorepo) {
-        _setup_repo($defconfig{cosmo_repo}, $defconfig{cosmo_remotes});
-        print "Success, setup cosmo repo\n";
+
+    # create project config
+    if($createprojectconfig) {
+        _write_json($projectjsonname, {
+            'apperl-project-desc' => "for project specific apperl configs, this file in meant to be included in version control",
+            apperl_configs => {
+                'replace_me_with_project_config_name' => {
+                    desc => 'description of this config',
+                    base => $Configs{apperl_configs}{full}{base},
+                    dest => 'perl.com'
+                },
+            },
+        });
+        print "apperl-init: wrote project config to $projectjsonname\n";
     }
-    unless($perlrepo) {
-        _setup_repo($defconfig{perl_repo}, $defconfig{perl_remotes});
-        print "Success, setup perl repo\n";
+    else {
+        print "apperl-init: skipping writing $projectjsonname\n";
     }
+
+    # create site config
+    if($createsiteconfig) {
+        my %siteconfig = (
+            perl_repo     => $perlrepo // "$configdir/perl5",
+            cosmo_repo    => $cosmorepo // "$configdir/cosmopolitan",
+            apperl_output => "$configdir/o"
+        );
+        make_path($configdir);
+        _write_json($siteconfigpath, \%siteconfig);
+        print "apperl-init: wrote site config to $siteconfigpath\n";
+        unless($cosmorepo) {
+            _setup_repo($defconfig{cosmo_repo}, $defconfig{cosmo_remotes});
+            print "apperl-init: setup cosmopolitan repo\n";
+        }
+        unless($perlrepo) {
+            _setup_repo($defconfig{perl_repo}, $defconfig{perl_remotes});
+            print "apperl-init: setup perl repo\n";
+        }
+    }
+    else {
+        print "apperl-init: skipping writing $siteconfigpath\n";
+    }
+    print "apperl-init: done\n";
 }
 
 sub Status {
-    foreach my $item (keys %{$Configs{apperl_configs}}) {
-        print (sprintf "%s $item\n", $Configs{apperl_configs}{$item}{current} ? '*' : ' ');
+    my @configlist = sort(keys %{$Configs{apperl_configs}});
+    foreach my $item (@configlist) {
+        print (sprintf "%s %-30.30s | %s\n", $CurAPPerlName && ($item eq $CurAPPerlName) ? '*' : ' ', $item, ($Configs{apperl_configs}{$item}{desc} // ''));
     }
 }
 
@@ -133,6 +187,7 @@ sub Set {
 
 sub Configure {
     defined($SiteConfig) or die "cannot Configure until initialized (run apperl-init)";
+    defined($CurAPPerlName) or die "cannot Configure with current apperl set (run apperl-set)";
     my $itemconfig = _load_apperl_config($CurAPPerlName);
     # build cosmo
     print "$0: Building cosmo, COSMO_MODE=$itemconfig->{cosmo_mode} COSMO_APE_LOADER=$itemconfig->{cosmo_ape_loader}\n";
@@ -156,13 +211,21 @@ sub Configure {
 sub Build {
     my ($buildscript) = @_;
     defined($SiteConfig) or die "cannot build until initialized (run apperl-init)";
+    defined($CurAPPerlName) or die "cannot Configure with current apperl set (run apperl-set)";
+    my $itemconfig = _load_apperl_config($CurAPPerlName);
     print "cd ".$SiteConfig->{perl_repo}."\n";
     chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
     _command_or_die('make');
 
     $ENV{PERL_APE} = "$SiteConfig->{perl_repo}/perl.com";
     $ENV{OUTPUTDIR} = "$SiteConfig->{apperl_output}/$CurAPPerlName";
+    $ENV{MANIFEST} = "lib bin";
     _command_or_die('sh', $buildscript);
+    if(exists $itemconfig->{dest}) {
+        print "cd $StartDir\n";
+        chdir($StartDir) or die "Failed to restore cwd";
+        _command_or_die('cp', "$SiteConfig->{apperl_output}/$CurAPPerlName/perl.com", $itemconfig->{dest});
+    }
 }
 
 sub _command_or_die {
@@ -266,11 +329,17 @@ installation, and usage.
 
 =item *
 
-C<apperl-init> sets up a build environment for building APPerl;
-creating the config file C<$HOME/.config/apperl/apperl.json> and sets
-up perl and cosmopolitan git repos and does a C<git fetch> on the remotes.
-Setup of either of the repos can be skipped by passing in the path to
-the existing repos with the <-p> for perl or <-c> for cosmo flags.
+C<apperl-init> sets up a build environment for building APPerl and/or
+creates an APPerl project file C<apperl-project.json>. Setting up the
+build environment entails creating the config file
+C<$HOME/.config/apperl/site.json> and setting up the apperl build
+dependencies, the perl and cosmopolitan git repos. Setup of either of
+the repos can be skipped by passing in the path to the existing repos
+with the <-p> for perl or <-c> for cosmo flags. C<apperl-project.json>
+is used to specify custom perl builds in your project. Passing <-n>
+skips creating the project file. The project file is meant to be kept
+in source control. See the source of this file for examples of
+C<apperl_configs>.
 
 =item *
 
@@ -281,7 +350,8 @@ is set it is denoted with a C<*>.
 
 C<apperl-set> sets the current APPerl config, this includes
 C<make veryclean> in the Perl repo and C<git checkout> in both Perl and
-cosmo repos. The config name is written to C<~/.config/apperl/current>.
+cosmo repos. The current config name is written to
+C<$HOME/.config/apperl/site.json>.
 
 =item *
 
@@ -290,8 +360,9 @@ and runs Perl's C<Configure>
 
 =item *
 
-C<apperl-build> C<make>s perl and builds apperl. The output binary is
-available at C<~/.config/apperl/o/configname/perl.com>
+C<apperl-build> C<make>s perl and builds apperl. The output binary by
+default is copied to C<perl.com> in the current directory, set dest in
+C<apperl-project.json> to customize output binary path and name.
 
 =back
 

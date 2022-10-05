@@ -29,6 +29,12 @@ PREFIX_NOZIP=$(echo -n "$PERL_PREFIX" | sed 's&^/zip/*&&')
 [ "$PREFIX_NOZIP" = '' ] || PREFIX_NOZIP="$PREFIX_NOZIP/"
 echo "<<<buildAPPerl>>> prefix: $PERL_PREFIX nozip: $PREFIX_NOZIP"
 
+# generate the list of files to zip
+ZIP_FILES=$(perl -e 'my @files = split(" ", $ENV{MANIFEST}); print "\"$ARGV[0]$_\" " foreach @files;' "$PREFIX_NOZIP")
+
+#./perl -e 'print "[[$_]]\n" foreach @ARGV;' $(eval echo "$ZIP_FILES")
+#exit 0;
+
 # get the version
 PERL_VERSION=$(./perl -Ilib -e 'use Config; print $Config{version}')
 
@@ -49,6 +55,7 @@ THIS_DIR=$(realpath .)
 ZIP_ROOT="$TEMPDIR/zip"
 cd "$ZIP_ROOT"
 zip -r "$APPPATH" "$PREFIX_NOZIP"lib "$PREFIX_NOZIP"bin
+#zip -r "$APPPATH" $(eval echo $ZIP_FILES)
 cd "$THIS_DIR"
 
 # success, move perl.com out of temp
