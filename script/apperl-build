@@ -3,4 +3,4 @@ use strict; use warnings;
 use FindBin qw();
 use Perl::Dist::APPerl;
 
-Perl::Dist::APPerl::Build("$FindBin::Bin/_buildAPPerl.sh");
+Perl::Dist::APPerl::Build();

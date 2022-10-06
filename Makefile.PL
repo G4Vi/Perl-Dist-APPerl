@@ -15,7 +15,7 @@ my %WriteMakefileArgs = (
     },
     PREREQ_PM => {
     },
-    EXE_FILES => ['script/apperl-build', 'script/apperl-configure', 'script/apperl-init', 'script/apperl-list', 'script/apperl-set', 'script/apperl-update', 'script/_buildAPPerl.sh'],
+    EXE_FILES => ['script/apperl-build', 'script/apperl-configure', 'script/apperl-init', 'script/apperl-list', 'script/apperl-set'],
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
     clean => { FILES => ['Perl-Dist-APPerl-*']},
     META_MERGE => {
