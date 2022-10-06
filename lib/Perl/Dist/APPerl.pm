@@ -8,6 +8,7 @@ use File::Path qw(make_path);
 use Cwd qw(abs_path getcwd);
 use Data::Dumper qw(Dumper);
 use File::Basename qw(basename dirname);
+use File::Copy qw(copy);
 use FindBin qw();
 
 # https://packages.debian.org/experimental/amd64/perl-base/filelist with tweaks
@@ -796,7 +797,7 @@ sub Set {
     print "cd $StartDir\n";
     chdir($StartDir) or die "Failed to restore cwd";
     foreach my $dest (keys %{$itemconfig->{perl_repo_files}}) {
-        map {_command_or_die('cp', '-r', $_, "$SiteConfig->{perl_repo}/$dest/"); } @{$itemconfig->{perl_repo_files}{$dest}};
+        _command_or_die('cp', '-r', $_, "$SiteConfig->{perl_repo}/$dest/") foreach @{$itemconfig->{perl_repo_files}{$dest}};
     }
 
     $SiteConfig->{current_apperl} = $cfgname;
@@ -861,8 +862,11 @@ sub Build {
     print "cd $ZIP_ROOT\n";
     chdir($ZIP_ROOT);
     foreach my $destkey (keys %{$itemconfig->{post_make_install_files}}) {
-        my $dest = $destkey ne '__perllib__' ? $destkey : "lib/perl5/$PERL_VERSION";
-        map {_command_or_die('cp', '-r', $_, $dest); } @{$itemconfig->{post_make_install_files}{$destkey}};
+        my $dest = $destkey;
+        $dest =~ s/^__perllib__/lib\/perl5\/$PERL_VERSION/;
+        foreach my $file (@{$itemconfig->{post_make_install_files}{$destkey}}) {
+            _copy_recursive($file, $dest);
+        }
     }
     _command_or_die('zip', '-r', $APPPATH, @zipfiles);
     print "cd ".$SiteConfig->{perl_repo}."\n";
@@ -961,14 +965,13 @@ sub _load_apperl_config {
         }
     }
 
-    # add in ourselves for bootstrapping
+    # add in ourselves for bootstrapping, this even works when running internal Perl::Dist::APPerl from a bootstrapped build
     if(exists $itemconfig{'include_Perl-Dist-APPerl'} && $itemconfig{'include_Perl-Dist-APPerl'}) {
         my $thispath = abs_path(__FILE__);
         defined($thispath) or die(__FILE__.'issues?');
-        $thispath = dirname(dirname($thispath));
-        push @{$itemconfig{post_make_install_files}{__perllib__}}, $thispath;
+        push @{$itemconfig{post_make_install_files}{"__perllib__/Perl/Dist"}}, $thispath;
         my @additionalfiles = map { "$FindBin::Bin/$_" } ('apperl-build', 'apperl-configure', 'apperl-init', 'apperl-list', 'apperl-set');
-        map { -e $_ or die($!); } @additionalfiles;
+        -e $_ or die($!) foreach @additionalfiles;
         push @{$itemconfig{post_make_install_files}{bin}}, @additionalfiles;
     }
 
@@ -976,6 +979,37 @@ sub _load_apperl_config {
     $itemconfig{cosmo_ape_loader} //= 'ape-no-modify-self.o';
     ($itemconfig{cosmo_ape_loader} eq 'ape-no-modify-self.o') || ($itemconfig{cosmo_ape_loader} eq 'ape.o') or die "Unknown ape loader: " . $itemconfig{cosmo_ape_loader};
     return \%itemconfig;
+}
+
+sub _copy_recursive {
+    my ($src, $dest) = @_;
+    if(! -d $dest) {
+        make_path($dest);
+    }
+    goto &_copy_recursive_inner;
+}
+
+sub _copy_recursive_inner {
+    my ($src, $dest) = @_;
+    print "_copy_recursive $src $dest\n";
+    if(-f $src) {
+        copy($src, $dest) or die("Failed to copy $!");
+    }
+    elsif(-d $src) {
+        my $dest = "$dest/".basename($src);
+        if(! -d $dest) {
+            mkdir($dest) or die("Failed to mkdir $!");
+        }
+        opendir(my $dh, $src) or die("Failed to opendir");
+        while(my $file = readdir($dh)) {
+            next if(($file eq '.') || ($file eq '..'));
+            _copy_recursive("$src/$file", $dest);
+        }
+        closedir($dh);
+    }
+    else {
+        die "Unhandled file type for $src";
+    }
 }
 
 1;
