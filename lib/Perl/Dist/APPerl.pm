@@ -7,7 +7,8 @@ use JSON::PP qw(decode_json);
 use File::Path qw(make_path);
 use Cwd qw(abs_path getcwd);
 use Data::Dumper qw(Dumper);
-use File::Basename qw(basename);
+use File::Basename qw(basename dirname);
+use FindBin qw();
 
 # https://packages.debian.org/experimental/amd64/perl-base/filelist with tweaks
 my @smallmanifest = (
@@ -633,6 +634,9 @@ my %defconfig = (
             perl_extra_flags => ['-Doptimize=-Os', '-de'],
             dest => 'perl.com',
             MANIFEST => ['lib', 'bin'],
+            'include_Perl-Dist-APPerl' => 1,
+            post_make_install_bin_files => [],
+            post_make_install_lib_files => [],
         },
         'v5.36.0-full-v0.1.0-vista' => {
             desc => 'Full perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
@@ -644,7 +648,8 @@ my %defconfig = (
             desc => 'small perl v5.36.0',
             base => 'v5.36.0-full-v0.1.0',
             perl_extra_flags => ['-Doptimize=-Os', "-Donlyextensions= Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re ", '-de'],
-            MANIFEST => \@smallmanifest
+            MANIFEST => \@smallmanifest,
+            'include_Perl-Dist-APPerl' => 0
         },
         'v5.36.0-small-v0.1.0-vista' => {
             desc => 'small perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
@@ -849,6 +854,8 @@ sub Build {
     my $ZIP_ROOT = "$TEMPDIR/zip";
     print "cd $ZIP_ROOT\n";
     chdir($ZIP_ROOT);
+    map {_command_or_die('cp', '-r', $_, "lib/perl5/$PERL_VERSION"); } @{$itemconfig->{post_make_install_lib_files}};
+    map {_command_or_die('cp', $_, 'bin'); } @{$itemconfig->{post_make_install_bin_files}};
     _command_or_die('zip', '-r', $APPPATH, @zipfiles);
     print "cd ".$SiteConfig->{perl_repo}."\n";
     chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
@@ -932,6 +939,17 @@ sub _load_apperl_config {
                 $itemconfig{$key} = $config->{$key};
             }
         }
+    }
+
+    # add in ourselves for bootstrapping
+    if(exists $itemconfig{'include_Perl-Dist-APPerl'} && $itemconfig{'include_Perl-Dist-APPerl'}) {
+        my $thispath = abs_path(__FILE__);
+        defined($thispath) or die(__FILE__.'issues?');
+        $thispath = dirname(dirname($thispath));
+        push @{$itemconfig{post_make_install_lib_files}}, $thispath;
+        my @additionalfiles = map { "$FindBin::Bin/$_" } ('apperl-build', 'apperl-configure', 'apperl-init', 'apperl-list', 'apperl-set');
+        map { -e $_ or die($!); } @additionalfiles;
+        push @{$itemconfig{post_make_install_bin_files}}, @additionalfiles;
     }
 
     # verify apperl config sanity
