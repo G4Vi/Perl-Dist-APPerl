@@ -635,8 +635,8 @@ my %defconfig = (
             dest => 'perl.com',
             MANIFEST => ['lib', 'bin'],
             'include_Perl-Dist-APPerl' => 1,
-            post_make_install_bin_files => [],
-            post_make_install_lib_files => [],
+            perl_repo_files => {},
+            post_make_install_files => {},
         },
         'v5.36.0-full-v0.1.0-vista' => {
             desc => 'Full perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
@@ -793,6 +793,12 @@ sub Set {
     _command_or_die('rm', '-f', 'miniperl.com', 'miniperl.elf', 'perl.com', 'perl.elf');
     _command_or_die('git', 'checkout', $itemconfig->{perl_id});
 
+    print "cd $StartDir\n";
+    chdir($StartDir) or die "Failed to restore cwd";
+    foreach my $dest (keys %{$itemconfig->{perl_repo_files}}) {
+        map {_command_or_die('cp', '-r', $_, "$SiteConfig->{perl_repo}/$dest/"); } @{$itemconfig->{perl_repo_files}{$dest}};
+    }
+
     $SiteConfig->{current_apperl} = $cfgname;
     _write_json($siteconfigpath, $SiteConfig);
     print "$0: Successfully switched to $cfgname\n";
@@ -854,8 +860,10 @@ sub Build {
     my $ZIP_ROOT = "$TEMPDIR/zip";
     print "cd $ZIP_ROOT\n";
     chdir($ZIP_ROOT);
-    map {_command_or_die('cp', '-r', $_, "lib/perl5/$PERL_VERSION"); } @{$itemconfig->{post_make_install_lib_files}};
-    map {_command_or_die('cp', $_, 'bin'); } @{$itemconfig->{post_make_install_bin_files}};
+    foreach my $destkey (keys %{$itemconfig->{post_make_install_files}}) {
+        my $dest = $destkey ne '__perllib__' ? $destkey : "lib/perl5/$PERL_VERSION";
+        map {_command_or_die('cp', '-r', $_, $dest); } @{$itemconfig->{post_make_install_files}{$destkey}};
+    }
     _command_or_die('zip', '-r', $APPPATH, @zipfiles);
     print "cd ".$SiteConfig->{perl_repo}."\n";
     chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
@@ -933,7 +941,19 @@ sub _load_apperl_config {
             if($key =~ /^\+(.+)/) {
                 my $realkey = $1;
                 exists $itemconfig{$realkey} or die("cannot append without existing key");
-                $itemconfig{$realkey} = [@{$itemconfig{$realkey}}, @{$config->{$key}}]
+                my $rtype = ref($itemconfig{$realkey});
+                $rtype or die("not ref");
+                if($rtype eq 'ARRAY') {
+                    $itemconfig{$realkey} = [@{$itemconfig{$realkey}}, @{$config->{$key}}];
+                }
+                elsif($rtype eq 'HASH') {
+                    foreach my $dest (keys %{$config->{$key}}) {
+                        push @{$itemconfig{$realkey}{$dest}}, @{$config->{$key}{$dest}};
+                    }
+                }
+                else {
+                    die($rtype);
+                }
             }
             else {
                 $itemconfig{$key} = $config->{$key};
@@ -946,10 +966,10 @@ sub _load_apperl_config {
         my $thispath = abs_path(__FILE__);
         defined($thispath) or die(__FILE__.'issues?');
         $thispath = dirname(dirname($thispath));
-        push @{$itemconfig{post_make_install_lib_files}}, $thispath;
+        push @{$itemconfig{post_make_install_files}{__perllib__}}, $thispath;
         my @additionalfiles = map { "$FindBin::Bin/$_" } ('apperl-build', 'apperl-configure', 'apperl-init', 'apperl-list', 'apperl-set');
         map { -e $_ or die($!); } @additionalfiles;
-        push @{$itemconfig{post_make_install_bin_files}}, @additionalfiles;
+        push @{$itemconfig{post_make_install_files}{bin}}, @additionalfiles;
     }
 
     # verify apperl config sanity
@@ -957,8 +977,6 @@ sub _load_apperl_config {
     ($itemconfig{cosmo_ape_loader} eq 'ape-no-modify-self.o') || ($itemconfig{cosmo_ape_loader} eq 'ape.o') or die "Unknown ape loader: " . $itemconfig{cosmo_ape_loader};
     return \%itemconfig;
 }
-
-
 
 1;
 
