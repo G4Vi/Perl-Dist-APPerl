@@ -75,8 +75,8 @@ jobs:
         CF_EMAIL: ${{ secrets.CF_EMAIL }}
       run: |
         ls -la
-        apperl-init --mode build -p perl5 -c cosmopolitan
-        apperl-set ${{ matrix.config.apperl-config }}
+        apperl-install-build-deps -p perl5 -c cosmopolitan
+        apperl-init ${{ matrix.config.apperl-config }}
         apperl-list
         apperl-configure -Dcf_by="$CF_BY" -Dcf_email="$CF_EMAIL"
         apperl-build

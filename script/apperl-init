@@ -5,28 +5,23 @@ Getopt::Long::Configure qw(gnu_getopt);
 use Perl::Dist::APPerl;
 
 my $usage = <<'END_USAGE';
-apperl-init [-h|--help] [-p|--perlrepo <path>] [-c|--cosmorepo <path>]
-  -m|--mode         Set the mode of the new config
-  -p|--perlrepo     Set path to perl repo (Skips creating perl repo, git fetch, etc)
-  -c|--cosmorepo    Set path to cosmopolitan repo (Skips creating cosmo repo, git fetch, etc)
-  -n|--no-project   Skip creating apperl-project.json in the current directory
-  -h|--help         Show this message
-Initialize APPerl tools, Create an APPerl project or reinitialize an existing one
+apperl-init [-h|--help] [-n|--name <name>] [-b|--base <base>]
+  -n|--name     name of the default config
+  -b|--base     base class of the config
+  -h|--help     Show this message
+Create an APPerl project, create a config if -n specified and it
+doesn't already exists, checkout the config.
 END_USAGE
-my $perlrepo;
-my $cosmorepo;
+my $name;
+my $base;
 my $help;
-my $noproject;
-my $mode;
-GetOptions("perlrepo|p=s" => \$perlrepo,
-           "cosmorepo|c=s" => \$cosmorepo,
+GetOptions("name|n=s" => \$name,
+           "base|b=s" => \$base,
            "help|h" => \$help,
-           "no-project|n" => \$noproject,
-           "mode|m=s" => \$mode
 ) or die($usage);
 if($help) {
     print $usage;
     exit 0;
 }
 
-Perl::Dist::APPerl::Init($mode, $noproject, $perlrepo, $cosmorepo);
+Perl::Dist::APPerl::Init($name, $base);

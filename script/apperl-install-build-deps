@@ -1,0 +1,27 @@
+#!/usr/bin/perl
+use strict; use warnings;
+use Getopt::Long qw(GetOptions);
+Getopt::Long::Configure qw(gnu_getopt);
+use Perl::Dist::APPerl;
+
+my $usage = <<'END_USAGE';
+apperl-install-build-deps [-h|--help] [-c|--cosmo <path>] [-p|--perl <path>]
+  -c|--cosmo <path> set path to cosmopolitan repo (skips git initialization)
+  -p|--perl  <path> set path to perl repo (skips git initialization)
+  -h|--help     Show this message
+Install build dependencies for APPerl, use -c or -p to skip initializing
+the respect repo by providing a path to it.
+END_USAGE
+my $cosmo;
+my $perl;
+my $help;
+GetOptions("cosmo|c=s" => \$cosmo,
+           "perl|p=s" => \$perl,
+           "help|h" => \$help,
+) or die($usage);
+if($help) {
+    print $usage;
+    exit 0;
+}
+
+Perl::Dist::APPerl::InstallBuildDeps($perl, $cosmo);
