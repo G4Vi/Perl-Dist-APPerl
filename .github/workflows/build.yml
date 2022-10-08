@@ -85,7 +85,7 @@ jobs:
       with:
         name: ${{ matrix.config.name }}
         if-no-files-found: error
-        path: ~/.config/apperl/o/${{ matrix.config.apperl-config }}/perl.com
+        path: .apperl/o/${{ matrix.config.apperl-config }}/perl.com
 
   create-release:
     name:    Create release
