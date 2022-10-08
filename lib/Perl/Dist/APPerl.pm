@@ -11,6 +11,19 @@ use File::Basename qw(basename dirname);
 use File::Copy qw(copy);
 use FindBin qw();
 
+use constant {
+    SITE_CONFIG_DIR  => (($ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config')).'/apperl'),
+    PROJECT_FILE => 'apperl-project.json',
+    START_WD => getcwd(),
+    PROJECT_TMP_DIR => abs_path('.apperl')
+};
+use constant {
+    SITE_CONFIG_FILE => (SITE_CONFIG_DIR."/site.json"),
+    PROJECT_TMP_CONFIG_FILE => (PROJECT_TMP_DIR.'/user-project.json')
+};
+
+sub _load_apperl_configs {
+
 # https://packages.debian.org/experimental/amd64/perl-base/filelist with tweaks
 my @smallmanifest = (
     'lib/perl5/5.36.0/AutoLoader.pm',
@@ -688,37 +701,47 @@ my %defconfig = (
         },
     }
 );
+$defconfig{defaultconfig} = $defconfig{apperl_configs}{full}{base};
 
-use constant {
-    SITE_CONFIG_DIR  => (($ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config')).'/apperl'),
-    PROJECT_FILE => 'apperl-project.json',
-    START_WD => getcwd()
-};
-use constant {
-    SITE_CONFIG_FILE => (SITE_CONFIG_DIR."/site.json"),
-};
+    my $projectconfig = _load_json(PROJECT_FILE);
+    if($projectconfig) {
+        foreach my $projkey (keys %$projectconfig) {
+            if($projkey ne 'apperl_configs') {
+                $defconfig{$projkey} = $projectconfig->{$projkey};
+            }
+            else {
+                $defconfig{$projkey} = {%{$defconfig{$projkey}}, %{$projectconfig->{$projkey}}};
+            }
+        }
+    }
+    return \%defconfig;
+}
+
+sub _build_def_config {
+    return {
+        base => ($_[0] // 'nobuild-v0.1.0'),
+        desc => 'description of this config',
+        dest => 'perl.com'
+    };
+}
 
 sub Init {
     my ($defaultconfig, $base) = @_;
     # validate
     die "Cannot create project config, it already exists ".PROJECT_FILE if(-e PROJECT_FILE);
-    my %Configs = %{_load_apperl_configs()};
+    my $Configs = _load_apperl_configs();
     if(defined $base) {
-        if(exists $Configs{apperl_configs}{$defaultconfig}) {
+        if(exists $Configs->{apperl_configs}{$defaultconfig}) {
             die "Cannot set base for $defaultconfig, $defaultconfig already exists ";
         }
-        exists $Configs{apperl_configs}{$base} or die "base config $base does not exist";
+        exists $Configs->{apperl_configs}{$base} or die "base config $base does not exist";
     }
 
     # create project config
     my %jsondata = ( 'defaultconfig' =>  ($defaultconfig // 'nobuild-v0.1.0'));
-    if($defaultconfig && ! exists $Configs{apperl_configs}{$defaultconfig}) {
+    if($defaultconfig && ! exists $Configs->{apperl_configs}{$defaultconfig}) {
         $jsondata{apperl_configs} = {
-            $defaultconfig => {
-                base => ($base // 'nobuild-v0.1.0'),
-                desc => 'description of this config',
-                dest => 'perl.com'
-            },
+            $defaultconfig => _build_def_config($base),
         };
     }
     print "writing new project\n";
@@ -728,18 +751,32 @@ sub Init {
     Set($jsondata{defaultconfig});
 }
 
+sub NewConfig {
+    my ($name, $base) = @_;
+    $name or die "Name required to add new config";
+    my $Configs = _load_apperl_configs();
+    ! exists $Configs->{apperl_configs}{$name} or die "Cannot create already existing config";
+    if(defined $base) {
+        exists $Configs->{apperl_configs}{$base} or die "base config $base does not exist";
+    }
+    my $projectconfig = _load_json(PROJECT_FILE) or die "project file must already exist";
+    $projectconfig->{apperl_configs}{$name} = _build_def_config($base);
+    print "rewriting project\n";
+    _write_json(PROJECT_FILE, $projectconfig);
+}
+
 sub InstallBuildDeps {
     my ($perlrepo, $cosmorepo) = @_;
     my $SiteConfig = _load_json(SITE_CONFIG_FILE);
     # if a repo is not set, set one up by default
     if((!$SiteConfig || !exists $SiteConfig->{perl_repo}) && (!$perlrepo)) {
         $perlrepo = SITE_CONFIG_DIR."/perl5";
-        _setup_repo($perlrepo, $defconfig{perl_remotes});
+        _setup_repo($perlrepo, _load_apperl_configs()->{perl_remotes});
         print "apperl-install-build-deps: setup perl repo\n";
     }
     if((!$SiteConfig || !exists $SiteConfig->{cosmo_repo}) && (!$cosmorepo)) {
         $cosmorepo = SITE_CONFIG_DIR."/cosmopolitan";
-        _setup_repo( $cosmorepo, $defconfig{cosmo_remotes});
+        _setup_repo( $cosmorepo, _load_apperl_configs()->{cosmo_remotes});
         print "apperl-install-build-deps: setup cosmo repo\n";
     }
 
@@ -757,18 +794,22 @@ sub InstallBuildDeps {
 }
 
 sub Status {
-    my %Configs = %{_load_apperl_configs()};
-    my @configlist = sort(keys %{$Configs{apperl_configs}});
+    my $Configs = _load_apperl_configs();
+    my @configlist = sort(keys %{$Configs->{apperl_configs}});
     my $UserProjectConfig = _load_user_project_config();
     my $CurAPPerlName;
     if($UserProjectConfig) {
         if(exists $UserProjectConfig->{current_apperl}) {
             $CurAPPerlName = $UserProjectConfig->{current_apperl};
-            exists $Configs{apperl_configs}{$CurAPPerlName} or die("non-existent apperl config $CurAPPerlName in user project config");
+            exists $Configs->{apperl_configs}{$CurAPPerlName} or die("non-existent apperl config $CurAPPerlName in user project config");
         }
     }
+    if(!defined $CurAPPerlName && exists $Configs->{'defaultconfig'}) {
+        $CurAPPerlName = $Configs->{'defaultconfig'};
+        exists $Configs->{apperl_configs}{$CurAPPerlName} or die("non-existent default apperl config $CurAPPerlName");
+    }
     foreach my $item (@configlist) {
-        print (sprintf "%s %-30.30s | %s\n", $CurAPPerlName && ($item eq $CurAPPerlName) ? '*' : ' ', $item, ($Configs{apperl_configs}{$item}{desc} // ''));
+        print (sprintf "%s %-30.30s | %s\n", $CurAPPerlName && ($item eq $CurAPPerlName) ? '*' : ' ', $item, ($Configs->{apperl_configs}{$item}{desc} // ''));
     }
 }
 
@@ -823,22 +864,21 @@ sub Set {
         $UserProjectConfig->{nobuild_perl_bin} = $validperl;
         print "Set UserProjectConfig to nobuild_perl-bin to $validperl\n";
     }
-    $UserProjectConfig->{apperl_output} //= abs_path('.')."/.apperl/o";
+    $UserProjectConfig->{apperl_output} //= PROJECT_TMP_DIR."/o";
     $UserProjectConfig->{current_apperl} = $cfgname;
     _write_user_project_config($UserProjectConfig);
     print "$0: Successfully switched to $cfgname\n";
 }
 
 sub Configure {
-    my $UserProjectConfig = _load_user_project_config() or die "cannot Configure without UserProjectConfig";
-    my $CurAPPerlName = $UserProjectConfig->{current_apperl} or die "Bad or nonexistant value for UserProjectConfig->{current_apperl}";
-    my %Configs = %{_load_apperl_configs()};
-    exists $Configs{apperl_configs}{$CurAPPerlName} or die("non-existent apperl config $CurAPPerlName in user project config");
+    my $Configs = _load_apperl_configs();
+    my $UserProjectConfig = _load_valid_user_project_config_with_default($Configs) or die "cannot Configure without valid UserProjectConfig";
+    my $CurAPPerlName = $UserProjectConfig->{current_apperl};
     ! exists $UserProjectConfig->{nobuild_perl_bin} or die "nobuild perl cannot be configured";
     my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot Configure without build deps (run apperl-install-build-deps)";
     -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
     -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
-    my $itemconfig = _load_apperl_config($Configs{apperl_configs}, $CurAPPerlName);
+    my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
     # build cosmo
     print "$0: Building cosmo, COSMO_MODE=$itemconfig->{cosmo_mode} COSMO_APE_LOADER=$itemconfig->{cosmo_ape_loader}\n";
     _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j4', "MODE=$itemconfig->{cosmo_mode}",
@@ -859,11 +899,10 @@ sub Configure {
 }
 
 sub Build {
-    my $UserProjectConfig = _load_user_project_config() or die "cannot Configure without UserProjectConfig";
-    my $CurAPPerlName = $UserProjectConfig->{current_apperl} or die "Bad or nonexistant value for UserProjectConfig->{current_apperl}";
-    my %Configs = %{_load_apperl_configs()};
-    exists $Configs{apperl_configs}{$CurAPPerlName} or die("non-existent apperl config $CurAPPerlName in user project config");
-    my $itemconfig = _load_apperl_config($Configs{apperl_configs}, $CurAPPerlName);
+    my $Configs = _load_apperl_configs();
+    my $UserProjectConfig = _load_valid_user_project_config_with_default($Configs) or die "cannot Build without valid UserProjectConfig";
+    my $CurAPPerlName = $UserProjectConfig->{current_apperl};
+    my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
 
     my $PERL_APE;
     my @perl_config_cmd;
@@ -1047,31 +1086,36 @@ sub _load_apperl_config {
 }
 
 sub _load_user_project_config {
-    return _load_json('.apperl/user-project.json');
+    return _load_json(PROJECT_TMP_CONFIG_FILE);
+}
+
+sub _load_valid_user_project_config {
+    my ($Configs) = @_;
+    my $UserProjectConfig = _load_user_project_config();
+    if($UserProjectConfig) {
+        if(exists $UserProjectConfig->{current_apperl}) {
+            my $CurAPPerlName = $UserProjectConfig->{current_apperl};
+            exists $Configs->{apperl_configs}{$CurAPPerlName} or die("non-existent apperl config $CurAPPerlName in user project config");
+            return $UserProjectConfig;
+        }
+    }
+    return undef;
+}
+
+sub _load_valid_user_project_config_with_default {
+    my ($Configs) = @_;
+    my $UserProjectConfig = _load_valid_user_project_config($Configs);
+    return $UserProjectConfig if($UserProjectConfig || !exists $Configs->{defaultconfig});
+    Set($Configs->{defaultconfig});
+    return _load_valid_user_project_config($Configs);
 }
 
 sub _write_user_project_config {
     my ($config) = @_;
-    if(! -d '.apperl') {
-        mkdir('.apperl') or die("$!");
+    if(! -d PROJECT_TMP_DIR) {
+        make_path(PROJECT_TMP_DIR);
     };
-    _write_json('.apperl/user-project.json', $config);
-}
-
-sub _load_apperl_configs {
-    my %InsideConfigs = %defconfig;
-    my $projectconfig = _load_json(PROJECT_FILE);
-    if($projectconfig) {
-        foreach my $projkey (keys %$projectconfig) {
-            if($projkey ne 'apperl_configs') {
-                $InsideConfigs{$projkey} = $projectconfig->{$projkey};
-            }
-            else {
-                $InsideConfigs{$projkey} = {%{$InsideConfigs{$projkey}}, %{$projectconfig->{$projkey}}};
-            }
-        }
-    }
-    return \%InsideConfigs;
+    _write_json(PROJECT_TMP_CONFIG_FILE, $config);
 }
 
 sub _copy_recursive {
