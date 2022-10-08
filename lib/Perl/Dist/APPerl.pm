@@ -821,10 +821,9 @@ sub Set {
         $validperl = abs_path($validperl);
         $validperl or die "no valid perl found to use for nobuild config";
         $UserProjectConfig->{nobuild_perl_bin} = $validperl;
-        $UserProjectConfig->{apperl_output} //= abs_path('.')."/.apperl/o";
         print "Set UserProjectConfig to nobuild_perl-bin to $validperl\n";
     }
-
+    $UserProjectConfig->{apperl_output} //= abs_path('.')."/.apperl/o";
     $UserProjectConfig->{current_apperl} = $cfgname;
     _write_user_project_config($UserProjectConfig);
     print "$0: Successfully switched to $cfgname\n";
