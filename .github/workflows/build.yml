@@ -76,7 +76,7 @@ jobs:
       run: |
         ls -la
         apperl-install-build-deps -p perl5 -c cosmopolitan
-        apperl-init ${{ matrix.config.apperl-config }}
+        apperl-init --name ${{ matrix.config.apperl-config }}
         apperl-list
         apperl-configure -Dcf_by="$CF_BY" -Dcf_email="$CF_EMAIL"
         apperl-build
