@@ -1,0 +1,4 @@
+#!/usr/bin/perl
+use strict; use warnings;
+use Perl::Dist::APPerl;
+Perl::Dist::APPerl::apperlm(@ARGV);

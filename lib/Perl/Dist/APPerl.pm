@@ -973,6 +973,44 @@ sub Build {
     }
 }
 
+sub apperlm {
+    my $generic_usage = <<'END_USAGE';
+apperlm <command> [...]
+List of commands, try apperlm <command> --help for info about a command
+  list               | List available APPerl configurations
+  init               | Create an APPerl project in the current dir
+  new-config         | Add a new APPerl configuration to the project
+  checkout           | Switch to another APPerl configurations
+  install-build-deps | Install build dependencies for APPerl
+  configure          | `Configure` Perl (only valid with build config)
+  build              | Build APPerl
+  help               | Prints this message
+
+apperlm eases configuring and building Actually Portable Perl (APPerl),
+including creating custom versions for application packaging, packaging
+perl for inclusion in a SDK, and more.
+
+See `perldoc Perl::Dist::APPerl` for more info.
+END_USAGE
+    my $command = shift(@_) if(@_);
+    $command or die($generic_usage);
+    if($command eq 'list') {
+        Perl::Dist::APPerl::Status();
+    }
+    elsif($command eq 'build') {
+        Perl::Dist::APPerl::Build();
+    }
+    elsif($command eq 'configure') {
+        Perl::Dist::APPerl::Configure(@_);
+    }
+    elsif($command =~ /^(halp|help|\-h|\-\-help)$/i) {
+        print $generic_usage;
+    }
+    else {
+        die($generic_usage);
+    }
+}
+
 sub _command_or_die {
     print join(' ', @_), "\n";
     system(@_) == 0 or die;
