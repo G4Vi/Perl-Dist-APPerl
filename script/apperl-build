@@ -1,6 +1,0 @@
-#!/usr/bin/perl
-use strict; use warnings;
-use FindBin qw();
-use Perl::Dist::APPerl;
-
-Perl::Dist::APPerl::Build();

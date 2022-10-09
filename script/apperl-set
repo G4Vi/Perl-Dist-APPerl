@@ -1,8 +1,0 @@
-#!/usr/bin/perl
-use strict; use warnings;
-use JSON::PP qw(decode_json);
-use Perl::Dist::APPerl;
-
-scalar(@ARGV) == 1 or die('bad args');
-my $cfgname = $ARGV[0];
-Perl::Dist::APPerl::Set($cfgname);

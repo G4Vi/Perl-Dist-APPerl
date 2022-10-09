@@ -75,11 +75,11 @@ jobs:
         CF_EMAIL: ${{ secrets.CF_EMAIL }}
       run: |
         ls -la
-        apperl-install-build-deps -p perl5 -c cosmopolitan
-        apperl-init --name ${{ matrix.config.apperl-config }}
-        apperl-list
-        apperl-configure -Dcf_by="$CF_BY" -Dcf_email="$CF_EMAIL"
-        apperl-build
+        apperlm install-build-deps -p perl5 -c cosmopolitan
+        apperlm init --name ${{ matrix.config.apperl-config }}
+        apperlm list
+        apperlm configure -Dcf_by="$CF_BY" -Dcf_email="$CF_EMAIL"
+        apperlm build
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:

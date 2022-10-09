@@ -10,6 +10,8 @@ use Data::Dumper qw(Dumper);
 use File::Basename qw(basename dirname);
 use File::Copy qw(copy);
 use FindBin qw();
+use Getopt::Long qw(GetOptionsFromArray);
+Getopt::Long::Configure qw(gnu_getopt);
 
 use constant {
     SITE_CONFIG_DIR  => (($ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config')).'/apperl'),
@@ -731,6 +733,7 @@ sub Init {
     die "Cannot create project config, it already exists ".PROJECT_FILE if(-e PROJECT_FILE);
     my $Configs = _load_apperl_configs();
     if(defined $base) {
+        $defaultconfig or die "Cannot set base without name for new config";
         if(exists $Configs->{apperl_configs}{$defaultconfig}) {
             die "Cannot set base for $defaultconfig, $defaultconfig already exists ";
         }
@@ -772,12 +775,12 @@ sub InstallBuildDeps {
     if((!$SiteConfig || !exists $SiteConfig->{perl_repo}) && (!$perlrepo)) {
         $perlrepo = SITE_CONFIG_DIR."/perl5";
         _setup_repo($perlrepo, _load_apperl_configs()->{perl_remotes});
-        print "apperl-install-build-deps: setup perl repo\n";
+        print "apperlm install-build-deps: setup perl repo\n";
     }
     if((!$SiteConfig || !exists $SiteConfig->{cosmo_repo}) && (!$cosmorepo)) {
         $cosmorepo = SITE_CONFIG_DIR."/cosmopolitan";
         _setup_repo( $cosmorepo, _load_apperl_configs()->{cosmo_remotes});
-        print "apperl-install-build-deps: setup cosmo repo\n";
+        print "apperlm install-build-deps: setup cosmo repo\n";
     }
 
     # (re)write site config
@@ -790,7 +793,7 @@ sub InstallBuildDeps {
     $SiteConfig = \%siteconfig;
     make_path(SITE_CONFIG_DIR);
     _write_json(SITE_CONFIG_FILE, \%siteconfig);
-    print "apperl-install-build-deps: wrote site config to ".SITE_CONFIG_FILE."\n";
+    print "apperlm install-build-deps: wrote site config to ".SITE_CONFIG_FILE."\n";
 }
 
 sub Status {
@@ -825,7 +828,7 @@ sub Set {
     my $itemconfig = _load_apperl_config(_load_apperl_configs()->{apperl_configs}, $cfgname);
     print Dumper($itemconfig);
     if(! exists $itemconfig->{nobuild_perl_bin}) {
-        my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot set without build deps (run apperl-install-build-deps)";
+        my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot set without build deps (run apperlm install-build-deps)";
         -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
         -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
         print "cd ".$SiteConfig->{cosmo_repo}."\n";
@@ -875,7 +878,7 @@ sub Configure {
     my $UserProjectConfig = _load_valid_user_project_config_with_default($Configs) or die "cannot Configure without valid UserProjectConfig";
     my $CurAPPerlName = $UserProjectConfig->{current_apperl};
     ! exists $UserProjectConfig->{nobuild_perl_bin} or die "nobuild perl cannot be configured";
-    my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot Configure without build deps (run apperl-install-build-deps)";
+    my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot Configure without build deps (run apperlm install-build-deps)";
     -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
     -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
     my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
@@ -895,7 +898,7 @@ sub Configure {
     $ENV{COSMO_MODE} = $itemconfig->{cosmo_mode};
     $ENV{COSMO_APE_LOADER} = $itemconfig->{cosmo_ape_loader};
     _command_or_die('sh', 'Configure', @{$itemconfig->{perl_flags}}, @{$itemconfig->{perl_extra_flags}}, @_);
-    print "$0: Configure successful, time for apperl-build\n";
+    print "$0: Configure successful, time for apperlm build\n";
 }
 
 sub Build {
@@ -908,7 +911,7 @@ sub Build {
     my @perl_config_cmd;
     # build cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
-        my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot build without build deps (run apperl-install-build-deps)";
+        my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot build without build deps (run apperlm install-build-deps)";
         -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
         -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
         print "cd ".$SiteConfig->{perl_repo}."\n";
@@ -923,7 +926,7 @@ sub Build {
     }
 
     # prepare for install and pack
-    -f $PERL_APE or die "apperl-build: perl ape not found";
+    -f $PERL_APE or die "apperlm build: perl ape not found";
     my $OUTPUTDIR = "$UserProjectConfig->{apperl_output}/$CurAPPerlName";
     if(-d $OUTPUTDIR) {
         _command_or_die('rm', '-rf', $OUTPUTDIR);
@@ -986,11 +989,9 @@ List of commands, try apperlm <command> --help for info about a command
   build              | Build APPerl
   help               | Prints this message
 
-apperlm eases configuring and building Actually Portable Perl (APPerl),
-including creating custom versions for application packaging, packaging
-perl for inclusion in a SDK, and more.
-
-See `perldoc Perl::Dist::APPerl` for more info.
+Actually Portable Perl Manager (apperlm) handles configuring and
+building Actually Portable Perl (APPerl). See
+`perldoc Perl::Dist::APPerl` for more info.
 END_USAGE
     my $command = shift(@_) if(@_);
     $command or die($generic_usage);
@@ -1003,8 +1004,78 @@ END_USAGE
     elsif($command eq 'configure') {
         Perl::Dist::APPerl::Configure(@_);
     }
-    elsif($command =~ /^(halp|help|\-h|\-\-help)$/i) {
+    elsif($command =~ /^(\-)*(halp|help|h)$/i) {
         print $generic_usage;
+    }
+    elsif($command eq 'checkout') {
+        scalar(@_) == 1 or die('bad args');
+        my $cfgname = $_[0];
+        Perl::Dist::APPerl::Set($cfgname);
+    }
+    elsif($command eq 'init') {
+        my $usage = <<'END_USAGE';
+apperlm init [-h|--help] [-n|--name <name>] [-b|--base <base>]
+  -n|--name     name of the default config
+  -b|--base     base class of the config
+  -h|--help     Show this message
+Create an APPerl project, create a config if -n specified and it
+doesn't already exist, checkout the config.
+END_USAGE
+        my $name;
+        my $base;
+        my $help;
+        GetOptionsFromArray(\@_, "name|n=s" => \$name,
+                   "base|b=s" => \$base,
+                   "help|h" => \$help,
+        ) or die($usage);
+        if($help) {
+            print $usage;
+            exit 0;
+        }
+        Perl::Dist::APPerl::Init($name, $base);
+    }
+    elsif($command eq 'install-build-deps') {
+        my $usage = <<'END_USAGE';
+apperlm install-build-deps [-h|--help] [-c|--cosmo <path>] [-p|--perl <path>]
+  -c|--cosmo <path> set path to cosmopolitan repo (skips git initialization)
+  -p|--perl  <path> set path to perl repo (skips git initialization)
+  -h|--help     Show this message
+Install build dependencies for APPerl, use -c or -p to skip initializing
+those repos by providing a path to it.
+END_USAGE
+        my $cosmo;
+        my $perl;
+        my $help;
+        GetOptionsFromArray(\@_, "cosmo|c=s" => \$cosmo,
+                   "perl|p=s" => \$perl,
+                   "help|h" => \$help,
+        ) or die($usage);
+        if($help) {
+            print $usage;
+            exit 0;
+        }
+        Perl::Dist::APPerl::InstallBuildDeps($perl, $cosmo);
+    }
+    elsif($command eq 'new-config') {
+        my $usage = <<'END_USAGE';
+apperlm new-config [-h|--help] [-n|--name <name>] [-b|--base <base>]
+  -n|--name     name of the default config
+  -b|--base     base class of the config
+  -h|--help     Show this message
+Create a new APPerl config and add it to the project
+END_USAGE
+        my $name;
+        my $base;
+        my $help;
+        GetOptionsFromArray(\@_, "name|n=s" => \$name,
+                   "base|b=s" => \$base,
+                   "help|h" => \$help,
+        ) or die($usage);
+        if($help) {
+            print $usage;
+            exit 0;
+        }
+        Perl::Dist::APPerl::NewConfig($name, $base);
     }
     else {
         die($generic_usage);
@@ -1109,7 +1180,7 @@ sub _load_apperl_config {
         my $thispath = abs_path(__FILE__);
         defined($thispath) or die(__FILE__.'issues?');
         push @{$itemconfig{post_make_install_files}{"__perllib__/Perl/Dist"}}, $thispath;
-        my @additionalfiles = map { "$FindBin::Bin/$_" } ('apperl-build', 'apperl-configure', 'apperl-init', 'apperl-install-build-deps', 'apperl-list', 'apperl-set');
+        my @additionalfiles = map { "$FindBin::Bin/$_" } ('apperlm');
         -e $_ or die($!) foreach @additionalfiles;
         push @{$itemconfig{post_make_install_files}{bin}}, @additionalfiles;
     }
@@ -1205,84 +1276,115 @@ Actually Portable Perl (APPerl) is a distribution of Perl the runs on
 several x86_64 operating systems via the same binary. For portability,
 it builds to a single binary with perl modules packed inside of it.
 
-This can be used to make cross-platform, single binary, standalone perl
-applications; an alternative to L<PAR::Packer>. It also could  allow
-easily adding perl into development SDKs, be carried on your USB drive,
-or just allow running the exact same perl on multiple computers.
+Cross-platform, single binary, standalone Perl applications can be made
+by building custom versions of APPerl, with and without compiling
+Perl from scratch, so it can be used an alternative to L<PAR::Packer>.
+APPerl could also easily be added to development SDKs,
+carried on your USB drive, or just allow you to run the exact same perl
+on all your PCs multiple computers.
 
-This package documentation covers building APPerl from source,
-installation, and usage.
+This package documentation covers the apperlm tool for building APPerl,
+APPerl usage, and how to create applications with APPerl.
 
 =head1 SYNOPSIS
 
-    apperl-init
-    apperl-list
-    apperl-set v5.36.0-full
-    apperl-list
-    apperl-configure
-    apperl-build
-    cp "$HOME/.config/apperl/o/v5.36.0-full/perl.com" perl
-    ./perl /zip/bin/perldoc perlcosmo
+    apperlm install-build-deps
+    apperlm-list
+    apperlm configure
+    apperlm build
+    ./perl.com /zip/bin/perldoc Perl::Dist::APPerl
+    cp perl.com perl
     ./perl --assimilate
     ln -s perl perldoc
     ./perldoc perlcosmo
 
-=head1 BUILDING
+To build small APPerl from scratch
+    apperlm install-build-deps
+    apperlm checkout small
+    apperlm configure
+    apperlm build
+
+To start an APPerl project from an existing APPerl and build it
+    mkdir src
+    mv perl.com src/
+    apperlm init --name your_config_name --base nobuild-v0.1.0
+    apperlm build
+
+To start an APPerl project and build from scratch
+    apperlm install-build-deps
+    apperlm init --name your_config_name --base v5.36.0-small-v0.1.0
+    apperlm configure
+    apperlm build
+
+=head1 apperlm
+
+The C<apperlm> (APPerl manager) script is a CLI interface to configuring
+and building APPerl.
+
+=head2 COMMAND REFERENCE
 
 =over 4
 
 =item *
 
-C<apperl-init> sets up a build environment for building APPerl and/or
-creates an APPerl project file C<apperl-project.json>. Setting up the
-build environment entails creating the config file
-C<$HOME/.config/apperl/site.json> and setting up the apperl build
-dependencies, the perl and cosmopolitan git repos. Setup of either of
-the repos can be skipped by passing in the path to the existing repos
-with the <-p> for perl or <-c> for cosmo flags. C<apperl-project.json>
-is used to specify custom perl builds in your project. Passing <-n>
-skips creating the project file. The project file is meant to be kept
-in source control. See the source of this file for examples of
-C<apperl_configs>.
+C<apperlm install-build-deps> installs APPerl build dependencies,
+currently, a fork of the perl5 source and the cosmopolitan libc. This
+is only necessary if you are building APPerl from scratch (not using a
+nobuild configuration). Initialization of the repos can be skipped by
+passing the path to them locally. The cosmopolitan repo
+initialization can be skipped with -c <path_to_repo> . The perl5 repo
+initialization can be skipped with -p <path_to_repo>. This install is
+done user specific, installs to $XDG_CONFIG_HOME/apperl .
 
 =item *
 
-C<apperl-list> lists the available APPerl configs. If a current config
+C<apperlm init> creates an APPerl project, C<apperl-project.json>. The
+project default configuration may to specified with -n <name>. If the
+configuration does not exist, a new configuration will be created, and
+then the base of the configuration may be specified with
+-b <base_config_name>. The default configuration is then checked out.
+
+=item *
+
+C<apperlm list> lists the available APPerl configs. If a current config
 is set it is denoted with a C<*>.
 
 =item *
 
-C<apperl-set> sets the current APPerl config, this includes
+C<apperlm checkout> sets the current APPerl config, this includes a
 C<make veryclean> in the Perl repo and C<git checkout> in both Perl and
 cosmo repos. The current config name is written to
-C<$HOME/.config/apperl/site.json>.
+C<.apperl/user-project.json> .
 
 =item *
 
-C<apperl-configure> builds cosmopolitan for the current APPerl config
+C<apperlm new-config> creates a new config and adds to to the project
+config. -n specifies the name of the new config and must be provided.
+-b specifies the base of the new config.
+
+=item *
+
+C<apperlm configure> builds cosmopolitan for the current APPerl config
 and runs Perl's C<Configure>
 
 =item *
 
-C<apperl-build> C<make>s perl and builds apperl. The output binary by
+C<apperlm build> C<make>s perl and builds apperl. The output binary by
 default is copied to C<perl.com> in the current directory, set dest in
 C<apperl-project.json> to customize output binary path and name.
 
 =back
 
-=head1 INSTALLING
+=head1 USAGE
 
 APPerl doesn't need to be installed, the output C<perl.com> binary can
-be copied between computers and ran without installation.
-
-However, in certain cases such as magic (modifying $0, etc.) The binary
-must be assimilated for it to work properly. Note, you likely want to
-copy before this operation as it modifies the binary in-place to be
-bound to the current environment.
+be copied between computers and ran without installation. However, in
+certain cases such as magic (modifying $0, etc.) The binary must be
+assimilated for it to work properly. Note, you likely want to copy
+before this operation as it modifies the binary in-place to be bound to
+the current environment.
   cp perl.com perl
   ./perl --assimilate
-
-=head1 USAGE
 
 For the most part, APPerl works like normal perl, however it has a
 couple additional features.
@@ -1310,6 +1412,75 @@ without extension from /zip/bin
   ./perldoc.com perlcosmo
 
 =back
+
+=head1 CREATING APPLICATIONS WITH APPERL
+
+=head2 RATONALE
+
+APPerl wasn't developed to be the 'hack of the day', but provide real
+world utility by easing using Perl in user environments.
+
+Unfortunately, scripting languages are often a second class citizen on
+user environments due to them not being installed by default or only
+broken/old/incomplete versions installed, and sometimes not being the
+easiest to install. Providing native perl binaries with solutions like
+L<PAR::Packer> is possible, but that requires juggling binaries for
+every desired target and packing.
+
+The idea of APPerl applications is that you can handcraft the desired
+Perl environment with your application and then ship it as one portable
+binary for all targets.
+
+Building an APPerl application does nothing to ofuscate or hide your
+source code, it is a feature that APPerl binaries are also zip files,
+allowing for easy retrieval of Perl scripts and modules.
+
+=head2 TUTORIAL
+
+Enter your projects directory, create it if it doesn't exists. Download
+or copy in an existing version of APPerl you wish to build off of.
+Create a new nobuild APPerl project and build it.
+
+  cd projectdir
+  mkdir src
+  cp ./perl.com src/
+  apperlm init --name my_first_project_config
+  apperlm build
+
+Now you should have a newly built perl.com inside the current
+directory. However, this isn't very exciting as it's identical to the
+one you copied into source. Let's create a script.
+
+  printf "%s\n%s\n%s\n" '#!/usr/bin/perl' 'use strict; use warnings;' \
+  'print "Hello, World!\n";' > src/hello
+
+To add it open apperl-project.json and add the following to
+my_first_project_config:
+
+  "post_make_install_files" : { "bin" : ["src/hello"] }
+
+Rebuild and try loading the script you added
+
+   apperlm build
+   ./perl.com /zip/bin/hello
+
+You have embedded a script inside APPerl, however running it is a
+little awkward. What if you could run it by the name of the script?
+
+  ln -s perl.com hello
+  ./hello
+
+More details on the argv[0] script execution is in USAGE above. Now,
+what about Perl modules? Perl modules can be packed in the same way,
+but to ease setting the correct directory to packing them into, the
+magic prefix __perllib__ can be used in the destination. Note, you may
+have to add items to the MANIFEST key if the MANIFEST isn't set
+permissively.
+
+  "post_make_install_files" : { "__perllib__/Your" : ["Module.pm"] }
+
+TODO, write tutorial from building from scatch
+
 
 =head1 SUPPORT AND DOCUMENTATION
 
