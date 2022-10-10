@@ -816,6 +816,18 @@ sub Status {
     }
 }
 
+# unfortunately this needs to be called in several places to try to keep them in sync
+# as perl's make trips up when trying to build an symlinked extension
+sub _install_perl_repo_files {
+    my ($itemconfig, $SiteConfig) = @_;
+    foreach my $dest (keys %{$itemconfig->{perl_repo_files}}) {
+        foreach my $file (@{$itemconfig->{perl_repo_files}{$dest}}) {
+            #_command_or_die('ln', '-sf', START_WD."/$file", "$SiteConfig->{perl_repo}/$dest");
+            _copy_recursive(START_WD."/$file", "$SiteConfig->{perl_repo}/$dest");
+        }
+    }
+}
+
 sub Set {
     my ($cfgname) = @_;
     my $UserProjectConfig = _load_user_project_config();
@@ -844,9 +856,7 @@ sub Set {
 
         print "cd ".START_WD."\n";
         chdir(START_WD) or die "Failed to restore cwd";
-        foreach my $dest (keys %{$itemconfig->{perl_repo_files}}) {
-            _command_or_die('cp', '-r', $_, "$SiteConfig->{perl_repo}/$dest/") foreach @{$itemconfig->{perl_repo_files}{$dest}};
-        }
+        _install_perl_repo_files($itemconfig, $SiteConfig);
     }
     else {
         my $validperl;
@@ -882,6 +892,7 @@ sub Configure {
     -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
     -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
     my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
+    _install_perl_repo_files($itemconfig, $SiteConfig);
     # build cosmo
     print "$0: Building cosmo, COSMO_MODE=$itemconfig->{cosmo_mode} COSMO_APE_LOADER=$itemconfig->{cosmo_ape_loader}\n";
     _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j4', "MODE=$itemconfig->{cosmo_mode}",
@@ -914,6 +925,7 @@ sub Build {
         my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot build without build deps (run apperlm install-build-deps)";
         -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
         -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
+        _install_perl_repo_files($itemconfig, $SiteConfig);
         print "cd ".$SiteConfig->{perl_repo}."\n";
         chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
         _command_or_die('make');
@@ -1273,8 +1285,8 @@ Perl::Dist::APPerl - Actually Portable Perl
 =head1 DESCRIPTION
 
 Actually Portable Perl (APPerl) is a distribution of Perl the runs on
-several x86_64 operating systems via the same binary. For portability,
-it builds to a single binary with perl modules packed inside of it.
+several x86_64 operating systems via the same binary. It builds to a
+single binary with perl modules packed inside of it.
 
 Cross-platform, single binary, standalone Perl applications can be made
 by building custom versions of APPerl, with and without compiling
@@ -1284,7 +1296,10 @@ carried on your USB drive, or just allow you to run the exact same perl
 on all your PCs multiple computers.
 
 This package documentation covers the apperlm tool for building APPerl,
-APPerl usage, and how to create applications with APPerl.
+APPerl usage, and how to create applications with APPerl. To handle the
+chicken-and egg-situation of needing Perl to build APPerl, APPerl may
+be bootstrapped from an existing build of APPerl. See README.md for
+instructions.
 
 =head1 SYNOPSIS
 
@@ -1298,19 +1313,22 @@ APPerl usage, and how to create applications with APPerl.
     ln -s perl perldoc
     ./perldoc perlcosmo
 
-To build small APPerl from scratch
+To build small APPerl from scratch:
+
     apperlm install-build-deps
     apperlm checkout small
     apperlm configure
     apperlm build
 
-To start an APPerl project from an existing APPerl and build it
+To start an APPerl project from an existing APPerl and build it:
+
     mkdir src
     mv perl.com src/
     apperlm init --name your_config_name --base nobuild-v0.1.0
     apperlm build
 
-To start an APPerl project and build from scratch
+To start an APPerl project and build from scratch:
+
     apperlm install-build-deps
     apperlm init --name your_config_name --base v5.36.0-small-v0.1.0
     apperlm configure
@@ -1318,7 +1336,7 @@ To start an APPerl project and build from scratch
 
 =head1 apperlm
 
-The C<apperlm> (APPerl manager) script is a CLI interface to configuring
+The C<apperlm> (APPerl Manager) script is a CLI interface to configuring
 and building APPerl.
 
 =head2 COMMAND REFERENCE
@@ -1435,31 +1453,40 @@ Building an APPerl application does nothing to ofuscate or hide your
 source code, it is a feature that APPerl binaries are also zip files,
 allowing for easy retrieval of Perl scripts and modules.
 
-=head2 TUTORIAL
+=head2 BUILDING AN APPLICATION FROM EXISTING APPERL
+
+The easiest way to build an APPerl application is to build it from
+existing APPerl. If your application doesn't depend on non-standard
+C or XS extensions, it can be built from one of the official APPerl
+builds, skipping the need for building Perl from scratch.
 
 Enter your projects directory, create it if it doesn't exists. Download
 or copy in an existing version of APPerl you wish to build off of.
+Official builds are available on the
+L<APPerl webpage| https://computoid.com/APPerl/>.
 Create a new nobuild APPerl project and build it.
 
   cd projectdir
   mkdir src
   cp ./perl.com src/
-  apperlm init --name my_first_project_config
+  apperlm init --name my_nobuild_config
   apperlm build
 
 Now you should have a newly built perl.com inside the current
 directory. However, this isn't very exciting as it's identical to the
-one you copied into source. Let's create a script.
+one you copied into src. Let's create a script.
 
-  printf "%s\n%s\n%s\n" '#!/usr/bin/perl' 'use strict; use warnings;' \
+  printf "%s\n" \
+  '#!/usr/bin/perl' \
+  'use strict; use warnings;' \
   'print "Hello, World!\n";' > src/hello
 
 To add it open apperl-project.json and add the following to
-my_first_project_config:
+my_nobuild_config:
 
   "post_make_install_files" : { "bin" : ["src/hello"] }
 
-Rebuild and try loading the script you added
+Rebuild and try loading the newly added script
 
    apperlm build
    ./perl.com /zip/bin/hello
@@ -1470,28 +1497,119 @@ little awkward. What if you could run it by the name of the script?
   ln -s perl.com hello
   ./hello
 
-More details on the argv[0] script execution is in USAGE above. Now,
+More details on the argv[0] script execution is in L</USAGE>. Now,
 what about Perl modules? Perl modules can be packed in the same way,
 but to ease setting the correct directory to packing them into, the
 magic prefix __perllib__ can be used in the destination. Note, you may
 have to add items to the MANIFEST key if the MANIFEST isn't set
-permissively.
+permissively already.
 
   "post_make_install_files" : { "__perllib__/Your" : ["Module.pm"] }
 
-TODO, write tutorial from building from scatch
+=head2 BUILDING AN APPLICATION FROM SCRATCH
 
+If your application requires non-standard C or XS extensions, APPerl
+must be built from scratch as it does not support dynamic libraries,
+only static linking. This tutorial assumes you already have an APPerl
+project, possibly from following the
+L</BUILDING AN APPLICATION FROM EXISTING APPERL> tutorial.
+
+First install the APPerl build dependencies and create a new config
+based on the current small config, checkout, configure, and build.
+
+  apperlm install-build-deps
+  apperlm new-config --name my_src_build_config --base v5.36.0-small-v0.1.0
+  apperlm checkout my_src_build_config
+  apperlm configure
+  apperlm build
+
+If all goes well you should have compiled APPerl from source!
+
+  ./perl.com -V
+  stat perl.com
+
+Now let's create a very basic C extension.
+
+  mkdir MyCExtension
+  printf "%s\n" \
+  "package MyCExtension;" \
+  "use strict; use warnings;" \
+  "our \$VERSION = '0.0';" \
+  "require XSLoader;" \
+  'XSLoader::load("MyCExtension", $VERSION);' \
+  "1;" > MyCExtension/MyCExtension.pm
+  printf "%s\n" \
+  '#define PERL_NO_GET_CONTEXT' \
+  '#include "EXTERN.h"' \
+  '#include "perl.h"' \
+  '#include "XSUB.h"' \
+  '#include <stdio.h>' \
+  '' \
+  'MODULE = MyCExtension    PACKAGE = MyCExtension' \
+  '' \
+  'void' \
+  'helloworld()' \
+  '    CODE:' \
+  '        printf("Hello, World!\n");' > MyCExtension/MyCExtension.xs
+
+Add it to my_src_build_config in apperl-project.json . Some keys that
+begin with '+' will be merged with the non-plus variant of a base
+config.
+
+  "perl_repo_files" : { "ext" : [
+      "MyCExtension"
+  ]},
+  "+MANIFEST" : ["lib/perl5/5.36.0/x86_64-cosmo/MyCExtension.pm"],
+  "perl_extra_flags" : ["-Doptimize=-Os", "-Donlyextensions= Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re MyCExtension ", "-de"]
+
+Build it and try it out. apperlm checkout is needed as Perl must be
+rebuilt from scratch as the Configure flags changed and new files were
+added to the perl5 repo.
+
+  apperlm checkout my_src_build_config
+  apperlm configure
+  apperlm build
+  ./perl.com -MMyCExtension -e 'MyCExtension::helloworld();'
+
+Now for completeness sake, let's turn this custom build of APPerl into
+an application that calls the extension function we just added. First
+make the application main script.
+
+  printf "%s\n" \
+  '#!/usr/bin/perl' \
+  'use strict; use warnings;' \
+  'use MyCExtension;' \
+  'MyCExtension::helloworld();' > helloext
+
+Then, add it the project config and set the dest binary name to match
+the script so that it will launch the script.
+
+  "dest" : "helloext.com",
+  "+MANIFEST" : ["lib/perl5/5.36.0/x86_64-cosmo/MyCExtension.pm", "bin/helloext"],
+  "post_make_install_files" : { "bin" : ["helloext"] }
+
+Build and test it.
+
+  apperlm build
+  ./helloext.com
 
 =head1 SUPPORT AND DOCUMENTATION
 
-You can find documentation for this module with the perldoc command.
-
-    perldoc Perl::Dist::APPerl
-
 L<APPerl webpage|https://computoid.com/APPerl/>
 
-Support, and bug reports can be found at the repository
+Support and bug reports can be found at the repository
 L<https://github.com/G4Vi/APPerl>
+
+=head1 ACKNOWLEDGEMENTS
+
+The other L<Cosmopolitan Libc|https://github.com/jart/cosmopolitan>
+contributors. APPerl wouldn't be possible without Actually Portable
+Executables and polyfills of several Linux and POSIX APIs for other
+platforms. In particular, L<Justine Tunney|https://justine.lol/> for
+answering questions and making some adjustments to ease the port and
+L<Gautham Venkatasubramanian|https://ahgamut.github.io> for inspiring
+me to begin this project with his Python port and
+L<blog post|https://ahgamut.github.io/2021/07/13/ape-python/>.
 
 =head1 AUTHOR
 
