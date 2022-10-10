@@ -15,6 +15,7 @@ Getopt::Long::Configure qw(gnu_getopt);
 
 use constant {
     SITE_CONFIG_DIR  => (($ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config')).'/apperl'),
+    SITE_REPO_DIR => (($ENV{XDG_DATA_HOME} // ($ENV{HOME}.'/.local/share')).'/apperl'),
     PROJECT_FILE => 'apperl-project.json',
     START_WD => getcwd(),
     PROJECT_TMP_DIR => abs_path('.apperl')
@@ -644,7 +645,7 @@ my %defconfig = (
             desc => 'base nobuild config',
             dest => 'perl-nobuild.com',
             MANIFEST => ['lib', 'bin'],
-            post_make_install_files => {},
+            zip_extra_files => {},
             nobuild_perl_bin => ['src/perl.com', $^X],
         },
         'v5.36.0-full-v0.1.0' => {
@@ -659,7 +660,7 @@ my %defconfig = (
             MANIFEST => ['lib', 'bin'],
             'include_Perl-Dist-APPerl' => 1,
             perl_repo_files => {},
-            post_make_install_files => {},
+            zip_extra_files => {},
         },
         'v5.36.0-full-v0.1.0-vista' => {
             desc => 'Full perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
@@ -670,7 +671,8 @@ my %defconfig = (
         'v5.36.0-small-v0.1.0' => {
             desc => 'small perl v5.36.0',
             base => 'v5.36.0-full-v0.1.0',
-            perl_extra_flags => ['-Doptimize=-Os', "-Donlyextensions= Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re ", '-de'],
+            perl_onlyextensions => [qw(Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
+            perl_extra_flags => ['-Doptimize=-Os', '-de'],
             MANIFEST => \@smallmanifest,
             'include_Perl-Dist-APPerl' => 0
         },
@@ -773,12 +775,12 @@ sub InstallBuildDeps {
     my $SiteConfig = _load_json(SITE_CONFIG_FILE);
     # if a repo is not set, set one up by default
     if((!$SiteConfig || !exists $SiteConfig->{perl_repo}) && (!$perlrepo)) {
-        $perlrepo = SITE_CONFIG_DIR."/perl5";
+        $perlrepo = SITE_REPO_DIR."/perl5";
         _setup_repo($perlrepo, _load_apperl_configs()->{perl_remotes});
         print "apperlm install-build-deps: setup perl repo\n";
     }
     if((!$SiteConfig || !exists $SiteConfig->{cosmo_repo}) && (!$cosmorepo)) {
-        $cosmorepo = SITE_CONFIG_DIR."/cosmopolitan";
+        $cosmorepo = SITE_REPO_DIR."/cosmopolitan";
         _setup_repo( $cosmorepo, _load_apperl_configs()->{cosmo_remotes});
         print "apperlm install-build-deps: setup cosmo repo\n";
     }
@@ -908,7 +910,9 @@ sub Configure {
     $ENV{COSMO_REPO} = $SiteConfig->{cosmo_repo};
     $ENV{COSMO_MODE} = $itemconfig->{cosmo_mode};
     $ENV{COSMO_APE_LOADER} = $itemconfig->{cosmo_ape_loader};
-    _command_or_die('sh', 'Configure', @{$itemconfig->{perl_flags}}, @{$itemconfig->{perl_extra_flags}}, @_);
+    my @onlyextensions = ();
+    push @onlyextensions, ("-Donlyextensions= ".join(' ', sort @{$itemconfig->{perl_onlyextensions}}).' ') if(exists $itemconfig->{perl_onlyextensions});
+    _command_or_die('sh', 'Configure', @{$itemconfig->{perl_flags}}, @onlyextensions, @{$itemconfig->{perl_extra_flags}}, @_);
     print "$0: Configure successful, time for apperlm build\n";
 }
 
@@ -974,12 +978,12 @@ sub Build {
     my $APPPATH = "$TEMPDIR/$APPNAME";
     _command_or_die('cp', $PERL_APE, $APPPATH);
     _command_or_die('chmod', 'u+w', $APPPATH);
-    if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{post_make_install_files}})) {
+    if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
         print "cd $ZIP_ROOT\n";
         chdir($ZIP_ROOT) or die "failed to enter ziproot";
-        foreach my $destkey (keys %{$itemconfig->{post_make_install_files}}) {
+        foreach my $destkey (keys %{$itemconfig->{zip_extra_files}}) {
             my $dest = _fix_bases($destkey, $PERL_VERSION, $PERL_ARCHNAME);
-            foreach my $file (@{$itemconfig->{post_make_install_files}{$destkey}}) {
+            foreach my $file (@{$itemconfig->{zip_extra_files}{$destkey}}) {
                 _copy_recursive($file, $dest);
             }
         }
@@ -1015,9 +1019,22 @@ END_USAGE
     my $command = shift(@_) if(@_);
     $command or die($generic_usage);
     if($command eq 'list') {
+        my $usage = <<'END_USAGE';
+apperlm list
+List available APPerl configs; checks apperl-project.json and built-in
+to Perl::Dist::APPerl configs. If a current config is set it is denoted
+with a '*'.
+END_USAGE
+        die($usage) if(@_);
         Perl::Dist::APPerl::Status();
     }
     elsif($command eq 'build') {
+        my $usage = <<'END_USAGE';
+apperlm build
+Build APPerl. If the current config is a from-scratch build, you must
+run `apperlm configure` first.
+END_USAGE
+        die($usage) if(@_);
         Perl::Dist::APPerl::Build();
     }
     elsif($command eq 'configure') {
@@ -1025,6 +1042,15 @@ END_USAGE
     }
     elsif($command =~ /^(\-)*(halp|help|h)$/i) {
         print $generic_usage;
+    }
+    elsif($command =~ /^(\-)*(version|v)$/i) {
+        my $message = <<"END_USAGE";
+apperlm $VERSION
+Copyright (C) 2022 Gavin Arthur Hayes
+This is free software; you can redistribute it and/or modify it under
+the same terms as the Perl 5 programming language system itself.
+END_USAGE
+        print $message;
     }
     elsif($command eq 'checkout') {
         scalar(@_) == 1 or die('bad args');
@@ -1186,8 +1212,8 @@ sub _load_apperl_config {
     }
 
     # switch these from relative paths to abs paths
-    foreach my $destdir (keys %{$itemconfig{post_make_install_files}}) {
-        foreach my $path (@{$itemconfig{post_make_install_files}{$destdir}}) {
+    foreach my $destdir (keys %{$itemconfig{zip_extra_files}}) {
+        foreach my $path (@{$itemconfig{zip_extra_files}{$destdir}}) {
             $path = abs_path($path);
             $path or die;
             print $path;
@@ -1199,10 +1225,10 @@ sub _load_apperl_config {
     if(exists $itemconfig{'include_Perl-Dist-APPerl'} && $itemconfig{'include_Perl-Dist-APPerl'}) {
         my $thispath = abs_path(__FILE__);
         defined($thispath) or die(__FILE__.'issues?');
-        push @{$itemconfig{post_make_install_files}{"__perllib__/Perl/Dist"}}, $thispath;
+        push @{$itemconfig{zip_extra_files}{"__perllib__/Perl/Dist"}}, $thispath;
         my @additionalfiles = map { "$FindBin::Bin/$_" } ('apperlm');
         -e $_ or die($!) foreach @additionalfiles;
-        push @{$itemconfig{post_make_install_files}{bin}}, @additionalfiles;
+        push @{$itemconfig{zip_extra_files}{bin}}, @additionalfiles;
     }
 
     # verify apperl config sanity
@@ -1492,7 +1518,7 @@ one you copied into src. Let's create a script.
 To add it open apperl-project.json and add the following to
 my_nobuild_config:
 
-  "post_make_install_files" : { "bin" : ["src/hello"] }
+  "zip_extra_files" : { "bin" : ["src/hello"] }
 
 Rebuild and try loading the newly added script
 
@@ -1512,7 +1538,7 @@ magic prefix __perllib__ can be used in the destination. Note, you may
 have to add items to the MANIFEST key if the MANIFEST isn't set
 permissively already.
 
-  "post_make_install_files" : { "__perllib__/Your" : ["Module.pm"] }
+  "zip_extra_files" : { "__perllib__/Your" : ["Module.pm"] }
 
 =head2 BUILDING AN APPLICATION FROM SCRATCH
 
@@ -1568,7 +1594,7 @@ config.
       "MyCExtension"
   ]},
   "+MANIFEST" : ["__perlarchlib__/MyCExtension.pm"],
-  "perl_extra_flags" : ["-Doptimize=-Os", "-Donlyextensions= Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re MyCExtension ", "-de"]
+  "+perl_onlyextensions" : ["MyCExtension"]
 
 Build it and try it out. apperlm checkout is needed as Perl must be
 rebuilt from scratch as the Configure flags changed and new files were
@@ -1594,7 +1620,7 @@ the script so that it will launch the script.
 
   "dest" : "helloext.com",
   "+MANIFEST" : ["__perlarchlib__/MyCExtension.pm", "bin/helloext"],
-  "post_make_install_files" : { "bin" : ["helloext"] }
+  "zip_extra_files" : { "bin" : ["helloext"] }
 
 Build and test it.
 
