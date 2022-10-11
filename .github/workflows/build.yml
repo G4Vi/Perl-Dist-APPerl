@@ -110,7 +110,7 @@ jobs:
         draft: true
         files: |
           cpan/Perl-Dist-APPerl-v*.tar.gz
-          v5.36.0-full-v0.1.0/*
-          v5.36.0-small-v0.1.0/*
-          v5.36.0-full-v0.1.0-vista/*
-          v5.36.0-small-v0.1.0-vista/*
+          full/*
+          small/*
+          full-vista/*
+          small-vista/*
