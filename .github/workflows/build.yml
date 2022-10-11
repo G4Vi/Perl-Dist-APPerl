@@ -42,22 +42,9 @@ jobs:
     needs:   build-linux
     strategy:
       matrix:
-        config: [{name: apperl, perl-ref: cosmo-apperl, cosmo-repo: 'jart/cosmopolitan', cosmo-ref: af24c19db395b8edd3f8aab194675eadad173cca, apperl-config: v5.36.0-full-v0.1.0, outbin-name: perl.com }, {name: 'apperl-vista', perl-ref: 'cosmo-apperl-vista', cosmo-repo: 'jart/cosmopolitan', cosmo-ref: 4381b3d9254d6001f4bead71b458a377e854fbc5, apperl-config: v5.36.0-full-v0.1.0-vista, outbin-name: perl-vista.com   }]
+        #config: [{name: apperl, perl-ref: cosmo-apperl, cosmo-repo: 'jart/cosmopolitan', cosmo-ref: af24c19db395b8edd3f8aab194675eadad173cca, apperl-config: v5.36.0-full-v0.1.0, outbin-name: perl.com }, {name: 'apperl-vista', perl-ref: 'cosmo-apperl-vista', cosmo-repo: 'jart/cosmopolitan', cosmo-ref: 4381b3d9254d6001f4bead71b458a377e854fbc5, apperl-config: v5.36.0-full-v0.1.0-vista, outbin-name: perl-vista.com   }]
+        config: [v5.36.0-full-v0.1.0, v5.36.0-full-v0.1.0-vista]
     steps:
-    - name: Fetch Perl fork
-      uses: actions/checkout@v3
-      with:
-        repository: 'G4Vi/perl5'
-        ref: ${{ matrix.config.perl-ref }}
-        path: 'perl5'
-    - name: Fetch cosmopolitan
-      uses: actions/checkout@v3
-      with:
-        repository: ${{ matrix.config.cosmo-repo }}
-        ref: ${{ matrix.config.cosmo-ref }}
-        path: 'cosmopolitan'
-    - name: support ape bins
-      run: sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
     - name: Fetch build artifacts
       uses: actions/download-artifact@v3
     - name: prepare for installing module
@@ -69,6 +56,24 @@ jobs:
         perl-version: '5.36'
         install-modules-with: cpanm
         install-modules: Perl-Dist-APPerl.tar.gz
+    - name: Load config
+      run: |
+          echo "PERL_ID=$(apperlm get-config-key ${{ matrix.config }} perl_id)" >> $GITHUB_ENV
+          echo "COSMO_ID=$(apperlm get-config-key ${{ matrix.config }} cosmo_id)" >> $GITHUB_ENV
+    - name: Fetch Perl fork
+      uses: actions/checkout@v3
+      with:
+        repository: 'G4Vi/perl5'
+        ref: ${{ env.PERL_ID }}
+        path: 'perl5'
+    - name: Fetch cosmopolitan
+      uses: actions/checkout@v3
+      with:
+        repository: 'jart/cosmopolitan'
+        ref: ${{ env.COSMO_ID }}
+        path: 'cosmopolitan'
+    - name: support ape bins
+      run: sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
     - name: Configure and Build perl.com
       env:
         CF_BY: ${{ secrets.CF_BY }}
@@ -76,18 +81,18 @@ jobs:
       run: |
         ls -la
         apperlm install-build-deps -p perl5 -c cosmopolitan
-        apperlm init --name ${{ matrix.config.apperl-config }}
+        apperlm init --name ${{ matrix.config }}
         apperlm list
         apperlm configure -Dcf_by="$CF_BY" -Dcf_email="$CF_EMAIL"
         apperlm build
         mkdir release
-        mv .apperl/o/${{ matrix.config.apperl-config }}/perl.com release/${{ matrix.config.outbin-name }}
+        mv .apperl/o/${{ matrix.config }}/perl.com release/${{ matrix.config }}.com
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.config.name }}
+        name: ${{ matrix.config }}
         if-no-files-found: error
-        path: release/${{ matrix.config.outbin-name }}
+        path: release/${{ matrix.config }}.com
 
   create-release:
     name:    Create release
@@ -105,5 +110,5 @@ jobs:
         draft: true
         files: |
           cpan/Perl-Dist-APPerl-v*.tar.gz
-          apperl/*
-          apperl-vista/*
+          v5.36.0-full-v0.1.0/*
+          v5.36.0-full-v0.1.0-vista/*

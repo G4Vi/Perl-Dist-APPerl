@@ -1122,6 +1122,11 @@ END_USAGE
         }
         Perl::Dist::APPerl::NewConfig($name, $base);
     }
+    elsif($command eq 'get-config-key') {
+        scalar(@_) == 2 or die('bad args');
+        my $itemconfig = _load_apperl_config(_load_apperl_configs()->{apperl_configs}, $_[0]);
+        print $itemconfig->{$_[1]};
+    }
     else {
         die($generic_usage);
     }
@@ -1227,7 +1232,7 @@ sub _load_apperl_config {
         defined($thispath) or die(__FILE__.'issues?');
         push @{$itemconfig{zip_extra_files}{"__perllib__/Perl/Dist"}}, $thispath;
         my @additionalfiles = map { "$FindBin::Bin/$_" } ('apperlm');
-        -e $_ or die($!) foreach @additionalfiles;
+        -e $_ or die("$_ $!") foreach @additionalfiles;
         push @{$itemconfig{zip_extra_files}{bin}}, @additionalfiles;
     }
 
