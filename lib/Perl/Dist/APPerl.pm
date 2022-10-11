@@ -651,7 +651,7 @@ my %defconfig = (
         'v5.36.0-full-v0.1.0' => {
             desc => 'Full perl v5.36.0',
             perl_id => 'cosmo-apperl',
-            cosmo_id => 'af24c19db395b8edd3f8aab194675eadad173cca',
+            cosmo_id => '38df0a41866eda5a763730d56f2733a319b78afa',
             cosmo_mode => '',
             cosmo_ape_loader => 'ape-no-modify-self.o',
             perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
@@ -665,8 +665,7 @@ my %defconfig = (
         'v5.36.0-full-v0.1.0-vista' => {
             desc => 'Full perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
             base => 'v5.36.0-full-v0.1.0',
-            perl_id => 'cosmo-apperl-vista',
-            cosmo_id => '4381b3d9254d6001f4bead71b458a377e854fbc5',
+            cosmo_id => 'f4ff1729d145b2e404b9aa6cc98a623d7740d6b3',
             dest => 'perl-vista.com',
         },
         'v5.36.0-small-v0.1.0' => {
@@ -681,8 +680,7 @@ my %defconfig = (
         'v5.36.0-small-v0.1.0-vista' => {
             desc => 'small perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
             base => 'v5.36.0-small-v0.1.0',
-            perl_id => 'cosmo-apperl-vista',
-            cosmo_id => '4381b3d9254d6001f4bead71b458a377e854fbc5',
+            cosmo_id => 'f4ff1729d145b2e404b9aa6cc98a623d7740d6b3',
             dest => 'perl-small-vista.com',
         },
         'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0' },
@@ -694,7 +692,7 @@ my %defconfig = (
             desc => "not recommended, threaded build is buggy",
             base => 'v5.36.0-full-v0.1.0',
             perl_extra_flags => ['-Doptimize=-Os', '-Dusethreads', '-de'],
-            perl_id => 'cosmo'
+            perl_id => 'cosmo-apperl'
         },
         perl_cosmo_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
@@ -704,7 +702,7 @@ my %defconfig = (
         perl_cosmo_dev_on_vista => {
             desc => "For developing cosmo platform perl without apperl additions on vista",
             base => "perl_cosmo_dev",
-            cosmo_id => '4381b3d9254d6001f4bead71b458a377e854fbc5',
+            cosmo_id => 'f4ff1729d145b2e404b9aa6cc98a623d7740d6b3',
         },
     }
 );
