@@ -1,6 +1,6 @@
 package Perl::Dist::APPerl;
 # Copyright (c) 2022 Gavin Hayes, see LICENSE in the root of the project
-use version; our $VERSION = version->declare("v0.0.1");
+use version; our $VERSION = version->declare("v0.0.2");
 use strict;
 use warnings;
 use JSON::PP qw(decode_json);
@@ -1644,14 +1644,14 @@ L<https://github.com/G4Vi/APPerl>
 
 =head1 ACKNOWLEDGEMENTS
 
-The other L<Cosmopolitan Libc|https://github.com/jart/cosmopolitan>
-contributors. APPerl wouldn't be possible without Actually Portable
-Executables and polyfills of several Linux and POSIX APIs for other
-platforms. In particular, L<Justine Tunney|https://justine.lol/> for
-answering questions and making some adjustments to ease the port and
-L<Gautham Venkatasubramanian|https://ahgamut.github.io> for inspiring
-me to begin this project with his Python port and
-L<blog post|https://ahgamut.github.io/2021/07/13/ape-python/>.
+The L<Cosmopolitan Libc|https://github.com/jart/cosmopolitan>
+contributors, especially L<Justine Tunney|https://justine.lol/> and
+L<Gautham Venkatasubramanian|https://ahgamut.github.io>. APPerl
+wouldn't be possible without Actually Portable Executables and
+polyfills of several Linux and POSIX APIs for other platforms.
+Gautham's
+L<Python port|https://ahgamut.github.io/2021/07/13/ape-python/>
+inspired this project.
 
 =head1 AUTHOR
 
