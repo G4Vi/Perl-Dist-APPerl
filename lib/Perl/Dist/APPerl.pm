@@ -667,6 +667,7 @@ my %defconfig = (
             base => 'v5.36.0-full-v0.1.0',
             perl_id => 'cosmo-apperl-vista',
             cosmo_id => '4381b3d9254d6001f4bead71b458a377e854fbc5',
+            dest => 'perl-vista.com',
         },
         'v5.36.0-small-v0.1.0' => {
             desc => 'small perl v5.36.0',
@@ -674,13 +675,15 @@ my %defconfig = (
             perl_onlyextensions => [qw(Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
             perl_extra_flags => ['-Doptimize=-Os', '-de'],
             MANIFEST => \@smallmanifest,
-            'include_Perl-Dist-APPerl' => 0
+            'include_Perl-Dist-APPerl' => 0,
+            dest => 'perl-small.com',
         },
         'v5.36.0-small-v0.1.0-vista' => {
             desc => 'small perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
             base => 'v5.36.0-small-v0.1.0',
             perl_id => 'cosmo-apperl-vista',
             cosmo_id => '4381b3d9254d6001f4bead71b458a377e854fbc5',
+            dest => 'perl-small-vista.com',
         },
         'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0' },
         'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista' },
@@ -1564,8 +1567,8 @@ based on the current small config, checkout, configure, and build.
 
 If all goes well you should have compiled APPerl from source!
 
-  ./perl.com -V
-  stat perl.com
+  ./perl-small.com -V
+  stat perl-small.com
 
 Now let's create a very basic C extension.
 
@@ -1608,7 +1611,7 @@ added to the perl5 repo.
   apperlm checkout my_src_build_config
   apperlm configure
   apperlm build
-  ./perl.com -MMyCExtension -e 'MyCExtension::helloworld();'
+  ./perl-small.com -MMyCExtension -e 'MyCExtension::helloworld();'
 
 Now for completeness sake, let's turn this custom build of APPerl into
 an application that calls the extension function we just added. First
