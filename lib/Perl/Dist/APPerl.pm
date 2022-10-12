@@ -649,7 +649,7 @@ my %defconfig = (
             nobuild_perl_bin => ['src/perl.com', $^X],
         },
         'v5.36.0-full-v0.1.0' => {
-            desc => 'Full perl v5.36.0',
+            desc => 'Full perl v5.36.0 built with Cosmopolitan Libc 2.1.1',
             perl_id => 'cosmo-apperl',
             cosmo_id => '38df0a41866eda5a763730d56f2733a319b78afa',
             cosmo_mode => '',
@@ -663,13 +663,13 @@ my %defconfig = (
             zip_extra_files => {},
         },
         'v5.36.0-full-v0.1.0-vista' => {
-            desc => 'Full perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
+            desc => 'Full perl v5.36.0, but with non-standard Cosmopolitan Libc that still supports vista',
             base => 'v5.36.0-full-v0.1.0',
-            cosmo_id => 'f4ff1729d145b2e404b9aa6cc98a623d7740d6b3',
+            cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
             dest => 'perl-vista.com',
         },
         'v5.36.0-small-v0.1.0' => {
-            desc => 'small perl v5.36.0',
+            desc => 'small perl v5.36.0 built with Cosmopolitan Libc 2.1.1',
             base => 'v5.36.0-full-v0.1.0',
             perl_onlyextensions => [qw(Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
             perl_extra_flags => ['-Doptimize=-Os', '-de'],
@@ -678,9 +678,9 @@ my %defconfig = (
             dest => 'perl-small.com',
         },
         'v5.36.0-small-v0.1.0-vista' => {
-            desc => 'small perl v5.36.0, but with non-standard cosmopolitan libc that still supports vista',
+            desc => 'small perl v5.36.0, but with non-standard Cosmopolitan Libc that still supports vista',
             base => 'v5.36.0-small-v0.1.0',
-            cosmo_id => 'f4ff1729d145b2e404b9aa6cc98a623d7740d6b3',
+            cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
             dest => 'perl-small-vista.com',
         },
         'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0' },
@@ -702,7 +702,7 @@ my %defconfig = (
         perl_cosmo_dev_on_vista => {
             desc => "For developing cosmo platform perl without apperl additions on vista",
             base => "perl_cosmo_dev",
-            cosmo_id => 'f4ff1729d145b2e404b9aa6cc98a623d7740d6b3',
+            cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
         },
     }
 );
@@ -799,6 +799,15 @@ sub InstallBuildDeps {
     print "apperlm install-build-deps: wrote site config to ".SITE_CONFIG_FILE."\n";
 }
 
+sub _remove_arr_items_from_arr {
+    my ($src, $toremove) = @_;
+    foreach my $item (@{$toremove}) {
+        my $index = 0;
+        $index++ until $src->[$index] eq $item;
+        splice(@$src, $index, 1);
+    }
+}
+
 sub Status {
     my $Configs = _load_apperl_configs();
     my @configlist = sort(keys %{$Configs->{apperl_configs}});
@@ -814,8 +823,27 @@ sub Status {
         $CurAPPerlName = $Configs->{'defaultconfig'};
         exists $Configs->{apperl_configs}{$CurAPPerlName} or die("non-existent default apperl config $CurAPPerlName");
     }
-    foreach my $item (@configlist) {
-        print (sprintf "%s %-30.30s | %s\n", $CurAPPerlName && ($item eq $CurAPPerlName) ? '*' : ' ', $item, ($Configs->{apperl_configs}{$item}{desc} // ''));
+
+    my @projectitems;
+    my $projectconfig = _load_json(PROJECT_FILE);
+    if($projectconfig && exists $projectconfig->{apperl_configs}) {
+        @projectitems = sort (keys %{$projectconfig->{apperl_configs}});
+    }
+    my @stable = grep( /v\d+\.\d+\.\d+(\-vista)?$/, @configlist);
+    my @rolling = ('full', 'full-vista', 'small', 'small-vista');
+    my @internal = ('dontuse_threads', 'perl_cosmo_dev', 'perl_cosmo_dev_on_vista');
+    my @categories = (
+        ['PROJECT', \@projectitems],
+        ['STABLE', \@stable],
+        ['ROLLING', \@rolling],
+        ['UNSTABLE/INTERNAL', \@internal],
+        ['UNKNOWN', \@configlist]
+    );
+    foreach my $cat (@categories) {
+        foreach my $item (@{$cat->[1]}) {
+            print (sprintf "%s %-30.30s | %-17.17s |%s\n", $CurAPPerlName && ($item eq $CurAPPerlName) ? '*' : ' ', $item, $cat->[0], ($Configs->{apperl_configs}{$item}{desc} // ''));
+        }
+        _remove_arr_items_from_arr(\@configlist, \@{$cat->[1]});
     }
 }
 
@@ -1386,7 +1414,7 @@ and building APPerl.
 =item *
 
 C<apperlm install-build-deps> installs APPerl build dependencies,
-currently, a fork of the perl5 source and the cosmopolitan libc. This
+currently, a fork of the perl5 source and the Cosmopolitan Libc. This
 is only necessary if you are building APPerl from scratch (not using a
 nobuild configuration). Initialization of the repos can be skipped by
 passing the path to them locally. The cosmopolitan repo
