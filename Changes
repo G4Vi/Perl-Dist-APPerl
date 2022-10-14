@@ -1,6 +1,11 @@
 Revision history for Perl-Dist-APPerl
-v0.0.1  2022-10-10
-        First packaged version, released on an unsuspecting world.
+v0.0.3  2022-10-14
+        Bumped cosmopolitan versions. Add category to apperlm list. Add
+        leading '-' support to config parsing to remove items from an
+        existing set.
 
 v0.0.2  2022-10-10
         Add small builds to actions, rewrite acknowledgements.
+
+v0.0.1  2022-10-10
+        First packaged version, released on an unsuspecting world.

@@ -1,6 +1,6 @@
 package Perl::Dist::APPerl;
 # Copyright (c) 2022 Gavin Hayes, see LICENSE in the root of the project
-use version; our $VERSION = version->declare("v0.0.2");
+use version; our $VERSION = version->declare("v0.0.3");
 use strict;
 use warnings;
 use JSON::PP qw(decode_json);
@@ -1218,25 +1218,38 @@ sub _load_apperl_config {
     @configlist = reverse @configlist;
 
     # build the config from oldest to newest
-    # keys that start with '+' are actually appended to the non-plus variant instead of replacing
+    # keys that start with '+' are appended to the non-plus variant instead of replacing
+    # keys that start with '-' are removed from the non-plus variant instead of replacing
+    # Removing a key added the same stage or vice versa is undefined
     my %itemconfig;
     foreach my $config (@configlist) {
         foreach my $key (keys %$config) {
-            if($key =~ /^\+(.+)/) {
-                my $realkey = $1;
+            if($key =~ /^(\+|\-)(.+)/) {
+                my $append = $1 eq '+';
+                my $realkey = $2;
                 exists $itemconfig{$realkey} or die("cannot append without existing key");
                 my $rtype = ref($itemconfig{$realkey});
                 $rtype or die("not ref");
-                if($rtype eq 'ARRAY') {
-                    $itemconfig{$realkey} = [@{$itemconfig{$realkey}}, @{$config->{$key}}];
-                }
-                elsif($rtype eq 'HASH') {
-                    foreach my $dest (keys %{$config->{$key}}) {
-                        push @{$itemconfig{$realkey}{$dest}}, @{$config->{$key}{$dest}};
+                if($append) {
+                    if($rtype eq 'ARRAY') {
+                        $itemconfig{$realkey} = [@{$itemconfig{$realkey}}, @{$config->{$key}}];
+                    }
+                    elsif($rtype eq 'HASH') {
+                        foreach my $dest (keys %{$config->{$key}}) {
+                            push @{$itemconfig{$realkey}{$dest}}, @{$config->{$key}{$dest}};
+                        }
+                    }
+                    else {
+                        die($rtype);
                     }
                 }
                 else {
-                    die($rtype);
+                    if($rtype eq 'ARRAY') {
+                        _remove_arr_items_from_arr($itemconfig{$realkey}, $config->{$key});
+                    }
+                    else {
+                        die($rtype);
+                    }
                 }
             }
             else {
@@ -1250,7 +1263,6 @@ sub _load_apperl_config {
         foreach my $path (@{$itemconfig{zip_extra_files}{$destdir}}) {
             $path = abs_path($path);
             $path or die;
-            print $path;
             -e $path or die("missing file $path");
         }
     }
@@ -1620,9 +1632,10 @@ Now let's create a very basic C extension.
   '    CODE:' \
   '        printf("Hello, World!\n");' > MyCExtension/MyCExtension.xs
 
-Add it to my_src_build_config in apperl-project.json . Some keys that
-begin with '+' will be merged with the non-plus variant of a base
-config.
+Add it to my_src_build_config in apperl-project.json . Keys that begin
+with '+' will be merged with the non-plus variant of the parent config.
+Keys the begin with '-' will be removed from the non-minus variant of
+the parent config.
 
   "perl_repo_files" : { "ext" : [
       "MyCExtension"
