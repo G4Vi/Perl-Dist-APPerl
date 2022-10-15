@@ -102,13 +102,6 @@ jobs:
     - name: Fetch build artifacts
       if:   ${{ github.ref_type == 'tag' }}
       uses: actions/download-artifact@v3
-    - name: Make binaries executable
-      if:   ${{ github.ref_type == 'tag' }}
-      run: |
-        chmod +x full/*
-        chmod +x small/*
-        chmod +x full-vista/*
-        chmod +x small-vista/*
     - name: Publish release
       if:   ${{ github.ref_type == 'tag' }}
       uses: softprops/action-gh-release@v1
