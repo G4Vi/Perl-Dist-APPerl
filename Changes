@@ -1,4 +1,7 @@
 Revision history for Perl-Dist-APPerl
+v0.0.4  2022-10-15
+        Make Actions release binaries executable
+
 v0.0.3  2022-10-14
         Bumped cosmopolitan versions. Add category to apperlm list. Add
         leading '-' support to config parsing to remove items from an
