@@ -1,4 +1,8 @@
 Revision history for Perl-Dist-APPerl
+v0.1.0  2022-11-13
+        Fix issues with Time-HiRes Configure. Update to Cosmopolitan
+        Libc v2.2 . Pin Perl version to configs.
+
 v0.0.4  2022-10-15
         Make Actions release binaries executable
 

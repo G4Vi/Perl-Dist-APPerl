@@ -1,6 +1,6 @@
 package Perl::Dist::APPerl;
 # Copyright (c) 2022 Gavin Hayes, see LICENSE in the root of the project
-use version; our $VERSION = version->declare("v0.0.4");
+use version; our $VERSION = version->declare("v0.1.0");
 use strict;
 use warnings;
 use JSON::PP qw(decode_json);
@@ -649,9 +649,9 @@ my %defconfig = (
             nobuild_perl_bin => ['src/perl.com', $^X],
         },
         'v5.36.0-full-v0.1.0' => {
-            desc => 'Full perl v5.36.0 built with Cosmopolitan Libc 2.1.1',
-            perl_id => 'cosmo-apperl',
-            cosmo_id => '38df0a41866eda5a763730d56f2733a319b78afa',
+            desc => 'Full perl v5.36.0 built with Cosmopolitan Libc 2.2',
+            perl_id => 'b22da6b83c37604132694ead0bdcf61690f74a53',
+            cosmo_id => '52f1db7220935cfcf2c8e583678f5ccc4b5bbacd',
             cosmo_mode => '',
             cosmo_ape_loader => 'ape-no-modify-self.o',
             perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
@@ -669,7 +669,7 @@ my %defconfig = (
             dest => 'perl-vista.com',
         },
         'v5.36.0-small-v0.1.0' => {
-            desc => 'small perl v5.36.0 built with Cosmopolitan Libc 2.1.1',
+            desc => 'small perl v5.36.0 built with Cosmopolitan Libc 2.2',
             base => 'v5.36.0-full-v0.1.0',
             perl_onlyextensions => [qw(Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
             perl_extra_flags => ['-Doptimize=-Os', '-de'],
@@ -704,6 +704,11 @@ my %defconfig = (
             base => "perl_cosmo_dev",
             cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
         },
+        perl_apperl_dev => {
+            desc => "For developing apperl",
+            base => 'v5.36.0-full-v0.1.0',
+            perl_id => 'cosmo-apperl'
+        }
     }
 );
 $defconfig{defaultconfig} = $defconfig{apperl_configs}{full}{base};
@@ -831,7 +836,7 @@ sub Status {
     }
     my @stable = grep( /v\d+\.\d+\.\d+(\-vista)?$/, @configlist);
     my @rolling = ('full', 'full-vista', 'small', 'small-vista');
-    my @internal = ('dontuse_threads', 'perl_cosmo_dev', 'perl_cosmo_dev_on_vista');
+    my @internal = ('dontuse_threads', 'perl_cosmo_dev', 'perl_cosmo_dev_on_vista', 'perl_apperl_dev');
     my @categories = (
         ['PROJECT', \@projectitems],
         ['STABLE', \@stable],
@@ -1381,6 +1386,9 @@ chicken-and egg-situation of needing Perl to build APPerl, APPerl may
 be bootstrapped from an existing build of APPerl. See README.md for
 instructions.
 
+Information on the creation of APPerl can be found in this
+L<blogpost|https://computoid.com/posts/Perl-is-Actually-Portable.html>.
+
 =head1 SYNOPSIS
 
     apperlm install-build-deps
@@ -1445,7 +1453,12 @@ then the base of the configuration may be specified with
 =item *
 
 C<apperlm list> lists the available APPerl configs. If a current config
-is set it is denoted with a C<*>.
+is set it is denoted with a C<*>. Project configs are
+labeled PROJECT. The exact configuration of a STABLE config may change
+from release to release of Perl::Dist::APPerl, but only non-breaking
+changes should occur. ROLLING configurations are always the latest
+STABLE configurations, but breaking changes may occur from release to
+release of Perl::Dist::APPerl.
 
 =item *
 

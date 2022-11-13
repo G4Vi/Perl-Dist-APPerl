@@ -14,6 +14,9 @@ APPerl could also easily be added to development SDKs,
 carried on your USB drive, or just allow you to run the exact same perl
 on all your PCs multiple computers.
 
+Information on the creation of APPerl can be found in this
+[blogpost](https://computoid.com/posts/Perl-is-Actually-Portable.html).
+
 ## TRADITIONAL INSTALLATION
 
 To install this module, run the following commands:
