@@ -1,10 +1,10 @@
 package Perl::Dist::APPerl;
 # Copyright (c) 2022 Gavin Hayes, see LICENSE in the root of the project
-use version; our $VERSION = version->declare("v0.1.0");
+use version 0.77; our $VERSION = qv(v0.1.0);
 use strict;
 use warnings;
-use JSON::PP qw(decode_json);
-use File::Path qw(make_path);
+use JSON::PP 2.0104 qw(decode_json);
+use File::Path 2.07 qw(make_path);
 use Cwd qw(abs_path getcwd);
 use Data::Dumper qw(Dumper);
 use File::Basename qw(basename dirname);
@@ -1386,8 +1386,8 @@ chicken-and egg-situation of needing Perl to build APPerl, APPerl may
 be bootstrapped from an existing build of APPerl. See README.md for
 instructions.
 
-Information on the creation of APPerl can be found in this
-L<blogpost|https://computoid.com/posts/Perl-is-Actually-Portable.html>.
+Information on the creation of APPerl can be found in this blog post:
+L<https://computoid.com/posts/Perl-is-Actually-Portable.html>.
 
 =head1 SYNOPSIS
 
@@ -1555,8 +1555,8 @@ builds, skipping the need for building Perl from scratch.
 
 Enter your projects directory, create it if it doesn't exists. Download
 or copy in an existing version of APPerl you wish to build off of.
-Official builds are available on the
-L<APPerl webpage| https://computoid.com/APPerl/>.
+Official builds are available on the APPerl web page:
+L<https://computoid.com/APPerl/>.
 Create a new nobuild APPerl project and build it.
 
   cd projectdir
@@ -1689,20 +1689,20 @@ Build and test it.
 
 =head1 SUPPORT AND DOCUMENTATION
 
-L<APPerl webpage|https://computoid.com/APPerl/>
+APPerl web page: L<https://computoid.com/APPerl/>
 
 Support and bug reports can be found at the repository
-L<https://github.com/G4Vi/APPerl>
+L<https://github.com/G4Vi/Perl-Dist-APPerl>
 
 =head1 ACKNOWLEDGEMENTS
 
-The L<Cosmopolitan Libc|https://github.com/jart/cosmopolitan>
-contributors, especially L<Justine Tunney|https://justine.lol/> and
-L<Gautham Venkatasubramanian|https://ahgamut.github.io>. APPerl
+The Cosmopolitan Libc (L<https://github.com/jart/cosmopolitan>)
+contributors, especially Justine Tunney (L<https://justine.lol/>) and
+Gautham Venkatasubramanian (L<https://ahgamut.github.io>). APPerl
 wouldn't be possible without Actually Portable Executables and
 polyfills of several Linux and POSIX APIs for other platforms.
-Gautham's
-L<Python port|https://ahgamut.github.io/2021/07/13/ape-python/>
+Gautham's Python port
+(L<https://ahgamut.github.io/2021/07/13/ape-python/>)
 inspired this project.
 
 =head1 AUTHOR
