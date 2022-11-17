@@ -10,7 +10,7 @@ jobs:
     name:    Build Perl-Dist-APPerl
     runs-on: ubuntu-latest
     steps:
-    - name: Fetch repo and submodules
+    - name: Fetch repo
       uses: actions/checkout@v3
       with:
         path: 'Perl-Dist-APPerl'
@@ -35,6 +35,41 @@ jobs:
         name: cpan
         if-no-files-found: error
         path: Perl-Dist-APPerl-v*.tar.gz
+
+  test-Perl-Dist-APPerl:
+    name:    test Perl-Dist-APPerl
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ['5.10', '5.36']
+    steps:
+    - name: Fetch repo
+      uses: actions/checkout@v3
+      with:
+        path: 'Perl-Dist-APPerl'
+    - name: Install Perl
+      uses: shogo82148/actions-setup-perl@v1
+      with:
+        perl-version: ${{ matrix.version }}
+        install-modules-with: cpanm
+        install-modules: B::Keywords HTTP::Tiny Test::Pod::LinkCheck::Lite
+    - name: Setup for tests
+      run: |
+        cd Perl-Dist-APPerl
+        cpanm --installdeps --notest .
+    - name: Run tests
+      run: |
+        cd Perl-Dist-APPerl
+        perl Makefile.PL
+        make
+        make test
+        make authortest
+    - name: Archive CPAN logs
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: cpan_log
+        path: /home/runner/.cpanm/work/*/build.log
 
   build-apperl:
     name:    Build perl.com
@@ -97,7 +132,7 @@ jobs:
   create-release:
     name:    Create release
     runs-on: ubuntu-latest
-    needs:   [ build-linux, build-apperl ]
+    needs:   [ build-linux, build-apperl, test-Perl-Dist-APPerl ]
     steps:
     - name: Fetch build artifacts
       if:   ${{ github.ref_type == 'tag' }}
