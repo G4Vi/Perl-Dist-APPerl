@@ -4,25 +4,36 @@ use version 0.77; our $VERSION = qv(v0.1.1);
 use strict;
 use warnings;
 use JSON::PP 2.0104 qw(decode_json);
-use File::Path 2.07 qw(make_path);
+use File::Path 2.07 qw(make_path remove_tree);
 use Cwd qw(abs_path getcwd);
 use Data::Dumper qw(Dumper);
 use File::Basename qw(basename dirname);
-use File::Copy qw(copy);
+use File::Copy qw(copy move);
+use Env qw(@PATH);
 use FindBin qw();
 use Getopt::Long qw(GetOptionsFromArray);
 Getopt::Long::Configure qw(gnu_getopt);
 
 use constant {
-    SITE_CONFIG_DIR  => (($ENV{XDG_CONFIG_HOME} // ($ENV{HOME}.'/.config')).'/apperl'),
-    SITE_REPO_DIR => (($ENV{XDG_DATA_HOME} // ($ENV{HOME}.'/.local/share')).'/apperl'),
-    PROJECT_FILE => 'apperl-project.json',
     START_WD => getcwd(),
-    PROJECT_TMP_DIR => abs_path('.apperl')
+    PROJECT_FILE => 'apperl-project.json',
+};
+use constant {
+    PROJECT_TMP_DIR => (START_WD.'/.apperl'),
+};
+use constant {
+    # DEFDATAROOT is used if the XDG base directories cannot be found
+    DEFDATAROOT => defined($ENV{HOME}) ? $ENV{HOME}
+    : defined($ENV{APPDATA}) ? $ENV{APPDATA} .'/apperl'
+    : PROJECT_TMP_DIR.'/site',
+    PROJECT_TMP_CONFIG_FILE => (PROJECT_TMP_DIR.'/user-project.json'),
+};
+use constant {
+    SITE_CONFIG_DIR  => ($ENV{XDG_CONFIG_HOME} // (DEFDATAROOT.'/.config')) . '/apperl',
+    SITE_REPO_DIR => ($ENV{XDG_DATA_HOME} // (DEFDATAROOT.'/.local/share')).'/apperl',
 };
 use constant {
     SITE_CONFIG_FILE => (SITE_CONFIG_DIR."/site.json"),
-    PROJECT_TMP_CONFIG_FILE => (PROJECT_TMP_DIR.'/user-project.json')
 };
 
 sub _load_apperl_configs {
@@ -887,7 +898,10 @@ sub Set {
         chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
         print "make veryclean\n";
         system("make", "veryclean");
-        _command_or_die('rm', '-f', 'miniperl.com', 'miniperl.elf', 'perl.com', 'perl.elf');
+        foreach my $todelete ('miniperl.com', 'perl.com', 'miniperl.elf', 'perl.elf') {
+            print "rm $todelete\n";
+            unlink($todelete) || $!{ENOENT} or die "failed to delete $todelete";
+        }
         _command_or_die('git', 'checkout', $itemconfig->{perl_id});
 
         print "cd ".START_WD."\n";
@@ -957,7 +971,23 @@ sub _fix_bases {
     return $in;
 }
 
+# system is pretty broken on APPerl when running on Windows
+# let's search PATH ourselves ...
+sub _find_zip {
+    if(($^O ne 'cosmo') || (! -f '/C/Windows/System32/cmd.exe')) {
+        return 'zip';
+    }
+    else {
+        foreach my $dir (@PATH) {
+            my $zippath = "$dir/zip.exe";
+            return $zippath if(-f $zippath);
+        }
+    }
+    die("Failed to find zip.exe, did you download Info-Zip and add the folder containing zip.exe to \%PATH\%?");
+}
+
 sub Build {
+    my ($zippath) = @_;
     my $Configs = _load_apperl_configs();
     my $UserProjectConfig = _load_valid_user_project_config_with_default($Configs) or die "cannot Build without valid UserProjectConfig";
     my $CurAPPerlName = $UserProjectConfig->{current_apperl};
@@ -986,10 +1016,12 @@ sub Build {
     -f $PERL_APE or die "apperlm build: perl ape not found";
     my $OUTPUTDIR = "$UserProjectConfig->{apperl_output}/$CurAPPerlName";
     if(-d $OUTPUTDIR) {
-        _command_or_die('rm', '-rf', $OUTPUTDIR);
+        print "rm -rf $OUTPUTDIR\n";
+        remove_tree($OUTPUTDIR);
     }
     my $TEMPDIR = "$OUTPUTDIR/tmp";
-    _command_or_die('mkdir', '-p', $TEMPDIR);
+    print "mkdir -p $TEMPDIR\n";
+    make_path($TEMPDIR);
     my $PERL_PREFIX = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{prefix}');
     my $PREFIX_NOZIP = $PERL_PREFIX;
     $PREFIX_NOZIP =~ s/^\/zip\/*//;
@@ -1001,7 +1033,9 @@ sub Build {
     # install cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
         _command_or_die('make', "DESTDIR=$TEMPDIR", 'install');
-        _command_or_die('rm', "$TEMPDIR$PERL_PREFIX/bin/perl", "$TEMPDIR$PERL_PREFIX/bin/perl$PERL_VERSION");
+        my @toremove = ("$TEMPDIR$PERL_PREFIX/bin/perl", "$TEMPDIR$PERL_PREFIX/bin/perl$PERL_VERSION");
+        print 'rm '.join(' ', @toremove)."\n";
+        unlink(@toremove) == scalar(@toremove) or die "Failed to unlink some files";
     }
     else {
         make_path($ZIP_ROOT);
@@ -1010,8 +1044,10 @@ sub Build {
     # pack
     my $APPNAME = basename($PERL_APE);
     my $APPPATH = "$TEMPDIR/$APPNAME";
-    _command_or_die('cp', $PERL_APE, $APPPATH);
-    _command_or_die('chmod', 'u+w', $APPPATH);
+    print "cp $PERL_APE $APPPATH\n";
+    copy($PERL_APE, $APPPATH) or die "copy failed: $!";
+    print "chmod 755 $APPPATH\n";
+    chmod(0755, $APPPATH) or die $!;
     if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
         print "cd $ZIP_ROOT\n";
         chdir($ZIP_ROOT) or die "failed to enter ziproot";
@@ -1021,15 +1057,18 @@ sub Build {
                 _copy_recursive($file, $dest);
             }
         }
-        _command_or_die('zip', '-r', $APPPATH, @zipfiles);
+        _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
     }
-    _command_or_die('mv', $APPPATH, "$OUTPUTDIR/perl.com");
+    print "mv $APPPATH $OUTPUTDIR/perl.com\n";
+    move($APPPATH, "$OUTPUTDIR/perl.com") or die "move failed: $!";
 
     # copy to user specified location
     if(exists $itemconfig->{dest}) {
         print "cd ".START_WD."\n";
         chdir(START_WD) or die "Failed to restore cwd";
-        _command_or_die('cp', "$UserProjectConfig->{apperl_output}/$CurAPPerlName/perl.com", $itemconfig->{dest});
+        my @args = ("$UserProjectConfig->{apperl_output}/$CurAPPerlName/perl.com", $itemconfig->{dest});
+        print 'cp '.join(' ', @args)."\n";
+        copy(@args) or die "copy failed: $!";
     }
 }
 
@@ -1064,12 +1103,21 @@ END_USAGE
     }
     elsif($command eq 'build') {
         my $usage = <<'END_USAGE';
-apperlm build
+apperlm build [-z|--zippath <zip_binary_path>]
+  -z|--zippath     Path to InfoZip zip executable
 Build APPerl. If the current config is a from-scratch build, you must
 run `apperlm configure` first.
 END_USAGE
-        die($usage) if(@_);
-        Perl::Dist::APPerl::Build();
+        my $zippath;
+        my $help;
+        GetOptionsFromArray(\@_, "zippath|z=s" => \$zippath,
+                   "help|h" => \$help,
+        ) or die($usage);
+        if($help) {
+            print $usage;
+            exit 0;
+        }
+        Perl::Dist::APPerl::Build($zippath);
     }
     elsif($command eq 'configure') {
         Perl::Dist::APPerl::Configure(@_);
@@ -1482,7 +1530,10 @@ and runs Perl's C<Configure>
 
 C<apperlm build> C<make>s perl and builds apperl. The output binary by
 default is copied to C<perl.com> in the current directory, set dest in
-C<apperl-project.json> to customize output binary path and name.
+C<apperl-project.json> to customize output binary path and name. A
+C<zip> binary is required to build, see README.md for details. The
+C<zip> binary path may be explictly set by passing in
+--zippath <zip_binary_path> .
 
 =back
 
@@ -1603,9 +1654,11 @@ permissively already.
 
 If your application requires non-standard C or XS extensions, APPerl
 must be built from scratch as it does not support dynamic libraries,
-only static linking. This tutorial assumes you already have an APPerl
-project, possibly from following the
-L</BUILDING AN APPLICATION FROM EXISTING APPERL> tutorial.
+only static linking. Note, this process can only be completed on
+Linux as building the Cosmopolitan Libc from scratch is only supported
+on Linux and APPerl uses the unix-like C<Configure> to configure perl.
+This tutorial assumes you already have an APPerl project, possibly from
+following the L</BUILDING AN APPLICATION FROM EXISTING APPERL> tutorial.
 
 First install the APPerl build dependencies and create a new config
 based on the current small config, checkout, configure, and build.

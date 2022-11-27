@@ -17,6 +17,22 @@ on all your PCs multiple computers.
 Information on the creation of APPerl can be found in this
 [blogpost](https://computoid.com/posts/Perl-is-Actually-Portable.html).
 
+## NON-PERL DEPENDENCIES
+
+A `zip` binary ([Info-ZIP](https://infozip.sourceforge.net/)) is
+required to build. Your distro likely has it in its package
+repository. For Windows, the official download is available via FTP
+<ftp://ftp.info-zip.org/pub/infozip/>.
+
+### Windows x64 Info-ZIP download and install instructions
+- Get an FTP client if needed: [WinSCP](https://winscp.net/eng/index.php)
+- Connect to the [InfoZip FTP server](ftp://ftp.info-zip.org/pub/infozip/) with anonymous login.
+- Enter the `win32` folder and download `zip300xn-x64.zip`.
+- Extract the zip file and its inner zip file.
+- Add the folder containing `zip.exe` to `%PATH%`: [step-by-step](https://www.computerhope.com/issues/ch000549.htm)
+
+The last step isn't strictly necessary, the absolute path to a zip binary may be passed in to `apperlm build` with the `--zippath` arg.
+
 ## TRADITIONAL INSTALLATION
 
 To install this module, run the following commands:
