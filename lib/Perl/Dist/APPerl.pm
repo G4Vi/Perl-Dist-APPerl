@@ -8,7 +8,7 @@ use File::Path 2.07 qw(make_path remove_tree);
 use Cwd qw(abs_path getcwd);
 use Data::Dumper qw(Dumper);
 use File::Basename qw(basename dirname);
-use File::Copy qw(copy move);
+use File::Copy qw(copy move cp);
 use Env qw(@PATH);
 use FindBin qw();
 use Getopt::Long qw(GetOptionsFromArray);
@@ -1068,7 +1068,7 @@ sub Build {
         chdir(START_WD) or die "Failed to restore cwd";
         my @args = ("$UserProjectConfig->{apperl_output}/$CurAPPerlName/perl.com", $itemconfig->{dest});
         print 'cp '.join(' ', @args)."\n";
-        copy(@args) or die "copy failed: $!";
+        cp(@args) or die "copy failed: $!";
     }
 }
 

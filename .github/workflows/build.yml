@@ -129,10 +129,33 @@ jobs:
         if-no-files-found: error
         path: release/${{ env.DEST_BIN }}
 
+  test-nobuild-builds:
+    name:    Test building nobuild configs
+    needs:   build-apperl
+    strategy:
+      matrix:
+        os: [ubuntu-latest] #, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Fetch build artifacts
+      uses: actions/download-artifact@v3
+    - name: support ape bins
+      run: sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
+    - name: Try nobuild build
+      run: |
+        mkdir src
+        cp full/perl.com src/
+        printf "%s\n" 'print "Hello, World!\n";' > src/hello
+        echo '{"defaultconfig":"hello","apperl_configs":{"hello":{"dest":"hello.com","base":"nobuild-v0.1.0","zip_extra_files":{"bin":["src/hello"]}}}}' > apperl-project.json
+        chmod +x src/perl.com
+        src/perl.com /zip/bin/apperlm list
+        src/perl.com /zip/bin/apperlm build
+        ./hello.com
+
   create-release:
     name:    Create release
     runs-on: ubuntu-latest
-    needs:   [ build-linux, build-apperl, test-Perl-Dist-APPerl ]
+    needs:   [ build-linux, build-apperl, test-Perl-Dist-APPerl, test-nobuild-builds ]
     steps:
     - name: Fetch build artifacts
       if:   ${{ github.ref_type == 'tag' }}
