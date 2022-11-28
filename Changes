@@ -1,5 +1,5 @@
 Revision history for Perl-Dist-APPerl
-vX.X.X  2022-XX-XX
+v0.2.0  2022-11-27
         Enable cross-platform builds of `nobuild` configs. Switch
         remaining `mv`, `cp`, `rm` shell commands to use their perl
         equivalents. Add workaround to `apperlm` for running Info-ZIP
