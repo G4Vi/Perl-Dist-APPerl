@@ -1,4 +1,7 @@
 Revision history for Perl-Dist-APPerl
+v0.2.1  2022-12-03
+        Remove dependency on Env module.
+
 v0.2.0  2022-11-27
         Enable cross-platform builds of `nobuild` configs. Switch
         remaining `mv`, `cp`, `rm` shell commands to use their perl
