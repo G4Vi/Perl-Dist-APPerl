@@ -1,4 +1,8 @@
 Revision history for Perl-Dist-APPerl
+v0.X.X  2023-XX-XX
+        Add setting fallback script to run if argv[0] script execution
+        fails, set `default_script` in your config.
+
 v0.2.1  2022-12-03
         Remove dependency on Env module.
 

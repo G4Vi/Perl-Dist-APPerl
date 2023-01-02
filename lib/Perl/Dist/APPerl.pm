@@ -10,6 +10,7 @@ use Data::Dumper qw(Dumper);
 use File::Basename qw(basename dirname);
 use File::Copy qw(copy move cp);
 use FindBin qw();
+use Fcntl qw(SEEK_SET);
 use Getopt::Long qw(GetOptionsFromArray);
 Getopt::Long::Configure qw(gnu_getopt);
 
@@ -693,10 +694,10 @@ my %defconfig = (
             cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
             dest => 'perl-small-vista.com',
         },
-        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0' },
-        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista' },
-        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0' },
-        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista' },
+        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => '9fdd50f323c92d465011c9f0857819edcc41be28' },
+        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => '9fdd50f323c92d465011c9f0857819edcc41be28' },
+        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => '9fdd50f323c92d465011c9f0857819edcc41be28' },
+        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => '9fdd50f323c92d465011c9f0857819edcc41be28' },
         # development configs
         dontuse_threads => {
             desc => "not recommended, threaded build is buggy",
@@ -1058,6 +1059,23 @@ sub Build {
         }
         _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
     }
+
+    # patch default script
+    if(exists $itemconfig->{default_script}) {
+        length($itemconfig->{default_script}) <= 255 or die "default script path is too long";
+        open(my $fh, '+<:raw', $APPPATH) or die "$!";
+        my $fsize = (stat($fh))[7];
+        my $bread = read($fh, my $outdata, $fsize);
+        $bread && $bread == $fsize or die "failed to read full file $APPPATH";
+        my $sentinel = "APPERL_DEFAULT_SCRIPT";
+        my $sentinelpos = index($outdata, $sentinel);
+        $sentinelpos != -1 or die "Failed to find APPERL_DEFAULT_SCRIPT, is this an old APPerl binary?";
+        print "patching default script at " . ($sentinelpos+length($sentinel)+1) . "\n";
+        seek($fh, $sentinelpos+length($sentinel)+1, SEEK_SET) or die "$!";
+        print $fh $itemconfig->{default_script}."\0" or die "$!";
+        close($fh);
+    }
+
     print "mv $APPPATH $OUTPUTDIR/perl.com\n";
     move($APPPATH, "$OUTPUTDIR/perl.com") or die "move failed: $!";
 
@@ -1636,15 +1654,21 @@ Rebuild and try loading the newly added script
 
 You have embedded a script inside APPerl, however running it is a
 little awkward. What if you could run it by the name of the script?
+APPerl has argv[0] script execution, enabling the following:
 
   ln -s perl.com hello
   ./hello
 
-More details on the argv[0] script execution is in L</USAGE>. Now,
-what about Perl modules? Perl modules can be packed in the same way,
-but to ease setting the correct directory to packing them into, the
-magic prefix __perllib__ can be used in the destination. Note, you may
-have to add items to the MANIFEST key if the MANIFEST isn't set
+Now, you may still wish for your application to be run, even if the
+executable is renamed. Add C<default_script> to your config to set a
+fallback script:
+
+  "default_script" : "/zip/bin/hello"
+
+Now, what about Perl modules? Perl modules can be packed in the same
+way, but to ease setting the correct directory to packing them into,
+the magic prefix __perllib__ can be used in the destination. Note, you
+may have to add items to the MANIFEST key if the MANIFEST isn't set
 permissively already.
 
   "zip_extra_files" : { "__perllib__/Your" : ["Module.pm"] }
