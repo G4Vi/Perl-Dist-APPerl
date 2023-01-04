@@ -1030,11 +1030,13 @@ sub Build {
     $PREFIX_NOZIP =~ s/^\/zip\/*//;
     my $PERL_VERSION = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{version}');
     my $PERL_ARCHNAME = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{archname}');
+    my $PERL_CC;
     my @zipfiles = map { "$PREFIX_NOZIP"._fix_bases($_, $PERL_VERSION, $PERL_ARCHNAME) } @{$itemconfig->{MANIFEST}};
     my $ZIP_ROOT = "$TEMPDIR/zip";
 
     # install cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
+        $PERL_CC = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{cc}');
         _command_or_die('make', "DESTDIR=$TEMPDIR", 'install');
         my @toremove = ("$TEMPDIR$PERL_PREFIX/bin/perl", "$TEMPDIR$PERL_PREFIX/bin/perl$PERL_VERSION");
         print 'rm '.join(' ', @toremove)."\n";
@@ -1072,7 +1074,32 @@ sub Build {
         foreach my $module (@{$itemconfig->{install_modules}}) {
             print "cd $startdir/$module\n";
             chdir("$startdir/$module") or die "Failed to enter module dir";
-            _command_or_die($perltouse, 'Makefile.PL', "PERL_INC=$perlinc", "PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib");
+            my $fixprefix = sub {
+                my ($file) = @_;
+                open(my $fh, '+<', $file) or die "$!";
+                my $buf = '';
+                while(my $line = <$fh>) {
+                    $line =~ s/ $PERL_PREFIX/ $TEMPDIR$PERL_PREFIX/g;
+                    $buf .= $line;
+                }
+                seek($fh, 0, SEEK_SET) or die "$!";
+                print $fh $buf;
+                truncate($fh, tell($fh)) or die "$!";
+            };
+            # build
+            _command_or_die($perltouse, 'Makefile.PL', "PERL_INC=$perlinc", "PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.elf", "INSTALLDIRS=perl", "INSTALL_BASE=$PERL_PREFIX");
+            $fixprefix->('Makefile');
+            _command_or_die('make');
+            # install into the src tree
+            _command_or_die('make', 'install');
+            # build a new perl binary and install
+            _command_or_die('make', 'Makefile.aperl');
+            $fixprefix->('Makefile.aperl');
+            _command_or_die('make', '-f', 'Makefile.aperl', 'perl.elf');
+            _command_or_die(dirname($PERL_CC)."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.elf', 'perl.com');
+            # install zipos files
+            # install module files
+            # replace PERL_APE
             die;
         }
     }
