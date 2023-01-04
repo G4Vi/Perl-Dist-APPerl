@@ -994,6 +994,7 @@ sub Build {
     my $UserProjectConfig = _load_valid_user_project_config_with_default($Configs) or die "cannot Build without valid UserProjectConfig";
     my $CurAPPerlName = $UserProjectConfig->{current_apperl};
     my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
+    my $startdir = abs_path('./');
 
     my $PERL_APE;
     my @perl_config_cmd;
@@ -1060,6 +1061,20 @@ sub Build {
             }
         }
         _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
+    }
+
+    # install modules
+    if(exists $itemconfig->{install_modules}) {
+        my $perltouse = $APPPATH;
+        my $perllib = "$TEMPDIR$PERL_PREFIX/lib/perl5/$PERL_VERSION";
+        my $perlarchlib = "$perllib/$PERL_ARCHNAME";
+        my $perlinc = "$perlarchlib/CORE";
+        foreach my $module (@{$itemconfig->{install_modules}}) {
+            print "cd $startdir/$module\n";
+            chdir("$startdir/$module") or die "Failed to enter module dir";
+            _command_or_die($perltouse, 'Makefile.PL', "PERL_INC=$perlinc", "PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib");
+            die;
+        }
     }
 
     # patch default script
