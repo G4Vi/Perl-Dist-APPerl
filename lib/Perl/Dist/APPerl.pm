@@ -1030,13 +1030,12 @@ sub Build {
     $PREFIX_NOZIP =~ s/^\/zip\/*//;
     my $PERL_VERSION = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{version}');
     my $PERL_ARCHNAME = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{archname}');
-    my $PERL_CC;
+    my $PERL_CC = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{cc}');
     my @zipfiles = map { "$PREFIX_NOZIP"._fix_bases($_, $PERL_VERSION, $PERL_ARCHNAME) } @{$itemconfig->{MANIFEST}};
     my $ZIP_ROOT = "$TEMPDIR/zip";
 
     # install cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
-        $PERL_CC = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{cc}');
         _command_or_die('make', "DESTDIR=$TEMPDIR", 'install');
         my @toremove = ("$TEMPDIR$PERL_PREFIX/bin/perl", "$TEMPDIR$PERL_PREFIX/bin/perl$PERL_VERSION");
         print 'rm '.join(' ', @toremove)."\n";
@@ -1049,25 +1048,31 @@ sub Build {
     # pack
     my $APPNAME = basename($PERL_APE);
     my $APPPATH = "$TEMPDIR/$APPNAME";
-    print "cp $PERL_APE $APPPATH\n";
-    copy($PERL_APE, $APPPATH) or die "copy failed: $!";
-    print "chmod 755 $APPPATH\n";
-    chmod(0755, $APPPATH) or die $!;
-    if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
-        print "cd $ZIP_ROOT\n";
-        chdir($ZIP_ROOT) or die "failed to enter ziproot";
-        foreach my $destkey (keys %{$itemconfig->{zip_extra_files}}) {
-            my $dest = _fix_bases($destkey, $PERL_VERSION, $PERL_ARCHNAME);
-            foreach my $file (@{$itemconfig->{zip_extra_files}{$destkey}}) {
-                _copy_recursive($file, $dest);
+    my $packAPE = sub {
+        print "cp $PERL_APE $APPPATH\n";
+        copy($PERL_APE, $APPPATH) or die "copy failed: $!";
+        print "chmod 755 $APPPATH\n";
+        chmod(0755, $APPPATH) or die $!;
+        if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
+            print "cd $ZIP_ROOT\n";
+            chdir($ZIP_ROOT) or die "failed to enter ziproot";
+            foreach my $destkey (keys %{$itemconfig->{zip_extra_files}}) {
+                my $dest = _fix_bases($destkey, $PERL_VERSION, $PERL_ARCHNAME);
+                foreach my $file (@{$itemconfig->{zip_extra_files}{$destkey}}) {
+                    _copy_recursive($file, $dest);
+                }
             }
+            _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
         }
-        _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
-    }
+    };
+    $packAPE->();
+
 
     # install modules
     if(exists $itemconfig->{install_modules}) {
-        my $perltouse = $APPPATH;
+        my $perlman1 = "$TEMPDIR$PERL_PREFIX/man/man1";
+        my $perlman3 = "$TEMPDIR$PERL_PREFIX/man/man3";
+        my $perlbin = "$TEMPDIR$PERL_PREFIX/bin";
         my $perllib = "$TEMPDIR$PERL_PREFIX/lib/perl5/$PERL_VERSION";
         my $perlarchlib = "$perllib/$PERL_ARCHNAME";
         my $perlinc = "$perlarchlib/CORE";
@@ -1087,7 +1092,14 @@ sub Build {
                 truncate($fh, tell($fh)) or die "$!";
             };
             # build
-            _command_or_die($perltouse, 'Makefile.PL', "PERL_INC=$perlinc", "PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.elf", "INSTALLDIRS=perl", "INSTALL_BASE=$PERL_PREFIX");
+            _command_or_die($APPPATH, 'Makefile.PL', "PERL_INC=$perlinc", "PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.elf", "INSTALLDIRS=perl",
+                "INSTALLARCHLIB=$perlarchlib",
+                "INSTALLPRIVLIB=$perllib",
+                "INSTALLBIN=$perlbin",
+                "INSTALLSCRIPT=$perlbin",
+                "INSTALLMAN1DIR=$perlman1",
+                "INSTALLMAN3DIR$perlman3"
+            );
             $fixprefix->('Makefile');
             _command_or_die('make');
             # install into the src tree
@@ -1097,10 +1109,8 @@ sub Build {
             $fixprefix->('Makefile.aperl');
             _command_or_die('make', '-f', 'Makefile.aperl', 'perl.elf');
             _command_or_die(dirname($PERL_CC)."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.elf', 'perl.com');
-            # install zipos files
-            # install module files
-            # replace PERL_APE
-            die;
+            $PERL_APE = abs_path('./perl.com');
+            $packAPE->();
         }
     }
 
