@@ -1076,23 +1076,14 @@ sub Build {
         my $perllib = "$TEMPDIR$PERL_PREFIX/lib/perl5/$PERL_VERSION";
         my $perlarchlib = "$perllib/$PERL_ARCHNAME";
         my $perlinc = "$perlarchlib/CORE";
+        my $oldperl5lib = $ENV{PERL5LIB};
+        $ENV{PERL5LIB} = $perllib;
         foreach my $module (@{$itemconfig->{install_modules}}) {
             print "cd $startdir/$module\n";
             chdir("$startdir/$module") or die "Failed to enter module dir";
-            my $fixprefix = sub {
-                my ($file) = @_;
-                open(my $fh, '+<', $file) or die "$!";
-                my $buf = '';
-                while(my $line = <$fh>) {
-                    $line =~ s/ $PERL_PREFIX/ $TEMPDIR$PERL_PREFIX/g;
-                    $buf .= $line;
-                }
-                seek($fh, 0, SEEK_SET) or die "$!";
-                print $fh $buf;
-                truncate($fh, tell($fh)) or die "$!";
-            };
             # build
-            _command_or_die($APPPATH, 'Makefile.PL', "PERL_INC=$perlinc", "PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.elf", "INSTALLDIRS=perl",
+            _command_or_die($APPPATH, 'Makefile.PL', "PERL_INC=$perlinc", "PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.elf",
+                "INSTALLDIRS=perl",
                 "INSTALLARCHLIB=$perlarchlib",
                 "INSTALLPRIVLIB=$perllib",
                 "INSTALLBIN=$perlbin",
@@ -1100,18 +1091,16 @@ sub Build {
                 "INSTALLMAN1DIR=$perlman1",
                 "INSTALLMAN3DIR$perlman3"
             );
-            $fixprefix->('Makefile');
             _command_or_die('make');
             # install into the src tree
             _command_or_die('make', 'install');
-            # build a new perl binary and install
-            _command_or_die('make', 'Makefile.aperl');
-            $fixprefix->('Makefile.aperl');
-            _command_or_die('make', '-f', 'Makefile.aperl', 'perl.elf');
+            # build a new perl binary, convert to APE, and repack zip
+            _command_or_die('make', 'perl.elf');
             _command_or_die(dirname($PERL_CC)."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.elf', 'perl.com');
             $PERL_APE = abs_path('./perl.com');
             $packAPE->();
         }
+        $ENV{PERL5LIB} = $oldperl5lib;
     }
 
     # patch default script
