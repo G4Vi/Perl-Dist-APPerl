@@ -968,6 +968,8 @@ sub _fix_bases {
     my ($in, $PERL_VERSION, $PERL_ARCHNAME) = @_;
     $in =~ s/^__perllib__/lib\/perl5\/$PERL_VERSION/;
     $in =~ s/^__perlarchlib__/lib\/perl5\/$PERL_VERSION\/$PERL_ARCHNAME/;
+    $in =~ s/^__sitelib__/lib\/perl5\/site_perl\/$PERL_VERSION/;
+    $in =~ s/^__sitearchlib__/lib\/perl5\/site_perl\/$PERL_VERSION\/$PERL_ARCHNAME/;
     return $in;
 }
 
