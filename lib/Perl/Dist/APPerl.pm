@@ -1231,6 +1231,7 @@ END_USAGE
     else {
         die($generic_usage);
     }
+    1;
 }
 
 sub _command_or_die {
@@ -1344,7 +1345,11 @@ sub _load_apperl_config {
         my $thispath = abs_path(__FILE__);
         defined($thispath) or die(__FILE__.'issues?');
         push @{$itemconfig{zip_extra_files}{"__perllib__/Perl/Dist"}}, $thispath;
-        my @additionalfiles = map { "$FindBin::Bin/$_" } ('apperlm');
+        my $apperlm = $0;
+        if($0 ne 'apperlm') {
+            $apperlm = abs_path(dirname($thispath)."/../../../script/apperlm");
+        }
+        my @additionalfiles = ($apperlm);
         -e $_ or die("$_ $!") foreach @additionalfiles;
         push @{$itemconfig{zip_extra_files}{bin}}, @additionalfiles;
     }

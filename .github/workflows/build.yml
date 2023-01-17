@@ -63,7 +63,7 @@ jobs:
         perl Makefile.PL
         make
         make test
-        make authortest
+        prove -lv xt/author/pod_linkcheck.t
     - name: Archive CPAN logs
       if: ${{ failure() }}
       uses: actions/upload-artifact@v3
