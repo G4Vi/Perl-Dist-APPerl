@@ -965,11 +965,10 @@ sub Configure {
 }
 
 sub _fix_bases {
-    my ($in, $PERL_VERSION, $PERL_ARCHNAME) = @_;
-    $in =~ s/^__perllib__/lib\/perl5\/$PERL_VERSION/;
-    $in =~ s/^__perlarchlib__/lib\/perl5\/$PERL_VERSION\/$PERL_ARCHNAME/;
-    $in =~ s/^__sitelib__/lib\/perl5\/site_perl\/$PERL_VERSION/;
-    $in =~ s/^__sitearchlib__/lib\/perl5\/site_perl\/$PERL_VERSION\/$PERL_ARCHNAME/;
+    my ($in, $aliasmap) = @_;
+    foreach my $key (keys %{$aliasmap}) {
+        $in =~ s/^$key/$aliasmap->{$key}/;
+    }
     return $in;
 }
 
@@ -1026,18 +1025,25 @@ sub Build {
     print "mkdir -p $TEMPDIR\n";
     make_path($TEMPDIR);
     my %proxyConfig;
-    foreach my $item (qw(prefix version archname cc)) {
+    foreach my $item (qw(prefix version archname cc installprivlib installarchlib installsitelib installsitearch installprefixexp installbin installman1dir installman3dir)) {
         $proxyConfig{$item} = _cmdoutput_or_die(@perl_config_cmd, '-e', "use Config; print \$Config{$item}");
     }
-    my $PREFIX_NOZIP = $proxyConfig{prefix};
-    $PREFIX_NOZIP =~ s/^\/zip\/*//;
-    my @zipfiles = map { "$PREFIX_NOZIP"._fix_bases($_, $proxyConfig{version}, $proxyConfig{archname}) } @{$itemconfig->{MANIFEST}};
-    my $ZIP_ROOT = "$TEMPDIR/zip";
+    my %aliasmap = (
+        '__perllib__' => $proxyConfig{installprivlib},
+        '__perlarchlib__' => $proxyConfig{installarchlib},
+        '__sitelib__' => $proxyConfig{installsitelib},
+        '__sitearchlib__' => $proxyConfig{installsitearch}
+    );
+    foreach my $libdir (keys %aliasmap) {
+        $aliasmap{$libdir} =~ s/$proxyConfig{installprefixexp}\///;
+    }
+    my @zipfiles = map { _fix_bases($_, \%aliasmap) } @{$itemconfig->{MANIFEST}};
+    my $ZIP_ROOT = "$TEMPDIR$proxyConfig{installprefixexp}";
 
     # install cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
         _command_or_die('make', "DESTDIR=$TEMPDIR", 'install');
-        my @toremove = ("$TEMPDIR$proxyConfig{prefix}/bin/perl", "$TEMPDIR$proxyConfig{prefix}/bin/perl$proxyConfig{version}");
+        my @toremove = ("$TEMPDIR$proxyConfig{installbin}/perl", "$TEMPDIR$proxyConfig{installbin}/perl$proxyConfig{version}");
         print 'rm '.join(' ', @toremove)."\n";
         unlink(@toremove) == scalar(@toremove) or die "Failed to unlink some files";
     }
@@ -1047,7 +1053,7 @@ sub Build {
 
     # add zip_extra_files to the tree
     foreach my $destkey (keys %{$itemconfig->{zip_extra_files}}) {
-        my $dest = "$ZIP_ROOT/"._fix_bases($destkey, $proxyConfig{version}, $proxyConfig{archname});
+        my $dest = "$ZIP_ROOT/"._fix_bases($destkey, \%aliasmap);
         foreach my $file (@{$itemconfig->{zip_extra_files}{$destkey}}) {
             _copy_recursive($file, $dest);
         }
@@ -1072,11 +1078,11 @@ sub Build {
 
     # install modules
     if(exists $itemconfig->{install_modules}) {
-        my $perlman1 = "$TEMPDIR$proxyConfig{prefix}/man/man1";
-        my $perlman3 = "$TEMPDIR$proxyConfig{prefix}/man/man3";
-        my $perlbin = "$TEMPDIR$proxyConfig{prefix}/bin";
-        my $perllib = "$TEMPDIR$proxyConfig{prefix}/lib/perl5/$proxyConfig{version}";
-        my $perlarchlib = "$perllib/$proxyConfig{archname}";
+        my $perlman1 = "$TEMPDIR$proxyConfig{installman1dir}";
+        my $perlman3 = "$TEMPDIR$proxyConfig{installman3dir}";
+        my $perlbin = "$TEMPDIR$proxyConfig{installbin}";
+        my $perllib = "$TEMPDIR$proxyConfig{installprivlib}";
+        my $perlarchlib = "$TEMPDIR$proxyConfig{installarchlib}";
         my $perlinc = "$perlarchlib/CORE";
         my $oldperl5lib = $ENV{PERL5LIB};
         $ENV{PERL5LIB} = $perllib;
