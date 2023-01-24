@@ -1025,19 +1025,19 @@ sub Build {
     my $TEMPDIR = "$OUTPUTDIR/tmp";
     print "mkdir -p $TEMPDIR\n";
     make_path($TEMPDIR);
-    my $PERL_PREFIX = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{prefix}');
-    my $PREFIX_NOZIP = $PERL_PREFIX;
+    my %proxyConfig;
+    foreach my $item (qw(prefix version archname cc)) {
+        $proxyConfig{$item} = _cmdoutput_or_die(@perl_config_cmd, '-e', "use Config; print \$Config{$item}");
+    }
+    my $PREFIX_NOZIP = $proxyConfig{prefix};
     $PREFIX_NOZIP =~ s/^\/zip\/*//;
-    my $PERL_VERSION = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{version}');
-    my $PERL_ARCHNAME = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{archname}');
-    my $PERL_CC = _cmdoutput_or_die(@perl_config_cmd, '-e', 'use Config; print $Config{cc}');
-    my @zipfiles = map { "$PREFIX_NOZIP"._fix_bases($_, $PERL_VERSION, $PERL_ARCHNAME) } @{$itemconfig->{MANIFEST}};
+    my @zipfiles = map { "$PREFIX_NOZIP"._fix_bases($_, $proxyConfig{version}, $proxyConfig{archname}) } @{$itemconfig->{MANIFEST}};
     my $ZIP_ROOT = "$TEMPDIR/zip";
 
     # install cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
         _command_or_die('make', "DESTDIR=$TEMPDIR", 'install');
-        my @toremove = ("$TEMPDIR$PERL_PREFIX/bin/perl", "$TEMPDIR$PERL_PREFIX/bin/perl$PERL_VERSION");
+        my @toremove = ("$TEMPDIR$proxyConfig{prefix}/bin/perl", "$TEMPDIR$proxyConfig{prefix}/bin/perl$proxyConfig{version}");
         print 'rm '.join(' ', @toremove)."\n";
         unlink(@toremove) == scalar(@toremove) or die "Failed to unlink some files";
     }
@@ -1047,7 +1047,7 @@ sub Build {
 
     # add zip_extra_files to the tree
     foreach my $destkey (keys %{$itemconfig->{zip_extra_files}}) {
-        my $dest = "$ZIP_ROOT/"._fix_bases($destkey, $PERL_VERSION, $PERL_ARCHNAME);
+        my $dest = "$ZIP_ROOT/"._fix_bases($destkey, $proxyConfig{version}, $proxyConfig{archname});
         foreach my $file (@{$itemconfig->{zip_extra_files}{$destkey}}) {
             _copy_recursive($file, $dest);
         }
@@ -1072,11 +1072,11 @@ sub Build {
 
     # install modules
     if(exists $itemconfig->{install_modules}) {
-        my $perlman1 = "$TEMPDIR$PERL_PREFIX/man/man1";
-        my $perlman3 = "$TEMPDIR$PERL_PREFIX/man/man3";
-        my $perlbin = "$TEMPDIR$PERL_PREFIX/bin";
-        my $perllib = "$TEMPDIR$PERL_PREFIX/lib/perl5/$PERL_VERSION";
-        my $perlarchlib = "$perllib/$PERL_ARCHNAME";
+        my $perlman1 = "$TEMPDIR$proxyConfig{prefix}/man/man1";
+        my $perlman3 = "$TEMPDIR$proxyConfig{prefix}/man/man3";
+        my $perlbin = "$TEMPDIR$proxyConfig{prefix}/bin";
+        my $perllib = "$TEMPDIR$proxyConfig{prefix}/lib/perl5/$proxyConfig{version}";
+        my $perlarchlib = "$perllib/$proxyConfig{archname}";
         my $perlinc = "$perlarchlib/CORE";
         my $oldperl5lib = $ENV{PERL5LIB};
         $ENV{PERL5LIB} = $perllib;
@@ -1098,7 +1098,7 @@ sub Build {
             _command_or_die('make', 'install');
             # build a new perl binary, convert to APE, and repack zip
             _command_or_die('make', 'perl.elf');
-            _command_or_die(dirname($PERL_CC)."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.elf', 'perl.com');
+            _command_or_die(dirname($proxyConfig{cc})."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.elf', 'perl.com');
             $PERL_APE = abs_path('./perl.com');
             $packAPE->();
         }
