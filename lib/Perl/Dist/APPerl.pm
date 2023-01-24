@@ -1045,6 +1045,14 @@ sub Build {
         make_path($ZIP_ROOT);
     }
 
+    # add zip_extra_files to the tree
+    foreach my $destkey (keys %{$itemconfig->{zip_extra_files}}) {
+        my $dest = "$ZIP_ROOT/"._fix_bases($destkey, $PERL_VERSION, $PERL_ARCHNAME);
+        foreach my $file (@{$itemconfig->{zip_extra_files}{$destkey}}) {
+            _copy_recursive($file, $dest);
+        }
+    }
+
     # pack
     my $APPNAME = basename($PERL_APE);
     my $APPPATH = "$TEMPDIR/$APPNAME";
@@ -1056,12 +1064,6 @@ sub Build {
         if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
             print "cd $ZIP_ROOT\n";
             chdir($ZIP_ROOT) or die "failed to enter ziproot";
-            foreach my $destkey (keys %{$itemconfig->{zip_extra_files}}) {
-                my $dest = _fix_bases($destkey, $PERL_VERSION, $PERL_ARCHNAME);
-                foreach my $file (@{$itemconfig->{zip_extra_files}{$destkey}}) {
-                    _copy_recursive($file, $dest);
-                }
-            }
             _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
         }
     };
