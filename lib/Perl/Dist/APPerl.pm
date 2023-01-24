@@ -1388,8 +1388,9 @@ sub _load_apperl_config {
         push @{$itemconfig{zip_extra_files}{"__perllib__/Perl/Dist"}}, $thispath;
         my $apperlm = $0;
         if(basename($0) ne 'apperlm') {
-            $apperlm = abs_path(dirname($thispath)."/../../../script/apperlm");
+            $apperlm = dirname($thispath)."/../../../script/apperlm";
         }
+        $apperlm = abs_path($apperlm);
         defined($apperlm) or die "error getting path to apperlm";
         my @additionalfiles = ($apperlm);
         -e $_ or die("$_ $!") foreach @additionalfiles;
