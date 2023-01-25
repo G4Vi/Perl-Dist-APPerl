@@ -1083,21 +1083,33 @@ sub Build {
         my $perlbin = "$TEMPDIR$proxyConfig{installbin}";
         my $perllib = "$TEMPDIR$proxyConfig{installprivlib}";
         my $perlarchlib = "$TEMPDIR$proxyConfig{installarchlib}";
-        my $perlinc = "$perlarchlib/CORE";
-        my $oldperl5lib = $ENV{PERL5LIB};
-        $ENV{PERL5LIB} = $perllib;
+        my %savedperlenv = (
+            PERL_MB_OPT => '',
+            PERL_MM_OPT => '',
+            PERL5LIB => $perllib,
+            PERL_LOCAL_LIB_ROOT => ''
+        );
+        my $swapEnv = sub {
+            my ($one, $two) = @_;
+            my @tobackup = qw(PERL_MB_OPT PERL_MM_OPT PERL5LIB PERL_LOCAL_LIB_ROOT);
+            foreach my $item (@tobackup) {
+                ($one->{$item}, $two->{$item}) = ($two->{$item}, $one->{$item});
+            }
+        };
+        $swapEnv->(\%ENV, \%savedperlenv);
+        #print Dumper(\%savedperlenv);
         foreach my $module (@{$itemconfig->{install_modules}}) {
             print "cd $startdir/$module\n";
             chdir("$startdir/$module") or die "Failed to enter module dir";
             # build
-            _command_or_die($APPPATH, 'Makefile.PL', "PERL_INC=$perlinc", "PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.elf",
+            _command_or_die($APPPATH, 'Makefile.PL', "PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.elf",
                 "INSTALLDIRS=perl",
                 "INSTALLARCHLIB=$perlarchlib",
                 "INSTALLPRIVLIB=$perllib",
                 "INSTALLBIN=$perlbin",
                 "INSTALLSCRIPT=$perlbin",
                 "INSTALLMAN1DIR=$perlman1",
-                "INSTALLMAN3DIR$perlman3"
+                "INSTALLMAN3DIR=$perlman3"
             );
             _command_or_die('make');
             # install into the src tree
@@ -1108,7 +1120,7 @@ sub Build {
             $PERL_APE = abs_path('./perl.com');
             $packAPE->();
         }
-        $ENV{PERL5LIB} = $oldperl5lib;
+        $swapEnv->(\%ENV, \%savedperlenv);
     }
 
     # patch default script
