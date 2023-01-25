@@ -1083,21 +1083,10 @@ sub Build {
         my $perlbin = "$TEMPDIR$proxyConfig{installbin}";
         my $perllib = "$TEMPDIR$proxyConfig{installprivlib}";
         my $perlarchlib = "$TEMPDIR$proxyConfig{installarchlib}";
-        my %savedperlenv = (
-            PERL_MB_OPT => '',
-            PERL_MM_OPT => '',
-            PERL5LIB => $perllib,
-            PERL_LOCAL_LIB_ROOT => ''
-        );
-        my $swapEnv = sub {
-            my ($one, $two) = @_;
-            my @tobackup = qw(PERL_MB_OPT PERL_MM_OPT PERL5LIB PERL_LOCAL_LIB_ROOT);
-            foreach my $item (@tobackup) {
-                ($one->{$item}, $two->{$item}) = ($two->{$item}, $one->{$item});
-            }
-        };
-        $swapEnv->(\%ENV, \%savedperlenv);
-        #print Dumper(\%savedperlenv);
+        local $ENV{PERL_MB_OPT} = '';
+        local $ENV{PERL_MM_OPT} = '';
+        local $ENV{PERL5LIB} = $perllib;
+        local $ENV{PERL_LOCAL_LIB_ROOT} = '';
         foreach my $module (@{$itemconfig->{install_modules}}) {
             print "cd $startdir/$module\n";
             chdir("$startdir/$module") or die "Failed to enter module dir";
@@ -1120,7 +1109,6 @@ sub Build {
             $PERL_APE = abs_path('./perl.com');
             $packAPE->();
         }
-        $swapEnv->(\%ENV, \%savedperlenv);
     }
 
     # patch default script
