@@ -694,10 +694,10 @@ my %defconfig = (
             cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
             dest => 'perl-small-vista.com',
         },
-        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c' },
-        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6' },
-        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c' },
-        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6' },
+        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         # development configs
         dontuse_threads => {
             desc => "not recommended, threaded build is buggy",
