@@ -694,10 +694,10 @@ my %defconfig = (
             cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
             dest => 'perl-small-vista.com',
         },
-        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => 'c7aa1d34ee27c9750a403c0e201438c3cb771bd6', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => '45c18985158e73ccd50b82a59117bec67b199f20', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => '45c18985158e73ccd50b82a59117bec67b199f20', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => '45c18985158e73ccd50b82a59117bec67b199f20', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => '45c18985158e73ccd50b82a59117bec67b199f20', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         # development configs
         dontuse_threads => {
             desc => "not recommended, threaded build is buggy",
@@ -1083,15 +1083,8 @@ sub Build {
         my $perlbin = "$TEMPDIR$proxyConfig{installbin}";
         my $perllib = "$TEMPDIR$proxyConfig{installprivlib}";
         my $perlarchlib = "$TEMPDIR$proxyConfig{installarchlib}";
-        local $ENV{PERL_MB_OPT} = '';
-        local $ENV{PERL_MM_OPT} = '';
-        local $ENV{PERL5LIB} = $perllib;
-        local $ENV{PERL_LOCAL_LIB_ROOT} = '';
-        foreach my $module (@{$itemconfig->{install_modules}}) {
-            print "cd $startdir/$module\n";
-            chdir("$startdir/$module") or die "Failed to enter module dir";
-            # build
-            _command_or_die($APPPATH, 'Makefile.PL', "PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.elf",
+        my $mmopt = sub {
+            my @mmopt = ("PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.elf",
                 "INSTALLDIRS=perl",
                 "INSTALLARCHLIB=$perlarchlib",
                 "INSTALLPRIVLIB=$perllib",
@@ -1100,13 +1093,56 @@ sub Build {
                 "INSTALLMAN1DIR=$perlman1",
                 "INSTALLMAN3DIR=$perlman3"
             );
-            _command_or_die('make');
-            # install into the src tree
-            _command_or_die('make', 'install');
-            # build a new perl binary, convert to APE, and repack zip
-            _command_or_die('make', 'perl.elf');
-            _command_or_die(dirname($proxyConfig{cc})."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.elf', 'perl.com');
-            $PERL_APE = abs_path('./perl.com');
+            my $str;
+            $str .= qq["$_" ] foreach @mmopt;
+            chop $str;
+            return $str;
+        }->();
+        my $mbopt = sub {
+            my %mbinstall_path = (
+                lib => $perllib,
+                arch => $perlarchlib,
+                script => $perlbin,
+                bin => $perlbin,
+                bindoc => $perlman1,
+                libdoc => $perlman3
+            );
+            my $mbopt;
+            foreach my $key (keys %mbinstall_path) {
+                $mbopt .= qq[--install_path $key=$mbinstall_path{$key} ];
+            };
+            chop $mbopt;
+            return $mbopt;
+        }->();
+        local $ENV{PERL_MB_OPT} = $mbopt;
+        local $ENV{PERL_MM_OPT} = $mmopt;
+        local $ENV{PERL5LIB} = $perllib;
+        local $ENV{PERL_LOCAL_LIB_ROOT} = '';
+        foreach my $module (@{$itemconfig->{install_modules}}) {
+            print "cd $startdir/$module\n";
+            chdir("$startdir/$module") or die "Failed to enter module dir";
+            # Module::Build (including installing Module::Build)
+            # Beware, Module::Build has no support for relinking the Perl binary like EU::MM - https://rt.cpan.org/Public/Bug/Display.html?id=47282
+            if(-f 'Build.PL') {
+                _command_or_die($APPPATH, 'Build.PL');
+                _command_or_die($APPPATH, 'Build');
+                _command_or_die($APPPATH, 'Build', 'install');
+            }
+            # ExtUtils::MakeMaker
+            elsif( -f 'Makefile.PL') {
+                # build
+                _command_or_die($APPPATH, 'Makefile.PL');
+                _command_or_die('make');
+                # install into the src tree
+                _command_or_die('make', 'install');
+                # build a new perl binary, convert to APE, and repack zip
+                _command_or_die('make', 'perl.elf');
+                _command_or_die(dirname($proxyConfig{cc})."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.elf', 'perl.com');
+                $PERL_APE = abs_path('./perl.com');
+            }
+            else {
+                die "No Makefile.PL or Build.PL found, unable to install module";
+            }
             $packAPE->();
         }
     }
