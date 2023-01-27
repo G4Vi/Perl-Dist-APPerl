@@ -1119,8 +1119,22 @@ sub Build {
         local $ENV{PERL5LIB} = $perllib;
         local $ENV{PERL_LOCAL_LIB_ROOT} = '';
         foreach my $module (@{$itemconfig->{install_modules}}) {
-            print "cd $startdir/$module\n";
-            chdir("$startdir/$module") or die "Failed to enter module dir";
+            my $modulepath = "$startdir/$module";
+            if(-d $modulepath) {
+                _copy_recursive($modulepath, $TEMPDIR);
+                $modulepath = "$TEMPDIR/".basename($modulepath);
+            }
+            elsif( -f _) {
+                _command_or_die('tar', 'xvf', $modulepath, '-C', $TEMPDIR);
+                $modulepath = "$TEMPDIR/".basename($modulepath);
+                $modulepath =~ s/\.tar.*$//;
+            }
+            else {
+                die "Module must be a directory or tarball";
+            }
+
+            print "cd $modulepath\n";
+            chdir($modulepath) or die "Failed to enter module dir";
             # Module::Build (including installing Module::Build)
             # Beware, Module::Build has no support for relinking the Perl binary like EU::MM - https://rt.cpan.org/Public/Bug/Display.html?id=47282
             if(-f 'Build.PL') {
