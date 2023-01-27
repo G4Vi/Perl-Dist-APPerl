@@ -699,6 +699,7 @@ my %defconfig = (
         'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => '45c18985158e73ccd50b82a59117bec67b199f20', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => '45c18985158e73ccd50b82a59117bec67b199f20', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         # development configs
+        'dbg' => { base => 'full', perl_extra_flags => ['-Doptimize=-g3 -gdwarf-4', '-de'], cosmo_mode => 'dbg', cosmo_id => '52f1db7220935cfcf2c8e583678f5ccc4b5bbacd'},
         dontuse_threads => {
             desc => "not recommended, threaded build is buggy",
             base => 'v5.36.0-full-v0.1.0',
