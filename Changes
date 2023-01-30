@@ -1,7 +1,17 @@
 Revision history for Perl-Dist-APPerl
-v0.X.X  2023-XX-XX
-        Add setting fallback script to run if argv[0] script execution
-        fails, set `default_script` in your config.
+v0.3.0  2023-01-XX
+        Added running scripts from APPERL_SCRIPTNAME environment
+        variable
+        Added setting fallback script to run if argv[0] script
+        execution fails, set `default_script` in your config
+        Added installing CPAN distributions from tarball or directory
+        on disk via "install_modules" in project config.
+        full, small, and vista variant configs:
+          Removed version from privlib archlib sitelib sitearch
+          Updated Cosmopolitan source
+          Update Perl source
+        Added dbg config: gdb not working for me, YYMV
+        Updated docs with new info.
 
 v0.2.1  2022-12-03
         Remove dependency on Env module.

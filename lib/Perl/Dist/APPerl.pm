@@ -1400,7 +1400,7 @@ sub _load_apperl_config {
             if($key =~ /^(\+|\-)(.+)/) {
                 my $append = $1 eq '+';
                 my $realkey = $2;
-                exists $itemconfig{$realkey} or die("cannot append without existing key");
+                exists $itemconfig{$realkey} or die "cannot append without existing key: $realkey";
                 my $rtype = ref($itemconfig{$realkey});
                 $rtype or die("not ref");
                 if($append) {
@@ -1435,8 +1435,8 @@ sub _load_apperl_config {
     foreach my $destdir (keys %{$itemconfig{zip_extra_files}}) {
         foreach my $path (@{$itemconfig{zip_extra_files}{$destdir}}) {
             $path = abs_path($path);
-            $path or die;
-            -e $path or die("missing file $path");
+            $path or die "zip_extra_files: check that all files exist for destdir: $destdir";
+            -e $path or die "zip_extra_files: missing file $path";
         }
     }
 
@@ -1592,7 +1592,7 @@ To start an APPerl project from an existing APPerl and build it:
 To start an APPerl project and build from scratch:
 
     apperlm install-build-deps
-    apperlm init --name your_config_name --base v5.36.0-small-v0.1.0
+    apperlm init --name your_config_name --base small
     apperlm configure
     apperlm build
 
@@ -1677,29 +1677,56 @@ the current environment.
 For the most part, APPerl works like normal perl, however it has a
 couple additional features.
 
+=head2 EMBEDDED SCRIPTS
+
+The APPerl binary is also a ZIP file. Paths starting with C</zip/>
+refer to files compressed in the binary itself. At runtime the zip
+filesystem is readonly, but additional modules and scripts can be added
+just by adding them to the zip file. For example, perldoc and the other
+standard scripts are shipped inside of C</zip/bin>
+
+  ./perl.com /zip/bin/perldoc perlcosmo
+
+For convenience, APPerl has some other ways of invoking embedded
+scripts:
+
 =over 4
 
 =item *
 
-C</zip/> filesystem - The APPerl binary is also a ZIP file. Paths
-starting with C</zip/> refer to files compressed in the binary itself.
-At runtime the zip filesystem is readonly, but additional modules and
-scripts can be added just by adding them to the zip file. For example,
-perldoc and the other standard scripts are shipped inside of /zip/bin
+C<APPERL_SCRIPTNAME> - When the environment variable C<APPERL_SCRIPTNAME>
+is set, APPerl attempts to load the basename of C<APPERL_SCRIPTNAME>
+without file extension from C</zip/bin> or opens the perl interpreter
+like normal if it is C<perl>.
 
-  ./perl.com /zip/bin/perldoc perlcosmo
+  APPERL_SCRIPTNAME=perldoc ./perl.com perlcosmo
 
 =item *
 
-C<argv[0]> script execution - this allows making single binary perl
-applications! APPerl built with the APPerl additions
-(found in cosmo-apperl branches) attempts to load the argv[0] basename
-without extension from /zip/bin
+C<argv[0]> - If C<APPERL_SCRIPTNAME> is not set, APPerl attempts to
+load the basename of C<argv[0]> without file extension from C</zip/bin>
+or opens the perl interpreter like normal if it is C<perl>. This
+enables making single binary perl applications, with a symlink, move,
+or copy!
 
   ln -s perl.com perldoc.com
   ./perldoc.com perlcosmo
 
+=item *
+
+C<APPERL_DEFAULT_SCRIPT> - If C<argv[0]> doesn't yield a valid target
+either, if the C<APPERL_DEFAULT_SCRIPT> field inside of the binary
+is set, APPerl will attempt to load that. This way is meant for APPerl
+application authors to protect against accidental rename messing up
+C<argv[0]> script execution. L</BUILDING AN APPLICATION FROM EXISTING APPERL>
+shows how to set it with C<"default_script">, but you could also
+set/change it, by searching for C<APPERL_DEFAULT_SCRIPT> in a hex
+editor and modifying it.
+
 =back
+
+If a valid target is not found via the script execution methods, the
+perl interpreter is invoked like normal.
 
 =head1 CREATING APPLICATIONS WITH APPERL
 
@@ -1784,27 +1811,65 @@ permissively already.
 
 =head2 BUILDING AN APPLICATION FROM SCRATCH
 
-If your application requires non-standard C or XS extensions, APPerl
-must be built from scratch as it does not support dynamic libraries,
-only static linking. Note, this process can only be completed on
-Linux as building the Cosmopolitan Libc from scratch is only supported
-on Linux and APPerl uses the unix-like C<Configure> to configure perl.
-This tutorial assumes you already have an APPerl project, possibly from
-following the L</BUILDING AN APPLICATION FROM EXISTING APPERL> tutorial.
+If your application requires non-standard C or XS extensions, or you
+would like to install CPAN distributions through their standard
+mechanisms (C<Makefile.PL> or C<Build.PL>), APPerl must be built from
+scratch as it only supports static linking and installing distributions
+may require adding in extensions. Note, this process can only be
+completed on Linux as building the Cosmopolitan Libc from scratch is
+only supported on Linux and APPerl uses the unix-like C<Configure> to
+configure perl. This tutorial assumes you already have an APPerl
+project, possibly from following the L</BUILDING AN APPLICATION FROM EXISTING APPERL>
+tutorial.
 
 First install the APPerl build dependencies and create a new config
-based on the current small config, checkout, configure, and build.
+based on the current full config, checkout, configure, and build.
 
   apperlm install-build-deps
-  apperlm new-config --name my_src_build_config --base v5.36.0-small-v0.1.0
+  apperlm new-config --name my_src_build_config --base full
   apperlm checkout my_src_build_config
   apperlm configure
   apperlm build
 
 If all goes well you should have compiled APPerl from source!
 
-  ./perl-small.com -V
-  stat perl-small.com
+  ./perl.com -V
+  stat perl.com
+
+=head3 ADDING CPAN DISTRIBUTIONS
+
+The recommended way of adding CPAN distributions or C or XS extensions
+is via the C<"install_modules"> mechanism.
+
+Currently, no CPAN client is used, so you must download or make
+available or disk otherwise the needed distributions for C<apperlm>
+to be able to build and install them into your APPerl. It supports
+folder paths and paths to tarballs such as the one's directly
+downloaded from CPAN.
+
+For example to install L<Geo::Calc:XS>, download its tarball from CPAN
+and add to to my_src_build_config in apperl-project.json:
+
+  "install_modules" : ["Geo-Calc-XS-0.33.tar.gz"]
+
+Then, build and test it:
+
+  apperlm build
+  ./perl.com -MGeo::Calc::XS -e 'print $Geo::Calc::XS::VERSION'
+
+Distributions in C<"install_modules"> are installed in order, so
+modules with dependencies just need them to be installed before in
+order for them to be added.
+
+=cut
+
+=head3 ADDING VIA PERL BUILD
+
+This method is B<NOT RECOMMENDED> as many modules/extensions cannot be
+built this way, it only works for modules that can be built with
+C<miniperl>, do not have dependencies, and requires reconfiguring Perl.
+The method listed in L</ADDING CPAN DISTRIBUTIONS> supersedes this
+method.
 
 Now let's create a very basic C extension.
 
