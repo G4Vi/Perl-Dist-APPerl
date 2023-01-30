@@ -1072,11 +1072,14 @@ sub Build {
         };
         $copyexe->($PERL_APE, $APPPATH);
         my $srcdbg = "$PERL_APE.dbg";
-        if(! -f $srcdbg) {
+        for(1..2) {
+            if(-f $srcdbg) {
+                $copyexe->($srcdbg, "$APPPATH.dbg");
+                last;
+            }
             $srcdbg = $PERL_APE;
             $srcdbg =~ s/com$/elf/;
         }
-        $copyexe->($srcdbg, "$APPPATH.dbg");
         if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
             print "cd $ZIP_ROOT\n";
             chdir($ZIP_ROOT) or die "failed to enter ziproot";
@@ -1188,6 +1191,7 @@ sub Build {
 
     foreach my $file ('perl.com', 'perl.com.dbg') {
         my $srcpath = "$TEMPDIR/$file";
+        -e $srcpath or next;
         my $destpath = "$OUTPUTDIR/$file";
         print "mv $srcpath $destpath\n";
         move($srcpath, $destpath) or die "move failed: $!";
@@ -1201,6 +1205,7 @@ sub Build {
             my $destfile = $itemconfig->{dest};
             $destfile .= '.dbg' if ($srcfile =~ /dbg$/);
             my @args = ("$UserProjectConfig->{apperl_output}/$CurAPPerlName/$srcfile", $destfile);
+            -e $args[0] or next;
             print 'cp '.join(' ', @args)."\n";
             cp(@args) or die "copy failed: $!";
         }
