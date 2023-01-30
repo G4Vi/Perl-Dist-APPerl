@@ -1,18 +1,49 @@
 #!/usr/bin/env perl
 
-#use strict;
-#use warnings;
-#use Test::More;
-##my @apperlconfigs = qw(full small full-vista small-vista);
-#my @apperlconfigs = qw(small);
-#plan tests => 3;
-#use Perl::Dist::APPerl;
-#print "$_ " foreach @apperlconfigs;
-#
-#
-#foreach my $config (@apperlconfigs) {
-#   my $config = 'small';
-#   ok(Perl::Dist::APPerl::apperlm('checkout', $config));
-#   ok(Perl::Dist::APPerl::apperlm('configure'));
-#   #ok(Perl::Dist::APPerl::apperlm('build'));
-#}
+use strict;
+use warnings;
+use Test::More;
+use Perl::Dist::APPerl;
+#my @apperlconfigs = qw(full small full-vista small-vista);
+my @apperlconfigs = qw(small);
+plan tests => 3 * scalar(@apperlconfigs);
+
+my %binmapping = (
+    full => 'perl.com',
+    small => 'perl-small.com',
+    'full-vista' => 'perl-vista.com',
+    'small-vista' => 'perl-small-vista.com'
+);
+
+foreach my $config (@apperlconfigs) {
+    SKIP: {
+        skip "$config bin already exists", 3 if( -e $binmapping{$config});
+        while(1) {
+            my $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('checkout', $config); });
+            ok($ret);
+            $ret or last;
+            $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('configure'); });
+            ok($ret);
+            $ret or last;
+            $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('build'); });
+            ok($ret);
+            last;
+        }
+    }
+}
+
+sub hide_out_and_err {
+    my ($callback) = @_;
+    open(my $saved_stderr, '>&', STDERR) or die "$!";
+    open(my $saved_stdout, '>&', STDOUT) or die "$!";
+    close(STDERR);
+    close(STDOUT);
+    open(STDOUT, '>', '/dev/null') or die "$!";
+    open(STDERR, '>', '/dev/null') or die "$!";
+    my $ret = $callback->();
+    close(STDERR);
+    open(STDERR, '>&', $saved_stderr);
+    close(STDOUT);
+    open(STDOUT, '>&', $saved_stdout);
+    return $ret;
+}
