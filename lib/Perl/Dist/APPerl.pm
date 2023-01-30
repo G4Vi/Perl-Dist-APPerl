@@ -694,21 +694,21 @@ my %defconfig = (
             cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
             dest => 'perl-small-vista.com',
         },
-        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => '45c18985158e73ccd50b82a59117bec67b199f20', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => '45c18985158e73ccd50b82a59117bec67b199f20', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => '45c18985158e73ccd50b82a59117bec67b199f20', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => '45c18985158e73ccd50b82a59117bec67b199f20', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => 'ca87f329eeb075c0fe7ac803eb933f36af45a69b', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => 'ca87f329eeb075c0fe7ac803eb933f36af45a69b', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => 'ca87f329eeb075c0fe7ac803eb933f36af45a69b', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => 'ca87f329eeb075c0fe7ac803eb933f36af45a69b', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         # development configs
         'dbg' => { base => 'full', perl_extra_flags => ['-Doptimize=-g3 -gdwarf-4', '-de'], cosmo_mode => 'dbg', cosmo_id => '52f1db7220935cfcf2c8e583678f5ccc4b5bbacd'},
         dontuse_threads => {
             desc => "not recommended, threaded build is buggy",
-            base => 'v5.36.0-full-v0.1.0',
+            base => 'full',
             perl_extra_flags => ['-Doptimize=-Os', '-Dusethreads', '-de'],
             perl_id => 'cosmo-apperl'
         },
         perl_cosmo_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
-            base => 'v5.36.0-full-v0.1.0',
+            base => 'full',
             perl_id => 'cosmo'
         },
         perl_cosmo_dev_on_vista => {
@@ -718,7 +718,7 @@ my %defconfig = (
         },
         perl_apperl_dev => {
             desc => "For developing apperl",
-            base => 'v5.36.0-full-v0.1.0',
+            base => 'full',
             perl_id => 'cosmo-apperl'
         }
     }
@@ -899,7 +899,7 @@ sub Set {
         chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
         print "make veryclean\n";
         system("make", "veryclean");
-        foreach my $todelete ('miniperl.com', 'perl.com', 'miniperl.elf', 'perl.elf') {
+        foreach my $todelete ('miniperl.com', 'perl.com', 'miniperl.elf', 'miniperl.com.dbg', 'perl.elf', 'perl.com.dbg') {
             print "rm $todelete\n";
             unlink($todelete) || $!{ENOENT} or die "failed to delete $todelete";
         }
@@ -1061,13 +1061,22 @@ sub Build {
     }
 
     # pack
-    my $APPNAME = basename($PERL_APE);
-    my $APPPATH = "$TEMPDIR/$APPNAME";
+    my $APPPATH = "$TEMPDIR/".basename($PERL_APE);
     my $packAPE = sub {
-        print "cp $PERL_APE $APPPATH\n";
-        copy($PERL_APE, $APPPATH) or die "copy failed: $!";
-        print "chmod 755 $APPPATH\n";
-        chmod(0755, $APPPATH) or die $!;
+        my $copyexe = sub {
+            my ($srcpath, $destpath) = @_;
+            print "cp $srcpath $destpath\n";
+            copy($srcpath, $destpath) or die "copy failed: $!";
+            print "chmod 755 $destpath\n";
+            chmod(0755, $destpath) or die $!;
+        };
+        $copyexe->($PERL_APE, $APPPATH);
+        my $srcdbg = "$PERL_APE.dbg";
+        if(! -f $srcdbg) {
+            $srcdbg = $PERL_APE;
+            $srcdbg =~ s/com$/elf/;
+        }
+        $copyexe->($srcdbg, "$APPPATH.dbg");
         if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
             print "cd $ZIP_ROOT\n";
             chdir($ZIP_ROOT) or die "failed to enter ziproot";
@@ -1075,7 +1084,6 @@ sub Build {
         }
     };
     $packAPE->();
-
 
     # install modules
     if(exists $itemconfig->{install_modules}) {
@@ -1085,7 +1093,7 @@ sub Build {
         my $perllib = "$TEMPDIR$proxyConfig{installprivlib}";
         my $perlarchlib = "$TEMPDIR$proxyConfig{installarchlib}";
         my $mmopt = sub {
-            my @mmopt = ("PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.elf",
+            my @mmopt = ("PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.com.dbg",
                 "INSTALLDIRS=perl",
                 "INSTALLARCHLIB=$perlarchlib",
                 "INSTALLPRIVLIB=$perllib",
@@ -1151,8 +1159,8 @@ sub Build {
                 # install into the src tree
                 _command_or_die('make', 'install');
                 # build a new perl binary, convert to APE, and repack zip
-                _command_or_die('make', 'perl.elf');
-                _command_or_die(dirname($proxyConfig{cc})."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.elf', 'perl.com');
+                _command_or_die('make', 'perl.com.dbg');
+                _command_or_die(dirname($proxyConfig{cc})."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.com.dbg', 'perl.com');
                 $PERL_APE = abs_path('./perl.com');
             }
             else {
@@ -1178,16 +1186,24 @@ sub Build {
         close($fh);
     }
 
-    print "mv $APPPATH $OUTPUTDIR/perl.com\n";
-    move($APPPATH, "$OUTPUTDIR/perl.com") or die "move failed: $!";
+    foreach my $file ('perl.com', 'perl.com.dbg') {
+        my $srcpath = "$TEMPDIR/$file";
+        my $destpath = "$OUTPUTDIR/$file";
+        print "mv $srcpath $destpath\n";
+        move($srcpath, $destpath) or die "move failed: $!";
+    }
 
     # copy to user specified location
     if(exists $itemconfig->{dest}) {
         print "cd ".START_WD."\n";
         chdir(START_WD) or die "Failed to restore cwd";
-        my @args = ("$UserProjectConfig->{apperl_output}/$CurAPPerlName/perl.com", $itemconfig->{dest});
-        print 'cp '.join(' ', @args)."\n";
-        cp(@args) or die "copy failed: $!";
+        foreach my $srcfile ('perl.com', 'perl.com.dbg') {
+            my $destfile = $itemconfig->{dest};
+            $destfile .= '.dbg' if ($srcfile =~ /dbg$/);
+            my @args = ("$UserProjectConfig->{apperl_output}/$CurAPPerlName/$srcfile", $destfile);
+            print 'cp '.join(' ', @args)."\n";
+            cp(@args) or die "copy failed: $!";
+        }
     }
 }
 
@@ -1847,7 +1863,7 @@ to be able to build and install them into your APPerl. It supports
 folder paths and paths to tarballs such as the one's directly
 downloaded from CPAN.
 
-For example to install L<Geo::Calc:XS>, download its tarball from CPAN
+For example to install B<Geo::Calc:XS>, download its tarball from CPAN
 and add to to my_src_build_config in apperl-project.json:
 
   "install_modules" : ["Geo-Calc-XS-0.33.tar.gz"]
@@ -1936,6 +1952,26 @@ Build and test it.
 
   apperlm build
   ./helloext.com
+
+=head1 DEBUGGING
+
+APPerl binaries as with other Actually Portable Executables built with
+the Cosmopolitan Libc have some nice debug features:
+
+Syscall logging can be performed just by running with C<--strace> as
+the first argument:
+
+  ./perl.com --strace /zip/bin/perldoc perlcosmo
+
+Function call logging can be performed if you have the accompanying
+C<.com.dbg> file in the same directory as your APPerl binary:
+
+  ./perl.com --ftrace /zip/bin/perldoc perlcosmo
+
+In theory, it should be possible to use C<gdb> with APPerl binaries,
+but the author has had great difficulty getting this to work. The
+C<dbg> APPerl config is available to build Cosmopolitan with C<MODE=dbg>
+and Perl with C<-Doptimize=-g3 -gdwarf-4>.
 
 =head1 SUPPORT AND DOCUMENTATION
 
