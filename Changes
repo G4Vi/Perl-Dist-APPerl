@@ -1,5 +1,5 @@
 Revision history for Perl-Dist-APPerl
-v0.3.0  2023-01-XX
+v0.3.0  2023-01-29
         Added running scripts from APPERL_SCRIPTNAME environment
         variable
         Added setting fallback script to run if argv[0] script
@@ -9,7 +9,7 @@ v0.3.0  2023-01-XX
         full, small, and vista variant configs:
           Removed version from privlib archlib sitelib sitearch
           Updated Cosmopolitan source
-          Update Perl source
+          Updated Perl source
         Added dbg config: gdb not working for me, YYMV
         Better support --ftrace by outputting .com.dbg instead of elf
         Updated docs with new info.
