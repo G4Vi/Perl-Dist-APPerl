@@ -95,6 +95,7 @@ jobs:
           echo "PERL_ID=$(apperlm get-config-key ${{ matrix.config }} perl_id)" >> $GITHUB_ENV
           echo "COSMO_ID=$(apperlm get-config-key ${{ matrix.config }} cosmo_id)" >> $GITHUB_ENV
           echo "DEST_BIN=$(apperlm get-config-key ${{ matrix.config }} dest)" >> $GITHUB_ENV
+          echo "REL_NAME=APPerl-$(perl -MPerl::Dist::APPerl -e 'print $Perl::Dist::APPerl::VERSION')-${{ matrix.config }}.zip" >> $GITHUB_ENV
     - name: Fetch Perl fork
       uses: actions/checkout@v3
       with:
@@ -120,14 +121,16 @@ jobs:
         apperlm list
         apperlm configure -Dcf_by="$CF_BY" -Dcf_email="$CF_EMAIL"
         apperlm build
-        mkdir release
-        mv .apperl/o/${{ matrix.config }}/perl.com release/${{ env.DEST_BIN }}
+        zip -r ${{ env.REL_NAME }} ${{ env.DEST_BIN }} ${{ env.DEST_BIN }}.dbg
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.config }}
         if-no-files-found: error
-        path: release/${{ env.DEST_BIN }}
+        path: |
+          ${{ env.DEST_BIN }}
+          ${{ env.DEST_BIN }}.dbg
+          ${{ env.REL_NAME }}
 
   test-nobuild-builds:
     name:    Test building nobuild configs
@@ -162,6 +165,13 @@ jobs:
     - name: Fetch build artifacts
       if:   ${{ github.ref_type == 'tag' }}
       uses: actions/download-artifact@v3
+    - name: Build binary amalgamation for uploading to microsoft
+      if:   ${{ github.ref_type == 'tag' }}
+      run: |
+        sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
+        chmod +x full/perl.com
+        REL_NAME=APPerl-$(full/perl.com -MPerl::Dist::APPerl -e 'print $Perl::Dist::APPerl::VERSION')-all.zip
+        zip -r $REL_NAME */*.com*
     - name: Publish release
       if:   ${{ github.ref_type == 'tag' }}
       uses: softprops/action-gh-release@v1
@@ -174,3 +184,4 @@ jobs:
           small/*
           full-vista/*
           small-vista/*
+          APPerl-*-all.zip
