@@ -122,6 +122,7 @@ jobs:
         cd Perl-Dist-APPerl
         cpanm --installdeps --notest .
         mv ../full/perl.com* ./
+        chmod +x perl.com
         mv ../small/perl-small.com* ./
         mv ../full-vista/perl-vista.com* ./
         mv ../small-vista/perl-small-vista.com* ./
