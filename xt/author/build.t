@@ -23,9 +23,12 @@ foreach my $config (@apperlconfigs) {
             my $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('checkout', $config); });
             ok($ret, "apperlm checkout $config");
             $ret or last;
-            $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('configure'); });
-            ok($ret, "apperlm configure ($config)");
-            $ret or last;
+            SKIP: {
+                skip "nobuild configs do not configure", 1 if($config =~ /nobuild/);
+                $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('configure'); });
+                ok($ret, "apperlm configure ($config)");
+                $ret or last;
+            }
             $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('build'); });
             ok($ret, "apperlm build ($config)");
             last;
