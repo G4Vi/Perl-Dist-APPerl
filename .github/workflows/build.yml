@@ -156,14 +156,9 @@ jobs:
       run: |
         mkdir src
         cp full/perl.com src/
-        printf "%s\n" 'print "Hello, World!\n";' > src/hello
-        echo '{"defaultconfig":"hello","apperl_configs":{"hello":{"dest":"hello.com","base":"nobuild-v0.1.0","default_script":"/zip/bin/hello","zip_extra_files":{"bin":["src/hello"]}}}}' > apperl-project.json
         chmod +x src/perl.com
         src/perl.com /zip/bin/apperlm list
         src/perl.com /zip/bin/apperlm build
-        ./hello.com
-        cp hello.com abcdef.com
-        ./abcdef.com
 
   create-release:
     name:    Create release

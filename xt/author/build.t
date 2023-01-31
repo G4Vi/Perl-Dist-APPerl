@@ -5,9 +5,7 @@ use warnings;
 use Test::More;
 use Perl::Dist::APPerl;
 use File::Copy "cp";
-#my @apperlconfigs = qw(full small full-vista small-vista nobuild-v0.1.0);
-my @apperlconfigs = qw(nobuild-v0.1.0);
-#my @apperlconfigs = qw(small);
+my @apperlconfigs = qw(full small full-vista small-vista nobuild-v0.1.0);
 plan tests => 3 * scalar(@apperlconfigs);
 
 my %binmapping = (
@@ -46,7 +44,6 @@ foreach my $config (@apperlconfigs) {
 
 sub hide_out_and_err {
     my ($callback) = @_;
-    return $callback->();
     open(my $saved_stderr, '>&', STDERR) or die "$!";
     open(my $saved_stdout, '>&', STDOUT) or die "$!";
     close(STDERR);
