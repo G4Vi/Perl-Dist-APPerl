@@ -131,7 +131,6 @@ jobs:
         perl Makefile.PL
         make
         make authortest
-        make test
     - name: Archive CPAN logs
       if: ${{ failure() }}
       uses: actions/upload-artifact@v3

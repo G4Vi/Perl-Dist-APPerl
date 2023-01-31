@@ -33,7 +33,8 @@ foreach my $config (@apperlconfigs) {
         my $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('checkout', $config); });
         ok($ret, "apperlm checkout $config");
         $ret or last;
-        $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('build'); });
+        #$ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('build'); });
+        $ret = Perl::Dist::APPerl::apperlm('build');
         ok($ret, "apperlm build ($config)");
         last;
     }
