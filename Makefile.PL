@@ -23,7 +23,7 @@ my %WriteMakefileArgs = (
     },
     EXE_FILES => ['script/apperlm'],
     dist  => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean => { FILES => ['Perl-Dist-APPerl-*', '*.com*']},
+    clean => { FILES => ['Perl-Dist-APPerl-*', '*.com*', 'tests_temp']},
     META_MERGE => {
         'meta-spec' => { version => 2 },
         resources => {
