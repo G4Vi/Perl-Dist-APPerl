@@ -25,6 +25,7 @@ foreach my $config (@apperlconfigs) {
         if($isnobuild) {
             mkdir('src');
             cp('perl.com', 'src/perl.com');
+            system('chmod', '+x', 'src/perl.com');
         }
         while(1) {
             my $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('checkout', $config); });
