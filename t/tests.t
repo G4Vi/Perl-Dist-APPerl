@@ -6,6 +6,9 @@ use Cwd qw(abs_path);
 # Perl::Dist::APPerl currently loads apperl-project.json from the current directory, so hack the cwd
 BEGIN {
     $0 = abs_path($0);
+    foreach my $inc (@INC) {
+        $inc = abs_path($inc);
+    }
     mkdir('tests_temp');
     chdir('tests_temp');
     {
@@ -17,16 +20,22 @@ BEGIN {
 use Perl::Dist::APPerl;
 use File::Copy "cp";
 my @apperlconfigs = qw(hello);
-if(! -e '../perl.com') {
-    plan skip_all => 'Cannot build without perl.com';
+if(! -e 'src/perl.com') {
+    if(! -e '../perl.com') {
+        plan skip_all => 'Cannot build without perl.com';
+    }
+    mkdir('src');
+    cp('../perl.com', 'src/perl.com');
+    my $perm = (stat('src/perl.com'))[2] & 07777;
+    chmod($perm | 0111, 'src/perl.com');
 }
+
 plan tests => 2 * scalar(@apperlconfigs);
 
-mkdir('src');
-cp('../perl.com', 'src/perl.com');
-system('chmod', '+x', 'src/perl.com');
 open(my $hh, '>', 'src/hello') or die "unable to write src/hello";
-print $hh "Hello, World!\n";
+print $hh <<'HELLO';
+print "hello\n";
+HELLO
 close($hh);
 
 foreach my $config (@apperlconfigs) {

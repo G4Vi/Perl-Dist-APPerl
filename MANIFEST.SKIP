@@ -66,3 +66,11 @@
 
 # Avoid github actions
 \B\.github\b
+
+# Avoid various APPerl files
+apperl-project.json
+\.tar\.gz$
+\.com(\.dbg)?$
+^tests_temp
+^.apperl
+^Perl-Dist-APPerl-v
