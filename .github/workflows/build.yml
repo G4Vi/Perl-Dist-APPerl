@@ -121,10 +121,10 @@ jobs:
       run: |
         cd Perl-Dist-APPerl
         cpanm --installdeps --notest .
-        mv full/perl.com* ./
-        mv small/perl-small.com* ./
-        mv full-vista/perl-vista.com* ./
-        mv small-vista/perl-small-vista.com* ./
+        mv ../full/perl.com* ./
+        mv ../small/perl-small.com* ./
+        mv ../full-vista/perl-vista.com* ./
+        mv ../small-vista/perl-small-vista.com* ./
     - name: Run tests
       run: |
         cd Perl-Dist-APPerl
