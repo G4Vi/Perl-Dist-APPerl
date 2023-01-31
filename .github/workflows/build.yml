@@ -126,6 +126,7 @@ jobs:
         mv ../small/perl-small.com* ./
         mv ../full-vista/perl-vista.com* ./
         mv ../small-vista/perl-small-vista.com* ./
+        sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
     - name: Run tests
       run: |
         cd Perl-Dist-APPerl
