@@ -4,15 +4,16 @@ use strict;
 use warnings;
 use Test::More;
 use Perl::Dist::APPerl;
-#my @apperlconfigs = qw(full small full-vista small-vista);
-my @apperlconfigs = qw(small);
+my @apperlconfigs = qw(full small full-vista small-vista nobuild-v0.1.0);
+#my @apperlconfigs = qw(small);
 plan tests => 3 * scalar(@apperlconfigs);
 
 my %binmapping = (
     full => 'perl.com',
     small => 'perl-small.com',
     'full-vista' => 'perl-vista.com',
-    'small-vista' => 'perl-small-vista.com'
+    'small-vista' => 'perl-small-vista.com',
+    'nobuild-v0.1.0' => 'perl-nobuild.com'
 );
 
 foreach my $config (@apperlconfigs) {
@@ -20,13 +21,13 @@ foreach my $config (@apperlconfigs) {
         skip "$config bin already exists", 3 if( -e $binmapping{$config});
         while(1) {
             my $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('checkout', $config); });
-            ok($ret);
+            ok($ret, "apperlm checkout $config");
             $ret or last;
             $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('configure'); });
-            ok($ret);
+            ok($ret, "apperlm configure ($config)");
             $ret or last;
             $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('build'); });
-            ok($ret);
+            ok($ret, "apperlm build ($config)");
             last;
         }
     }
@@ -42,8 +43,8 @@ sub hide_out_and_err {
     open(STDERR, '>', '/dev/null') or die "$!";
     my $ret = $callback->();
     close(STDERR);
-    open(STDERR, '>&', $saved_stderr);
+    open(STDERR, '>&', $saved_stderr) or die "$!";
     close(STDOUT);
-    open(STDOUT, '>&', $saved_stdout);
+    open(STDOUT, '>&', $saved_stdout) or die "$!";
     return $ret;
 }
