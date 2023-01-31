@@ -158,7 +158,6 @@ jobs:
         cp full/perl.com src/
         chmod +x src/perl.com
         src/perl.com /zip/bin/apperlm list
-        src/perl.com /zip/bin/apperlm build
 
   create-release:
     name:    Create release
