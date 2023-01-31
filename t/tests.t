@@ -24,6 +24,7 @@ plan tests => 2 * scalar(@apperlconfigs);
 
 mkdir('src');
 cp('../perl.com', 'src/perl.com');
+system('chmod', '+x', 'src/perl.com');
 open(my $hh, '>', 'src/hello') or die "unable to write src/hello";
 print $hh "Hello, World!\n";
 close($hh);
