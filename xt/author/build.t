@@ -45,6 +45,7 @@ foreach my $config (@apperlconfigs) {
 
 sub hide_out_and_err {
     my ($callback) = @_;
+    return $callback->();
     open(my $saved_stderr, '>&', STDERR) or die "$!";
     open(my $saved_stdout, '>&', STDOUT) or die "$!";
     close(STDERR);
