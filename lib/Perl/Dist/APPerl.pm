@@ -944,6 +944,8 @@ sub Configure {
     -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
     my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
     _install_perl_repo_files($itemconfig, $SiteConfig);
+    # build toolchain
+    _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j', 'toolchain', 'MODE=', 'ARCH=x86_64');
     # build cosmo
     print "$0: Building cosmo, COSMO_MODE=$itemconfig->{cosmo_mode} COSMO_APE_LOADER=$itemconfig->{cosmo_ape_loader}\n";
     _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j4', "MODE=$itemconfig->{cosmo_mode}",
