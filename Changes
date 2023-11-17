@@ -1,4 +1,10 @@
 Revision history for Perl-Dist-APPerl
+v0.4.0  2023-11-17
+        Make tests more Windows compatible
+        Build `full` and `small` targets with cosmo 3.0.2
+        Base `full` and `small` targets off of perl 5.36.1
+        Build `vista` targets with cosmo fea68b1
+
 v0.3.0  2023-01-29
         Added running scripts from APPERL_SCRIPTNAME environment
         variable

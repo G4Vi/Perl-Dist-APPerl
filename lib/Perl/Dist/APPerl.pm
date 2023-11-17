@@ -1,6 +1,6 @@
 package Perl::Dist::APPerl;
 # Copyright (c) 2022 Gavin Hayes, see LICENSE in the root of the project
-use version 0.77; our $VERSION = qv(v0.3.0);
+use version 0.77; our $VERSION = qv(v0.4.0);
 use strict;
 use warnings;
 use JSON::PP 2.0104 qw(decode_json);
@@ -694,9 +694,9 @@ my %defconfig = (
             cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
             dest => 'perl-small-vista.com',
         },
-        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => '282293e2285f9f47f7cdf52d0b78f7a9d446e7e5', cosmo_id => '3.0.2', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => '1770f2f477de8a1e9f5093521af60e528649a2e6', cosmo_id => '3.0.2', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => 'ca87f329eeb075c0fe7ac803eb933f36af45a69b', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => '282293e2285f9f47f7cdf52d0b78f7a9d446e7e5', cosmo_id => '3.0.2', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => '1770f2f477de8a1e9f5093521af60e528649a2e6', cosmo_id => '3.0.2', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => 'ca87f329eeb075c0fe7ac803eb933f36af45a69b', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         # development configs
         'dbg' => { base => 'full', perl_extra_flags => ['-Doptimize=-g3 -gdwarf-4', '-de'], cosmo_mode => 'dbg', cosmo_id => '52f1db7220935cfcf2c8e583678f5ccc4b5bbacd'},
