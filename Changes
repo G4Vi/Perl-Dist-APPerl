@@ -1,4 +1,8 @@
 Revision history for Perl-Dist-APPerl
+v0.5.0  2023-12-01
+        Revert `full` and `small` targets with cosmo 3.0.2
+        Base `full` and `small` (with vista) targets off of perl 5.36.3
+
 v0.4.0  2023-11-17
         Make tests more Windows compatible
         Build `full` and `small` targets with cosmo 3.0.2
