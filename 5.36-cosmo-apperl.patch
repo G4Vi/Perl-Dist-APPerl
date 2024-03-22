@@ -1,0 +1,71 @@
+diff --git a/patchlevel.h b/patchlevel.h
+index d52e867594..24b01754d5 100644
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -158,7 +158,9 @@ hunk.
+ static const char * const local_patches[] = {
+         NULL
+         ,"G4Vi:cosmo/c473e9-73ecc6c - https://github.com/G4Vi/perl5/compare/c473e9~1...73ecc6c various changes to support building with the Cosmopolitan Libc"
++        ,"G4Vi:cosmo-apperl/9719db2 - https://github.com/G4Vi/perl5/commit/9719db2dfbb19454177a31d8ce874a61f17a30da add argv[0] /zip/bin script launching"
+         ,"G4Vi:cosmo/2fb034f - https://github.com/G4Vi/perl5/commit/2fb034ffb02db2b3ac09706c954704930c620c0b fix Time-HiRes Configure to work for cosmopolitan"
++        ,"G4Vi:cosmo-apperl/9fdd50f-7628a53 - https://github.com/G4Vi/perl5/compare/9fdd50f~1...7628a53 Add APPERL_DEFAULT_SCRIPT and APPERL_SCRIPTNAME script launching"
+         ,"G4Vi:cosmo/3643b8b - https://github.com/G4Vi/perl5/commit/3643b8bd369ea1e8715a27ce8821c8e70f2c17e0 add cosmo as Unix in Perl::OSType (fixes Module::Build)"
+         ,"G4Vi:cosmo/e3d8537 - https://github.com/G4Vi/perl5/commit/e3d853703f5c7c951a14e1eed186105cc0e0b7e3 s/perl.elf$/perl.com.dbg/ as perl.com.dbg is useful for --ftrace"
+         ,"G4Vi:cosmo/7138814 - https://github.com/G4Vi/perl5/commit/713881482f9968f4960090d2699bc4cb4a46dc94 update for cosmo 3.0.2, new ape copying"
+diff --git a/perl.c b/perl.c
+index 79946460e5..fce1c67c47 100644
+--- a/perl.c
++++ b/perl.c
+@@ -2075,6 +2075,52 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
+ 
+     init_main_stash();
+ 
++    // check for APPERL_SCRIPTNAME or argv[0] or default script execution
++    do {
++        const char *envscriptname = getenv("APPERL_SCRIPTNAME");
++        const char *programname = envscriptname ? envscriptname : argv[0];
++        const char *slash = strrchr(programname, '/');
++        if(slash != NULL)
++        {
++            programname = slash + 1;
++        }
++        const char *dot = strrchr(programname, '.');
++        const unsigned namelen = dot ? dot - programname : strlen(programname);
++
++        // shortcut for normal execution
++        if((namelen == 4) && (memcmp("perl", programname, 4) == 0))
++        {
++            break;
++        }
++
++        // /zip/bin/ script execution
++        #define SCRIPTPATH "/zip/bin/"
++        static char name[256] = SCRIPTPATH;
++        if(sizeof(SCRIPTPATH)+namelen <= sizeof(name))
++        {
++            memcpy(name + sizeof(SCRIPTPATH) - 1, programname, namelen);
++            name[sizeof(SCRIPTPATH)-1+namelen] = '\0';
++            struct stat st;
++            if((stat(name, &st) == 0) && S_ISREG(st.st_mode))
++            {
++                scriptname = name;
++                break;
++            }
++        }
++        #undef SCRIPTPATH
++
++        // default script
++        #define DEFAULT_SCRIPT_SENTINEL "APPERL_DEFAULT_SCRIPT"
++        volatile static const char default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)+256] = DEFAULT_SCRIPT_SENTINEL;
++        if(default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)])
++        {
++            scriptname = &default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)];
++            break;
++        }
++        #undef DEFAULT_SCRIPT_SENTINEL
++    } while(0);
++
++    if(scriptname == NULL)
+     {
+         const char *s;
+     for (argc--,argv++; argc > 0; argc--,argv++) {
