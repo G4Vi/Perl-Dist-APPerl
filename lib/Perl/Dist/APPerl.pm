@@ -694,7 +694,7 @@ my %defconfig = (
             cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
             dest => 'perl-small-vista.com',
         },
-        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo'], perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.36.3.tar.gz', patches => ['../Perl-Dist-APPerl/5.36-cosmo.patch', '../Perl-Dist-APPerl/5.36-cosmo-apperl.patch']},
         'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
@@ -709,7 +709,8 @@ my %defconfig = (
         perl_cosmo_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'full',
-            perl_id => 'cosmo'
+            perl_id => 'cosmo',
+            patches => ['../Perl-Dist-APPerl/5.36-cosmo.patch']
         },
         perl_cosmo_dev_on_vista => {
             desc => "For developing cosmo platform perl without apperl additions on vista",
@@ -890,20 +891,39 @@ sub Set {
     if(! exists $itemconfig->{nobuild_perl_bin}) {
         my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot set without build deps (run apperlm install-build-deps)";
         -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
-        -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
+        #-d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
         print "cd ".$SiteConfig->{cosmo_repo}."\n";
         chdir($SiteConfig->{cosmo_repo}) or die "Failed to enter cosmo repo";
         _command_or_die('git', 'checkout', $itemconfig->{cosmo_id});
 
-        print "cd ".$SiteConfig->{perl_repo}."\n";
-        chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
-        print "make veryclean\n";
-        system("make", "veryclean");
-        foreach my $todelete ('miniperl.com', 'perl.com', 'miniperl.elf', 'miniperl.com.dbg', 'perl.elf', 'perl.com.dbg') {
-            print "rm $todelete\n";
-            unlink($todelete) || $!{ENOENT} or die "failed to delete $todelete";
+        if (! $itemconfig->{perl_url}) {
+            print "cd ".$SiteConfig->{perl_repo}."\n";
+            chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
+            print "make veryclean\n";
+            system("make", "veryclean");
+            foreach my $todelete ('miniperl.com', 'perl.com', 'miniperl.elf', 'miniperl.com.dbg', 'perl.elf', 'perl.com.dbg') {
+                print "rm $todelete\n";
+                unlink($todelete) || $!{ENOENT} or die "failed to delete $todelete";
+            }
+            _command_or_die('git', 'checkout', $itemconfig->{perl_id});
+        } else {
+            my $tarball_name = basename($itemconfig->{perl_url});
+            _command_or_die('mkdir', '-p', $SiteConfig->{perl_repo});
+            my $download_dir = $SiteConfig->{perl_repo} . '/..';
+            chdir($download_dir) or die "Failed to enter download dir";
+            if (! -f $tarball_name) {
+                _command_or_die('wget', $itemconfig->{perl_url});
+            }
+            _command_or_die('tar', '-xf', $tarball_name);
+            _command_or_die("rm", '-rf', $SiteConfig->{perl_repo});
+            my ($version) = $tarball_name =~ /^v(\d+\.\d+\.\d+)\.tar/;
+            my $tomove = "perl5-$version";
+            _command_or_die('mv', $tomove, 'perl5');
+            chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
+            foreach my $patch (@{$itemconfig->{patches}}) {
+                _command_or_die('git', 'apply', $patch);
+            }
         }
-        _command_or_die('git', 'checkout', $itemconfig->{perl_id});
 
         print "cd ".START_WD."\n";
         chdir(START_WD) or die "Failed to restore cwd";
