@@ -1,7 +1,7 @@
-diff --git a/home/heavy/cosmo/dir/perl5/.mailmap b/home/heavy/cosmo/perl5/.mailmap
+diff --git a/.mailmap b/.mailmap
 index 72a8a4d6a7..37c3ffce5f 100644
---- a/home/heavy/cosmo/dir/perl5/.mailmap
-+++ b/home/heavy/cosmo/perl5/.mailmap
+--- a/.mailmap
++++ b/.mailmap
 @@ -646,6 +646,7 @@ Gabor Szabo <szabgab@gmail.com> Gabor Szabo <szabgab@gmail.com>
  Garry T. Williams <garry@zvolve.com> Garry T. Williams <garry@zvolve.com>
  Gary Clark <garyc@mail.jeld-wen.com> Gary Clark <garyc@mail.jeld-wen.com>
@@ -10,10 +10,10 @@ index 72a8a4d6a7..37c3ffce5f 100644
  Gavin Shelley <columbusmonkey@me.com> Gavin Shelley <columbusmonkey@me.com>
  Gene Sullivan <genesullivan50@yahoo.com> gene sullivan <genesullivan50@yahoo.com>
  Gene Sullivan <genesullivan50@yahoo.com> Gene Sullivan <gsullivan@cpan.org>
-diff --git a/home/heavy/cosmo/dir/perl5/AUTHORS b/home/heavy/cosmo/perl5/AUTHORS
+diff --git a/AUTHORS b/AUTHORS
 index 8f25e9d835..8fcde9e4e2 100644
---- a/home/heavy/cosmo/dir/perl5/AUTHORS
-+++ b/home/heavy/cosmo/perl5/AUTHORS
+--- a/AUTHORS
++++ b/AUTHORS
 @@ -482,6 +482,7 @@ Garry T. Williams              <garry@zvolve.com>
  Gary Clark                     <GaryC@mail.jeld-wen.com>
  Gary L. Armstrong
@@ -22,10 +22,10 @@ index 8f25e9d835..8fcde9e4e2 100644
  Gavin Shelley                  <columbusmonkey@me.com>
  Gene Sullivan                  <genesullivan50@yahoo.com>
  Geoffrey F. Green              <geoff-public@stuebegreen.com>
-diff --git a/home/heavy/cosmo/dir/perl5/Configure b/home/heavy/cosmo/perl5/Configure
+diff --git a/Configure b/Configure
 index 67e990217d..cd8ce30511 100755
---- a/home/heavy/cosmo/dir/perl5/Configure
-+++ b/home/heavy/cosmo/perl5/Configure
+--- a/Configure
++++ b/Configure
 @@ -2744,7 +2744,7 @@ int main(int argc, char *argv[]) {
    return 0;
  }
@@ -92,10 +92,10 @@ index 67e990217d..cd8ce30511 100755
  		$sed -e 's/\(..*\)=1/\1/' ccsym.own
  		$sed -e 's/\(..*\)=.*/\1/' ccsym.own | $uniq >>Cppsym.true
  		ccsymbols=`$cat ccsym.own`
-diff --git a/home/heavy/cosmo/dir/perl5/MANIFEST b/home/heavy/cosmo/perl5/MANIFEST
+diff --git a/MANIFEST b/MANIFEST
 index c2057ee452..8e9795c82d 100644
---- a/home/heavy/cosmo/dir/perl5/MANIFEST
-+++ b/home/heavy/cosmo/perl5/MANIFEST
+--- a/MANIFEST
++++ b/MANIFEST
 @@ -4303,6 +4303,9 @@ ext/Errno/ChangeLog	Errno changes
  ext/Errno/Errno_pm.PL	Errno perl module create script
  ext/Errno/Makefile.PL	Errno extension makefile writer
@@ -122,10 +122,10 @@ index c2057ee452..8e9795c82d 100644
  README.cygwin			Perl notes for Cygwin
  README.freebsd			Perl notes for FreeBSD
  README.haiku			Perl notes for Haiku
-diff --git a/home/heavy/cosmo/dir/perl5/Makefile.SH b/home/heavy/cosmo/perl5/Makefile.SH
+diff --git a/Makefile.SH b/Makefile.SH
 index cb0efb32ab..0d8e7b2094 100755
---- a/home/heavy/cosmo/dir/perl5/Makefile.SH
-+++ b/home/heavy/cosmo/perl5/Makefile.SH
+--- a/Makefile.SH
++++ b/Makefile.SH
 @@ -1001,6 +1001,19 @@ lib/buildcustomize.pl: $& $(miniperl_objs) write_buildcustomize.pl
  	$(MINIPERL) -f write_buildcustomize.pl
  !NO!SUBS!
@@ -161,10 +161,10 @@ index cb0efb32ab..0d8e7b2094 100755
          *) $spitshell >>$Makefile <<'!NO!SUBS!'
  	$(SHRPENV) $(CC) -o perl $(CLDFLAGS) $(CCDLFLAGS) $(perlmain_objs) $(static_ext) $(LLIBPERL) `cat ext.libs` $(libs)
  !NO!SUBS!
-diff --git a/home/heavy/cosmo/dir/perl5/Porting/Maintainers.pl b/home/heavy/cosmo/perl5/Porting/Maintainers.pl
+diff --git a/Porting/Maintainers.pl b/Porting/Maintainers.pl
 index 1413ce02fc..49200f34b7 100755
---- a/home/heavy/cosmo/dir/perl5/Porting/Maintainers.pl
-+++ b/home/heavy/cosmo/perl5/Porting/Maintainers.pl
+--- a/Porting/Maintainers.pl
++++ b/Porting/Maintainers.pl
 @@ -1385,6 +1385,7 @@ use File::Glob qw(:case);
                  ext/Devel-Peek/
                  ext/DynaLoader/
@@ -173,11 +173,11 @@ index 1413ce02fc..49200f34b7 100755
                  ext/ExtUtils-Miniperl/
                  ext/Fcntl/
                  ext/File-DosGlob/
-diff --git a/home/heavy/cosmo/perl5/README.cosmo b/home/heavy/cosmo/perl5/README.cosmo
+diff --git a/README.cosmo b/README.cosmo
 new file mode 100644
 index 0000000000..e5b5de8952
 --- /dev/null
-+++ b/home/heavy/cosmo/perl5/README.cosmo
++++ b/README.cosmo
 @@ -0,0 +1,87 @@
 +If you read this file _as_is_, just ignore the funny characters you see.
 +It is written in the POD format (see pod/perlpod.pod) which is specially
@@ -266,10 +266,10 @@ index 0000000000..e5b5de8952
 +The port in-progress is being done by Gavin Hayes <gahayes@cpan.org>
 +
 +Last update: 2022-10-11
-diff --git a/home/heavy/cosmo/dir/perl5/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm b/home/heavy/cosmo/perl5/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
+diff --git a/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm b/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
 index 0aee5233fe..cd17c1c86f 100644
---- a/home/heavy/cosmo/dir/perl5/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
-+++ b/home/heavy/cosmo/perl5/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
+--- a/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
++++ b/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
 @@ -406,13 +406,14 @@ EOC
  
  	print $c_fh "struct $struct_type $struct;\n";
@@ -327,10 +327,10 @@ index 0aee5233fe..cd17c1c86f 100644
  	print $xs_fh <<"EOBOOT" if $type;
  	const struct $struct_type *$iterator{$type} = $array_name;
  EOBOOT
-diff --git a/home/heavy/cosmo/dir/perl5/cpan/Perl-OSType/lib/Perl/OSType.pm b/home/heavy/cosmo/perl5/cpan/Perl-OSType/lib/Perl/OSType.pm
+diff --git a/cpan/Perl-OSType/lib/Perl/OSType.pm b/cpan/Perl-OSType/lib/Perl/OSType.pm
 index a72dd024b5..a0f2606137 100644
---- a/home/heavy/cosmo/dir/perl5/cpan/Perl-OSType/lib/Perl/OSType.pm
-+++ b/home/heavy/cosmo/perl5/cpan/Perl-OSType/lib/Perl/OSType.pm
+--- a/cpan/Perl-OSType/lib/Perl/OSType.pm
++++ b/cpan/Perl-OSType/lib/Perl/OSType.pm
 @@ -55,6 +55,7 @@ my %OSTYPES = qw(
    nto         Unix
    qnx         Unix
@@ -339,10 +339,10 @@ index a72dd024b5..a0f2606137 100644
  
    dos         Windows
    MSWin32     Windows
-diff --git a/home/heavy/cosmo/dir/perl5/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm b/home/heavy/cosmo/perl5/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
+diff --git a/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm b/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
 index bb6ffc83ef..af5878313a 100644
---- a/home/heavy/cosmo/dir/perl5/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
-+++ b/home/heavy/cosmo/perl5/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
+--- a/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
++++ b/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
 @@ -1929,7 +1929,7 @@ sub page {  # apply a pager to the output file
              $self->aside("About to try calling $pager $output\n");
              if ($self->is_vms) {
@@ -352,10 +352,10 @@ index bb6ffc83ef..af5878313a 100644
                  last if system($pager, $output) == 0;
              } else {
                  last if system("$pager \"$output\"") == 0;
-diff --git a/home/heavy/cosmo/dir/perl5/cpan/Socket/Socket.xs b/home/heavy/cosmo/perl5/cpan/Socket/Socket.xs
+diff --git a/cpan/Socket/Socket.xs b/cpan/Socket/Socket.xs
 index b4bccb796d..3ec940c3e6 100644
---- a/home/heavy/cosmo/dir/perl5/cpan/Socket/Socket.xs
-+++ b/home/heavy/cosmo/perl5/cpan/Socket/Socket.xs
+--- a/cpan/Socket/Socket.xs
++++ b/cpan/Socket/Socket.xs
 @@ -1165,7 +1165,7 @@ inet_ntop(af, ip_address_sv)
  	STRLEN addrlen;
  #ifdef AF_INET6
@@ -425,10 +425,10 @@ index b4bccb796d..3ec940c3e6 100644
  	ok = (*host != '\0') && inet_pton(af, host, &ip_address);
  
  	ST(0) = sv_newmortal();
-diff --git a/home/heavy/cosmo/dir/perl5/dist/Time-HiRes/Makefile.PL b/home/heavy/cosmo/perl5/dist/Time-HiRes/Makefile.PL
+diff --git a/dist/Time-HiRes/Makefile.PL b/dist/Time-HiRes/Makefile.PL
 index e5ba503707..c8e792203e 100644
---- a/home/heavy/cosmo/dir/perl5/dist/Time-HiRes/Makefile.PL
-+++ b/home/heavy/cosmo/perl5/dist/Time-HiRes/Makefile.PL
+--- a/dist/Time-HiRes/Makefile.PL
++++ b/dist/Time-HiRes/Makefile.PL
 @@ -81,7 +81,7 @@ __EOD__
              $errornull = '';
          }
@@ -438,10 +438,10 @@ index e5ba503707..c8e792203e 100644
              unless defined $cccmd;
  
         if ($^O eq 'VMS') {
-diff --git a/home/heavy/cosmo/dir/perl5/dist/threads-shared/shared.xs b/home/heavy/cosmo/perl5/dist/threads-shared/shared.xs
+diff --git a/dist/threads-shared/shared.xs b/dist/threads-shared/shared.xs
 index 6a7f03c289..38844079d0 100644
---- a/home/heavy/cosmo/dir/perl5/dist/threads-shared/shared.xs
-+++ b/home/heavy/cosmo/perl5/dist/threads-shared/shared.xs
+--- a/dist/threads-shared/shared.xs
++++ b/dist/threads-shared/shared.xs
 @@ -706,20 +706,17 @@ Perl_sharedsv_cond_timedwait(perl_cond *cond, perl_mutex *mut, double abs)
  
      CLANG_DIAG_IGNORE_STMT(-Wthread-safety);
@@ -471,10 +471,10 @@ index 6a7f03c289..38844079d0 100644
      return (got_it);
  #    endif /* OS2 */
  #  endif /* WIN32 */
-diff --git a/home/heavy/cosmo/dir/perl5/doio.c b/home/heavy/cosmo/perl5/doio.c
+diff --git a/doio.c b/doio.c
 index f0d451af3c..52f039c129 100644
---- a/home/heavy/cosmo/dir/perl5/doio.c
-+++ b/home/heavy/cosmo/perl5/doio.c
+--- a/doio.c
++++ b/doio.c
 @@ -55,6 +55,11 @@
  #  define OPEN_EXCL 0
  #endif
@@ -505,10 +505,10 @@ index f0d451af3c..52f039c129 100644
              PERL_FPU_POST_EXEC
              S_exec_failed(aTHX_ PL_sh_path, fd, do_report);
              goto leave;
-diff --git a/home/heavy/cosmo/dir/perl5/ext/Errno/Errno_pm.PL b/home/heavy/cosmo/perl5/ext/Errno/Errno_pm.PL
+diff --git a/ext/Errno/Errno_pm.PL b/ext/Errno/Errno_pm.PL
 index ee2f4a3a92..e5902fa53c 100644
---- a/home/heavy/cosmo/dir/perl5/ext/Errno/Errno_pm.PL
-+++ b/home/heavy/cosmo/perl5/ext/Errno/Errno_pm.PL
+--- a/ext/Errno/Errno_pm.PL
++++ b/ext/Errno/Errno_pm.PL
 @@ -36,6 +36,33 @@ if ($Config{gccversion} ne '' && $^O eq 'MSWin32') {
      process_file('includes.c');
      unlink 'includes.c';
@@ -620,18 +620,18 @@ index ee2f4a3a92..e5902fa53c 100644
      # Generate proxy constant subroutines for all the values.
      # Well, almost all the values. Unfortunately we can't assume that at this
      # point that our symbol table is empty, as code such as if the parser has
-diff --git a/home/heavy/cosmo/perl5/ext/ErrnoRuntime/.gitignore b/home/heavy/cosmo/perl5/ext/ErrnoRuntime/.gitignore
+diff --git a/ext/ErrnoRuntime/.gitignore b/ext/ErrnoRuntime/.gitignore
 new file mode 100644
 index 0000000000..e54624d60d
 --- /dev/null
-+++ b/home/heavy/cosmo/perl5/ext/ErrnoRuntime/.gitignore
++++ b/ext/ErrnoRuntime/.gitignore
 @@ -0,0 +1 @@
 +!/Makefile.PL
-diff --git a/home/heavy/cosmo/perl5/ext/ErrnoRuntime/ErrnoRuntime.xs b/home/heavy/cosmo/perl5/ext/ErrnoRuntime/ErrnoRuntime.xs
+diff --git a/ext/ErrnoRuntime/ErrnoRuntime.xs b/ext/ErrnoRuntime/ErrnoRuntime.xs
 new file mode 100644
 index 0000000000..598a8a1452
 --- /dev/null
-+++ b/home/heavy/cosmo/perl5/ext/ErrnoRuntime/ErrnoRuntime.xs
++++ b/ext/ErrnoRuntime/ErrnoRuntime.xs
 @@ -0,0 +1,34 @@
 +#define PERL_NO_GET_CONTEXT
 +#include "EXTERN.h"
@@ -668,11 +668,11 @@ index 0000000000..598a8a1452
 +        OUTPUT:
 +            RETVAL
 \ No newline at end of file
-diff --git a/home/heavy/cosmo/perl5/ext/ErrnoRuntime/Makefile.PL b/home/heavy/cosmo/perl5/ext/ErrnoRuntime/Makefile.PL
+diff --git a/ext/ErrnoRuntime/Makefile.PL b/ext/ErrnoRuntime/Makefile.PL
 new file mode 100644
 index 0000000000..799e4a12bf
 --- /dev/null
-+++ b/home/heavy/cosmo/perl5/ext/ErrnoRuntime/Makefile.PL
++++ b/ext/ErrnoRuntime/Makefile.PL
 @@ -0,0 +1,15 @@
 +BEGIN { require 5.008_001 }
 +use ExtUtils::MakeMaker;
@@ -689,11 +689,11 @@ index 0000000000..799e4a12bf
 +    PREREQ_PM    => {
 +    },
 +);
-diff --git a/home/heavy/cosmo/perl5/ext/ErrnoRuntime/lib/ErrnoRuntime.pm b/home/heavy/cosmo/perl5/ext/ErrnoRuntime/lib/ErrnoRuntime.pm
+diff --git a/ext/ErrnoRuntime/lib/ErrnoRuntime.pm b/ext/ErrnoRuntime/lib/ErrnoRuntime.pm
 new file mode 100644
 index 0000000000..f53859e5d3
 --- /dev/null
-+++ b/home/heavy/cosmo/perl5/ext/ErrnoRuntime/lib/ErrnoRuntime.pm
++++ b/ext/ErrnoRuntime/lib/ErrnoRuntime.pm
 @@ -0,0 +1,68 @@
 +package ErrnoRuntime;
 +
@@ -763,10 +763,10 @@ index 0000000000..f53859e5d3
 +the same terms as the Perl 5 programming language system itself.
 +
 +=cut
-diff --git a/home/heavy/cosmo/dir/perl5/ext/POSIX/t/sigaction.t b/home/heavy/cosmo/perl5/ext/POSIX/t/sigaction.t
+diff --git a/ext/POSIX/t/sigaction.t b/ext/POSIX/t/sigaction.t
 index 024c66a147..2741c895ed 100644
---- a/home/heavy/cosmo/dir/perl5/ext/POSIX/t/sigaction.t
-+++ b/home/heavy/cosmo/perl5/ext/POSIX/t/sigaction.t
+--- a/ext/POSIX/t/sigaction.t
++++ b/ext/POSIX/t/sigaction.t
 @@ -51,7 +51,7 @@ ok($oldaction->{MASK}->ismember(SIGUSR1), "SIGUSR1 ismember MASK");
  
  SKIP: {
@@ -776,11 +776,11 @@ index 024c66a147..2741c895ed 100644
      is($oldaction->{FLAGS}, 0);
  }
  
-diff --git a/home/heavy/cosmo/perl5/hints/cosmo.sh b/home/heavy/cosmo/perl5/hints/cosmo.sh
+diff --git a/hints/cosmo.sh b/hints/cosmo.sh
 new file mode 100644
 index 0000000000..739058b542
 --- /dev/null
-+++ b/home/heavy/cosmo/perl5/hints/cosmo.sh
++++ b/hints/cosmo.sh
 @@ -0,0 +1,21 @@
 +#! /bin/sh
 +# cosmo.sh - hints for building perl using the Cosmopolitan Libc
@@ -803,10 +803,10 @@ index 0000000000..739058b542
 +ldflags="-fno-stack-protector"
 +libs=''
 +unset COSMO_REPO
-diff --git a/home/heavy/cosmo/dir/perl5/lib/.gitignore b/home/heavy/cosmo/perl5/lib/.gitignore
+diff --git a/lib/.gitignore b/lib/.gitignore
 index cb6a26cfcc..8d99235088 100644
---- a/home/heavy/cosmo/dir/perl5/lib/.gitignore
-+++ b/home/heavy/cosmo/perl5/lib/.gitignore
+--- a/lib/.gitignore
++++ b/lib/.gitignore
 @@ -37,6 +37,7 @@
  /Encode/
  /Env.pm
@@ -815,10 +815,10 @@ index cb6a26cfcc..8d99235088 100644
  /Exporter.pm
  /Exporter/
  /ExtUtils/CBuilder.pm
-diff --git a/home/heavy/cosmo/dir/perl5/patchlevel.h b/home/heavy/cosmo/perl5/patchlevel.h
+diff --git a/patchlevel.h b/patchlevel.h
 index 52a8d53879..d52e867594 100644
---- a/home/heavy/cosmo/dir/perl5/patchlevel.h
-+++ b/home/heavy/cosmo/perl5/patchlevel.h
+--- a/patchlevel.h
++++ b/patchlevel.h
 @@ -157,6 +157,13 @@ hunk.
  #  endif
  static const char * const local_patches[] = {
@@ -833,10 +833,10 @@ index 52a8d53879..d52e867594 100644
  #ifdef PERL_GIT_UNCOMMITTED_CHANGES
          ,"uncommitted-changes"
  #endif
-diff --git a/home/heavy/cosmo/dir/perl5/pod/.gitignore b/home/heavy/cosmo/perl5/pod/.gitignore
+diff --git a/pod/.gitignore b/pod/.gitignore
 index a16aaa9a5f..b731fa2fd6 100644
---- a/home/heavy/cosmo/dir/perl5/pod/.gitignore
-+++ b/home/heavy/cosmo/perl5/pod/.gitignore
+--- a/pod/.gitignore
++++ b/pod/.gitignore
 @@ -4,6 +4,7 @@
  /perlandroid.pod
  /perlbs2000.pod
@@ -845,10 +845,10 @@ index a16aaa9a5f..b731fa2fd6 100644
  /perlcygwin.pod
  /perldos.pod
  /perlfreebsd.pod
-diff --git a/home/heavy/cosmo/dir/perl5/pod/perl.pod b/home/heavy/cosmo/perl5/pod/perl.pod
+diff --git a/pod/perl.pod b/pod/perl.pod
 index 6a14569758..5db5882a9c 100644
---- a/home/heavy/cosmo/dir/perl5/pod/perl.pod
-+++ b/home/heavy/cosmo/perl5/pod/perl.pod
+--- a/pod/perl.pod
++++ b/pod/perl.pod
 @@ -277,6 +277,7 @@ aux h2ph h2xs perlbug pl2pm pod2html pod2man splain xsubpp
      perlamiga		Perl notes for AmigaOS
      perlandroid		Perl notes for Android

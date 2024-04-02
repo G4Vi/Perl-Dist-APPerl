@@ -712,6 +712,11 @@ my %defconfig = (
             perl_id => 'cosmo',
             patches => ['../Perl-Dist-APPerl/5.36-cosmo.patch']
         },
+        perl_cosmo3_dev => {
+            desc => "For developing cosmo platform perl without apperl additions",
+            base => 'full',
+            patches => ['../Perl-Dist-APPerl/5.36-cosmo3.patch']
+        },
         perl_cosmo_dev_on_vista => {
             desc => "For developing cosmo platform perl without apperl additions on vista",
             base => "perl_cosmo_dev",
