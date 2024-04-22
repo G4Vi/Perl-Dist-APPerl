@@ -694,7 +694,7 @@ my %defconfig = (
             cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
             dest => 'perl-small-vista.com',
         },
-        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo'], perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.36.3.tar.gz', patches => ['../Perl-Dist-APPerl/5.36-cosmo.patch', '../Perl-Dist-APPerl/5.36-cosmo-apperl.patch']},
+        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo'], cosmo3 => 1, perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.36.3.tar.gz', patches => ['../Perl-Dist-APPerl/5.36-cosmo.patch', '../Perl-Dist-APPerl/5.36-cosmo-apperl.patch']},
         'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
@@ -715,6 +715,8 @@ my %defconfig = (
         perl_cosmo3_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'full',
+            perl_id => 'v5.36.3',
+            perl_url => undef,
             patches => ['../Perl-Dist-APPerl/5.36-cosmo3.patch']
         },
         perl_cosmo_dev_on_vista => {
@@ -895,13 +897,15 @@ sub Set {
     print Dumper($itemconfig);
     if(! exists $itemconfig->{nobuild_perl_bin}) {
         my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot set without build deps (run apperlm install-build-deps)";
-        -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
-        #-d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
-        print "cd ".$SiteConfig->{cosmo_repo}."\n";
-        chdir($SiteConfig->{cosmo_repo}) or die "Failed to enter cosmo repo";
-        _command_or_die('git', 'checkout', $itemconfig->{cosmo_id});
+        if(! $itemconfig->{cosmo3}) {
+            -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
+            print "cd ".$SiteConfig->{cosmo_repo}."\n";
+            chdir($SiteConfig->{cosmo_repo}) or die "Failed to enter cosmo repo";
+            _command_or_die('git', 'checkout', $itemconfig->{cosmo_id});
+        }
 
         if (! $itemconfig->{perl_url}) {
+            -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
             print "cd ".$SiteConfig->{perl_repo}."\n";
             chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
             print "make veryclean\n";
@@ -910,7 +914,9 @@ sub Set {
                 print "rm $todelete\n";
                 unlink($todelete) || $!{ENOENT} or die "failed to delete $todelete";
             }
-            _command_or_die('git', 'checkout', $itemconfig->{perl_id});
+            _command_or_die('git', 'checkout', '-f', $itemconfig->{perl_id});
+            _command_or_die('git', 'clean', '-f', '-e.vscode', '-d');
+            $itemconfig->{patches} //= [];
         } else {
             my $tarball_name = basename($itemconfig->{perl_url});
             _command_or_die('mkdir', '-p', $SiteConfig->{perl_repo});
@@ -925,9 +931,9 @@ sub Set {
             my $tomove = "perl5-$version";
             _command_or_die('mv', $tomove, 'perl5');
             chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
-            foreach my $patch (@{$itemconfig->{patches}}) {
-                _command_or_die('git', 'apply', $patch);
-            }
+        }
+        foreach my $patch (@{$itemconfig->{patches}}) {
+            _command_or_die('git', 'apply', $patch);
         }
 
         print "cd ".START_WD."\n";
@@ -965,27 +971,30 @@ sub Configure {
     my $CurAPPerlName = $UserProjectConfig->{current_apperl};
     ! exists $UserProjectConfig->{nobuild_perl_bin} or die "nobuild perl cannot be configured";
     my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot Configure without build deps (run apperlm install-build-deps)";
-    -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
     -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
     my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
     _install_perl_repo_files($itemconfig, $SiteConfig);
-    # build toolchain
-    _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j', 'toolchain', 'MODE=', 'ARCH=x86_64');
-    # build cosmo
-    print "$0: Building cosmo, COSMO_MODE=$itemconfig->{cosmo_mode} COSMO_APE_LOADER=$itemconfig->{cosmo_ape_loader}\n";
-    _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j4', "MODE=$itemconfig->{cosmo_mode}",
-    "o/$itemconfig->{cosmo_mode}/cosmopolitan.a",
-    "o/$itemconfig->{cosmo_mode}/libc/crt/crt.o",
-    "o/$itemconfig->{cosmo_mode}/ape/public/ape.lds",
-    "o/$itemconfig->{cosmo_mode}/ape/$itemconfig->{cosmo_ape_loader}",
-    );
+
+    if(! $itemconfig->{cosmo3}) {
+        -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
+        # build toolchain
+        _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j', 'toolchain', 'MODE=', 'ARCH=x86_64');
+        # build cosmo
+        print "$0: Building cosmo, COSMO_MODE=$itemconfig->{cosmo_mode} COSMO_APE_LOADER=$itemconfig->{cosmo_ape_loader}\n";
+        _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j4', "MODE=$itemconfig->{cosmo_mode}",
+        "o/$itemconfig->{cosmo_mode}/cosmopolitan.a",
+        "o/$itemconfig->{cosmo_mode}/libc/crt/crt.o",
+        "o/$itemconfig->{cosmo_mode}/ape/public/ape.lds",
+        "o/$itemconfig->{cosmo_mode}/ape/$itemconfig->{cosmo_ape_loader}",
+        );
+        $ENV{COSMO_MODE} = $itemconfig->{cosmo_mode};
+        $ENV{COSMO_APE_LOADER} = $itemconfig->{cosmo_ape_loader};
+    }
 
     # Finally Configure perl
     print "cd ".$SiteConfig->{perl_repo}."\n";
     chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
     $ENV{COSMO_REPO} = $SiteConfig->{cosmo_repo};
-    $ENV{COSMO_MODE} = $itemconfig->{cosmo_mode};
-    $ENV{COSMO_APE_LOADER} = $itemconfig->{cosmo_ape_loader};
     my @onlyextensions = ();
     push @onlyextensions, ("-Donlyextensions= ".join(' ', sort @{$itemconfig->{perl_onlyextensions}}).' ') if(exists $itemconfig->{perl_onlyextensions});
     _command_or_die('sh', 'Configure', @{$itemconfig->{perl_flags}}, @onlyextensions, @{$itemconfig->{perl_extra_flags}}, @_);

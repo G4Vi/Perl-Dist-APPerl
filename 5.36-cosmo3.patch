@@ -126,10 +126,12 @@ diff --git a/Makefile.SH b/Makefile.SH
 index cb0efb32ab..0d8e7b2094 100755
 --- a/Makefile.SH
 +++ b/Makefile.SH
-@@ -1001,6 +1001,19 @@ lib/buildcustomize.pl: $& $(miniperl_objs) write_buildcustomize.pl
+@@ -999,6 +999,19 @@ lib/buildcustomize.pl: $& $(miniperl_objs) write_buildcustomize.pl
+ 	    $(miniperl_objs) $(libs)
+ 	$(LDLIBPTH) ./miniperl$(HOST_EXE_EXT) -w -Ilib -Idist/Exporter/lib -MExporter -e '<?>' || sh -c 'echo >&2 Failed to build miniperl.  Please run make minitest; exit 1'
  	$(MINIPERL) -f write_buildcustomize.pl
- !NO!SUBS!
- 		;;
++!NO!SUBS!
++		;;
 +	cosmo*)
 +		$spitshell >>$Makefile <<'!NO!SUBS!'
 +lib/buildcustomize.pl: $& $(miniperl_dep) write_buildcustomize.pl
@@ -141,11 +143,9 @@ index cb0efb32ab..0d8e7b2094 100755
 +	./miniperl --assimilate || true
 +	$(LDLIBPTH) ./miniperl$(HOST_EXE_EXT) -w -Ilib -Idist/Exporter/lib -MExporter -e '<?>' || sh -c 'echo >&2 Failed to build miniperl.  Please run make minitest; exit 1'
 +	$(MINIPERL) -f write_buildcustomize.pl
-+!NO!SUBS!
-+		;;
+ !NO!SUBS!
+ 		;;
  	*)
- 		if test "X$hostperl" != X; then
- 			$spitshell >>$Makefile <<!GROK!THIS!
 @@ -1054,7 +1067,13 @@ $(PERL_EXE): $& $(perlmain_dep) $(LIBPERL) $(static_ext) ext.libs $(PERLEXPORT)
  	       ;;
  	    esac
@@ -339,19 +339,6 @@ index a72dd024b5..a0f2606137 100644
  
    dos         Windows
    MSWin32     Windows
-diff --git a/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm b/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
-index bb6ffc83ef..af5878313a 100644
---- a/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
-+++ b/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
-@@ -1929,7 +1929,7 @@ sub page {  # apply a pager to the output file
-             $self->aside("About to try calling $pager $output\n");
-             if ($self->is_vms) {
-                 last if system("$pager $output") == 0;
--	    } elsif($self->is_amigaos) { 
-+	    } elsif($self->is_amigaos) {
-                 last if system($pager, $output) == 0;
-             } else {
-                 last if system("$pager \"$output\"") == 0;
 diff --git a/cpan/Socket/Socket.xs b/cpan/Socket/Socket.xs
 index b4bccb796d..3ec940c3e6 100644
 --- a/cpan/Socket/Socket.xs
@@ -472,22 +459,23 @@ index 6a7f03c289..38844079d0 100644
  #    endif /* OS2 */
  #  endif /* WIN32 */
 diff --git a/doio.c b/doio.c
-index f0d451af3c..52f039c129 100644
+index f0d451af3c..63dce797fa 100644
 --- a/doio.c
 +++ b/doio.c
-@@ -55,6 +55,11 @@
+@@ -55,6 +55,12 @@
  #  define OPEN_EXCL 0
  #endif
  
 +#ifdef __COSMOPOLITAN__
 +#    define _COSMO_SOURCE
 +#    include "libc/dce.h"
++    void __paginate_file(int fd, const char *s);
 +#endif
 +
  #define PERL_MODE_MAX 8
  #define PERL_FLAGS_MAX 10
  
-@@ -2512,7 +2517,16 @@ Perl_do_exec3(pTHX_ const char *incmd, int fd, int do_report)
+@@ -2512,7 +2518,24 @@ Perl_do_exec3(pTHX_ const char *incmd, int fd, int do_report)
              }
            doshell:
              PERL_FPU_PRE_EXEC
@@ -495,6 +483,14 @@ index f0d451af3c..52f039c129 100644
 +#ifdef __COSMOPOLITAN__
 +            if(IsWindows())
 +            {
++                // hack for perldoc
++                static const char paginate_cmd_start[] = "more \"/tmp/";
++                if (strncmp(paginate_cmd_start, cmd, sizeof(paginate_cmd_start)-1) == 0) {
++                    cmd[strlen(cmd)-1] = '\0';
++                    __paginate_file(1, cmd + 6);
++                    exit(0);
++                }
++
 +                PerlProc_execl("/C/Windows/System32/cmd.exe", "/C/Windows/System32/cmd.exe", "/c", cmd, (char *)NULL);
 +            }
 +            else
@@ -778,10 +774,10 @@ index 024c66a147..2741c895ed 100644
  
 diff --git a/hints/cosmo.sh b/hints/cosmo.sh
 new file mode 100644
-index 0000000000..739058b542
+index 0000000000..372f50da1f
 --- /dev/null
 +++ b/hints/cosmo.sh
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,22 @@
 +#! /bin/sh
 +# cosmo.sh - hints for building perl using the Cosmopolitan Libc
 +#
@@ -798,7 +794,8 @@ index 0000000000..739058b542
 +locincpth=''
 +loclibpth=''
 +glibpth=''
-+cc="/home/heavy/cosmo/cosmocc/bin/x86_64-unknown-cosmo-cc"
++#cc="/home/sample/repos/cosmocc/bin/x86_64-unknown-cosmo-cc"
++cc="/home/sample/repos/cosmopolitan/cosmocc/bin/x86_64-unknown-cosmo-cc"
 +ccflags="-fno-stack-protector"
 +ldflags="-fno-stack-protector"
 +libs=''
