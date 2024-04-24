@@ -412,6 +412,28 @@ index b4bccb796d..3ec940c3e6 100644
  	ok = (*host != '\0') && inet_pton(af, host, &ip_address);
  
  	ST(0) = sv_newmortal();
+diff --git a/dist/IO/t/cachepropagate-unix.t b/dist/IO/t/cachepropagate-unix.t
+index 718d01da1d..8024a10474 100644
+--- a/dist/IO/t/cachepropagate-unix.t
++++ b/dist/IO/t/cachepropagate-unix.t
+@@ -50,7 +50,7 @@ my $p = $listener->protocol();
+     # This is a TODO instead of a skip so if these ever implement SO_PROTOCOL
+     # we'll be notified about the passing TODO so the test can be updated.
+     local $TODO = "$^O doesn't support SO_PROTOCOL on AF_UNIX"
+-        if $^O =~ /^(netbsd|darwin|cygwin|hpux|solaris|dragonfly|os390|gnu)$/;
++        if $^O =~ /^(netbsd|darwin|cygwin|hpux|solaris|dragonfly|os390|gnu|cosmo)$/;
+     ok(defined($p), 'protocol defined');
+ }
+ my $d = $listener->sockdomain();
+@@ -105,7 +105,7 @@ SKIP: {
+     {
+         # see comment above
+         local $TODO = "$^O doesn't support SO_PROTOCOL on AF_UNIX"
+-            if $^O =~ /^(netbsd|darwin|cygwin|hpux|solaris|dragonfly|os390|gnu)$/;
++            if $^O =~ /^(netbsd|darwin|cygwin|hpux|solaris|dragonfly|os390|gnu|cosmo)$/;
+         ok(defined($p), 'protocol defined');
+     }
+     $d = $listener->sockdomain();
 diff --git a/dist/Time-HiRes/Makefile.PL b/dist/Time-HiRes/Makefile.PL
 index e5ba503707..c8e792203e 100644
 --- a/dist/Time-HiRes/Makefile.PL
@@ -774,7 +796,7 @@ index 024c66a147..2741c895ed 100644
  
 diff --git a/hints/cosmo.sh b/hints/cosmo.sh
 new file mode 100644
-index 0000000000..372f50da1f
+index 0000000000..e74369d214
 --- /dev/null
 +++ b/hints/cosmo.sh
 @@ -0,0 +1,22 @@
@@ -796,7 +818,7 @@ index 0000000000..372f50da1f
 +glibpth=''
 +#cc="/home/sample/repos/cosmocc/bin/x86_64-unknown-cosmo-cc"
 +cc="/home/sample/repos/cosmopolitan/cosmocc/bin/x86_64-unknown-cosmo-cc"
-+ccflags="-fno-stack-protector"
++ccflags="-fno-stack-protector -D_COSMO_SOURCE"
 +ldflags="-fno-stack-protector"
 +libs=''
 +unset COSMO_REPO
