@@ -23,7 +23,7 @@ index 8f25e9d835..8fcde9e4e2 100644
  Gene Sullivan                  <genesullivan50@yahoo.com>
  Geoffrey F. Green              <geoff-public@stuebegreen.com>
 diff --git a/Configure b/Configure
-index 67e990217d..cd8ce30511 100755
+index 67e990217d..e56aa7d0a6 100755
 --- a/Configure
 +++ b/Configure
 @@ -2744,7 +2744,7 @@ int main(int argc, char *argv[]) {
@@ -83,15 +83,6 @@ index 67e990217d..cd8ce30511 100755
      echo "Yes, it does." >&4;
      if $test -s gcctest.out ; then
          echo "But your platform does not like it:";
-@@ -23699,6 +23704,8 @@ else
- 	if $test -s ccsym.own; then
- 		$test "$also" && echo " "
- 		echo "Your C compiler ${also}defines the following cpp symbols:"
-+		echo "LARGEFILE_SOURCE" > ccsym.own
-+		echo "DONT_USE_BUILTIN_SETJMP" >> ccsym.own
- 		$sed -e 's/\(..*\)=1/\1/' ccsym.own
- 		$sed -e 's/\(..*\)=.*/\1/' ccsym.own | $uniq >>Cppsym.true
- 		ccsymbols=`$cat ccsym.own`
 diff --git a/MANIFEST b/MANIFEST
 index c2057ee452..8e9795c82d 100644
 --- a/MANIFEST
@@ -123,36 +114,38 @@ index c2057ee452..8e9795c82d 100644
  README.freebsd			Perl notes for FreeBSD
  README.haiku			Perl notes for Haiku
 diff --git a/Makefile.SH b/Makefile.SH
-index cb0efb32ab..0d8e7b2094 100755
+index cb0efb32ab..a5ca34741f 100755
 --- a/Makefile.SH
 +++ b/Makefile.SH
-@@ -999,6 +999,19 @@ lib/buildcustomize.pl: $& $(miniperl_objs) write_buildcustomize.pl
- 	    $(miniperl_objs) $(libs)
- 	$(LDLIBPTH) ./miniperl$(HOST_EXE_EXT) -w -Ilib -Idist/Exporter/lib -MExporter -e '<?>' || sh -c 'echo >&2 Failed to build miniperl.  Please run make minitest; exit 1'
+@@ -1001,6 +1001,20 @@ lib/buildcustomize.pl: $& $(miniperl_objs) write_buildcustomize.pl
  	$(MINIPERL) -f write_buildcustomize.pl
-+!NO!SUBS!
-+		;;
+ !NO!SUBS!
+ 		;;
 +	cosmo*)
 +		$spitshell >>$Makefile <<'!NO!SUBS!'
 +lib/buildcustomize.pl: $& $(miniperl_dep) write_buildcustomize.pl
 +	-@rm -f miniperl.xok
-+	$(CC) $(CLDFLAGS) -o miniperl.com \
++	$(CC) $(CLDFLAGS) -o miniperl.com.dbg \
 +	    $(miniperl_objs) $(libs)
++	$(realpath $(dir $(CC)))/x86_64-linux-musl-objcopy -S -O binary miniperl.com.dbg miniperl.com
 +	cp miniperl.com $(MINIPERL_EXE)
 +	chmod -w miniperl.com
 +	./miniperl --assimilate || true
 +	$(LDLIBPTH) ./miniperl$(HOST_EXE_EXT) -w -Ilib -Idist/Exporter/lib -MExporter -e '<?>' || sh -c 'echo >&2 Failed to build miniperl.  Please run make minitest; exit 1'
 +	$(MINIPERL) -f write_buildcustomize.pl
- !NO!SUBS!
- 		;;
++!NO!SUBS!
++		;;
  	*)
-@@ -1054,7 +1067,13 @@ $(PERL_EXE): $& $(perlmain_dep) $(LIBPERL) $(static_ext) ext.libs $(PERLEXPORT)
+ 		if test "X$hostperl" != X; then
+ 			$spitshell >>$Makefile <<!GROK!THIS!
+@@ -1054,7 +1068,14 @@ $(PERL_EXE): $& $(perlmain_dep) $(LIBPERL) $(static_ext) ext.libs $(PERLEXPORT)
  	       ;;
  	    esac
          ;;
 -
 +        cosmo) $spitshell >>$Makefile <<'!NO!SUBS!'
-+	$(SHRPENV) $(CC) -o perl.com $(CLDFLAGS) $(CCDLFLAGS) $(perlmain_objs) $(static_ext) $(LLIBPERL) `cat ext.libs` $(libs)
++	$(SHRPENV) $(CC) -o perl.com.dbg $(CLDFLAGS) $(CCDLFLAGS) $(perlmain_objs) $(static_ext) $(LLIBPERL) `cat ext.libs` $(libs)
++	$(realpath $(dir $(CC)))/x86_64-linux-musl-objcopy -S -O binary perl.com.dbg perl.com
 +	cp perl.com $(PERL_EXE)
 +	chmod -w perl.com
 +	./perl --assimilate || true
@@ -339,6 +332,19 @@ index a72dd024b5..a0f2606137 100644
  
    dos         Windows
    MSWin32     Windows
+diff --git a/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm b/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
+index bb6ffc83ef..af5878313a 100644
+--- a/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
++++ b/cpan/Pod-Perldoc/lib/Pod/Perldoc.pm
+@@ -1929,7 +1929,7 @@ sub page {  # apply a pager to the output file
+             $self->aside("About to try calling $pager $output\n");
+             if ($self->is_vms) {
+                 last if system("$pager $output") == 0;
+-	    } elsif($self->is_amigaos) { 
++	    } elsif($self->is_amigaos) {
+                 last if system($pager, $output) == 0;
+             } else {
+                 last if system("$pager \"$output\"") == 0;
 diff --git a/cpan/Socket/Socket.xs b/cpan/Socket/Socket.xs
 index b4bccb796d..3ec940c3e6 100644
 --- a/cpan/Socket/Socket.xs
@@ -412,28 +418,6 @@ index b4bccb796d..3ec940c3e6 100644
  	ok = (*host != '\0') && inet_pton(af, host, &ip_address);
  
  	ST(0) = sv_newmortal();
-diff --git a/dist/IO/t/cachepropagate-unix.t b/dist/IO/t/cachepropagate-unix.t
-index 718d01da1d..8024a10474 100644
---- a/dist/IO/t/cachepropagate-unix.t
-+++ b/dist/IO/t/cachepropagate-unix.t
-@@ -50,7 +50,7 @@ my $p = $listener->protocol();
-     # This is a TODO instead of a skip so if these ever implement SO_PROTOCOL
-     # we'll be notified about the passing TODO so the test can be updated.
-     local $TODO = "$^O doesn't support SO_PROTOCOL on AF_UNIX"
--        if $^O =~ /^(netbsd|darwin|cygwin|hpux|solaris|dragonfly|os390|gnu)$/;
-+        if $^O =~ /^(netbsd|darwin|cygwin|hpux|solaris|dragonfly|os390|gnu|cosmo)$/;
-     ok(defined($p), 'protocol defined');
- }
- my $d = $listener->sockdomain();
-@@ -105,7 +105,7 @@ SKIP: {
-     {
-         # see comment above
-         local $TODO = "$^O doesn't support SO_PROTOCOL on AF_UNIX"
--            if $^O =~ /^(netbsd|darwin|cygwin|hpux|solaris|dragonfly|os390|gnu)$/;
-+            if $^O =~ /^(netbsd|darwin|cygwin|hpux|solaris|dragonfly|os390|gnu|cosmo)$/;
-         ok(defined($p), 'protocol defined');
-     }
-     $d = $listener->sockdomain();
 diff --git a/dist/Time-HiRes/Makefile.PL b/dist/Time-HiRes/Makefile.PL
 index e5ba503707..c8e792203e 100644
 --- a/dist/Time-HiRes/Makefile.PL
@@ -481,23 +465,21 @@ index 6a7f03c289..38844079d0 100644
  #    endif /* OS2 */
  #  endif /* WIN32 */
 diff --git a/doio.c b/doio.c
-index f0d451af3c..63dce797fa 100644
+index f0d451af3c..d516f76a21 100644
 --- a/doio.c
 +++ b/doio.c
-@@ -55,6 +55,12 @@
+@@ -55,6 +55,10 @@
  #  define OPEN_EXCL 0
  #endif
  
 +#ifdef __COSMOPOLITAN__
-+#    define _COSMO_SOURCE
 +#    include "libc/dce.h"
-+    void __paginate_file(int fd, const char *s);
 +#endif
 +
  #define PERL_MODE_MAX 8
  #define PERL_FLAGS_MAX 10
  
-@@ -2512,7 +2518,24 @@ Perl_do_exec3(pTHX_ const char *incmd, int fd, int do_report)
+@@ -2512,7 +2516,16 @@ Perl_do_exec3(pTHX_ const char *incmd, int fd, int do_report)
              }
            doshell:
              PERL_FPU_PRE_EXEC
@@ -505,14 +487,6 @@ index f0d451af3c..63dce797fa 100644
 +#ifdef __COSMOPOLITAN__
 +            if(IsWindows())
 +            {
-+                // hack for perldoc
-+                static const char paginate_cmd_start[] = "more \"/tmp/";
-+                if (strncmp(paginate_cmd_start, cmd, sizeof(paginate_cmd_start)-1) == 0) {
-+                    cmd[strlen(cmd)-1] = '\0';
-+                    __paginate_file(1, cmd + 6);
-+                    exit(0);
-+                }
-+
 +                PerlProc_execl("/C/Windows/System32/cmd.exe", "/C/Windows/System32/cmd.exe", "/c", cmd, (char *)NULL);
 +            }
 +            else
@@ -796,32 +770,37 @@ index 024c66a147..2741c895ed 100644
  
 diff --git a/hints/cosmo.sh b/hints/cosmo.sh
 new file mode 100644
-index 0000000000..e74369d214
+index 0000000000..657cd3246c
 --- /dev/null
 +++ b/hints/cosmo.sh
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,27 @@
 +#! /bin/sh
 +# cosmo.sh - hints for building perl using the Cosmopolitan Libc
 +#
 +
 +test -d "$COSMO_REPO" || exit 1;
++COSMO_APE_LOADER=${COSMO_APE_LOADER:="ape-no-modify-self.o"}
 +
 +usedl='undef'
 +usenm='false'
 +so='none'
 +osname='cosmo'
 +osvers=''
-+libpth=''
++libpth='none'
++#incpth=
++#incpath=
++#usrinc=
 +d_procselfexe='undef'
 +locincpth=''
-+loclibpth=''
-+glibpth=''
-+#cc="/home/sample/repos/cosmocc/bin/x86_64-unknown-cosmo-cc"
-+cc="/home/sample/repos/cosmopolitan/cosmocc/bin/x86_64-unknown-cosmo-cc"
-+ccflags="-fno-stack-protector -D_COSMO_SOURCE"
-+ldflags="-fno-stack-protector"
-+libs=''
++usrinc="$COSMO_REPO/libc/isystem"
++cc="$COSMO_REPO/o/third_party/gcc/bin/x86_64-linux-musl-gcc"
++ccflags="-static -nostdlib -nostdinc -fno-pie -no-pie -mno-red-zone -fno-omit-frame-pointer -fno-stack-protector -pg -mnop-mcount -mno-tls-direct-seg-refs -I $COSMO_REPO -include $COSMO_REPO/libc/integral/normalize.inc -isystem $COSMO_REPO/libc/isystem"
++ldflags="-static -nostdlib -nostdinc -fno-pie -no-pie -mno-red-zone -fno-omit-frame-pointer -fno-stack-protector -pg -mnop-mcount -mno-tls-direct-seg-refs -Wl,--gc-sections -fuse-ld=bfd -Wl,-T,$COSMO_REPO/o/$COSMO_MODE/ape/public/ape.lds $COSMO_REPO/o/$COSMO_MODE/libc/crt/crt.o $COSMO_REPO/o/$COSMO_MODE/ape/$COSMO_APE_LOADER"
++libs="$COSMO_REPO/o/$COSMO_MODE/cosmopolitan.a"
++#noextensions=''
 +unset COSMO_REPO
++unset COSMO_MODE
++unset COSMO_APE_LOADER
 diff --git a/lib/.gitignore b/lib/.gitignore
 index cb6a26cfcc..8d99235088 100644
 --- a/lib/.gitignore
