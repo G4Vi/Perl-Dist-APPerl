@@ -710,14 +710,15 @@ my %defconfig = (
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'full',
             perl_id => 'cosmo',
-            patches => ['../Perl-Dist-APPerl/5.36-cosmo.patch']
+            patches => ['../Perl-Dist-APPerl/share/5.36-cosmo.patch']
         },
         perl_cosmo3_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'full',
             perl_id => 'v5.36.3',
             perl_url => undef,
-            patches => ['../Perl-Dist-APPerl/5.36-cosmo3.patch']
+            patches => ['../Perl-Dist-APPerl/share/5.36-cosmo3.patch'],
+            install_modules => ['File-ShareDir-1.118.tar.gz']
         },
         perl_cosmo_dev_on_vista => {
             desc => "For developing cosmo platform perl without apperl additions on vista",
@@ -1132,7 +1133,9 @@ sub Build {
         my $perllib = "$TEMPDIR$proxyConfig{installprivlib}";
         my $perlarchlib = "$TEMPDIR$proxyConfig{installarchlib}";
         my $mmopt = sub {
-            my @mmopt = ("PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib", "MAP_TARGET=perl.com.dbg",
+            my @mmopt = ("PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib",
+                #"MAP_TARGET=perl.com.dbg",
+                "MAP_TARGET=perl.com",
                 "INSTALLDIRS=perl",
                 "INSTALLARCHLIB=$perlarchlib",
                 "INSTALLPRIVLIB=$perllib",
@@ -1198,8 +1201,9 @@ sub Build {
                 # install into the src tree
                 _command_or_die('make', 'install');
                 # build a new perl binary, convert to APE, and repack zip
-                _command_or_die('make', 'perl.com.dbg');
-                _command_or_die(dirname($proxyConfig{cc})."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.com.dbg', 'perl.com');
+                #_command_or_die('make', 'perl.com.dbg');
+                #_command_or_die(dirname($proxyConfig{cc})."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.com.dbg', 'perl.com');
+                _command_or_die('make', 'perl.com');
                 $PERL_APE = abs_path('./perl.com');
             }
             else {
@@ -1503,14 +1507,23 @@ sub _load_apperl_config {
         defined($thispath) or die(__FILE__.'issues?');
         push @{$itemconfig{zip_extra_files}{"__perllib__/Perl/Dist"}}, $thispath;
         my $apperlm = $0;
+        my $patchdir;
         if(basename($0) ne 'apperlm') {
             $apperlm = dirname($thispath)."/../../../script/apperlm";
         }
+        $patchdir = dirname($thispath)."/../../../share";
         $apperlm = abs_path($apperlm);
         defined($apperlm) or die "error getting path to apperlm";
         my @additionalfiles = ($apperlm);
         -e $_ or die("$_ $!") foreach @additionalfiles;
         push @{$itemconfig{zip_extra_files}{bin}}, @additionalfiles;
+        $patchdir = abs_path($patchdir);
+        defined($patchdir) or die "error getting path to patchdir";
+        opendir(my $dh, $patchdir) or die "error opening patch dir";
+        while(my $file = readdir $dh) {
+            next if(($file eq '.') || ($file eq '..'));
+            push @{$itemconfig{zip_extra_files}{"__perllib__/auto/share/dist/Perl-Dist-APPerl"}}, "$patchdir/$file";
+        }
     }
 
     # verify apperl config sanity

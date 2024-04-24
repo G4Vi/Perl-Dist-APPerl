@@ -2,6 +2,9 @@ use 5.010;
 use strict;
 use warnings;
 use ExtUtils::MakeMaker;
+use File::ShareDir::Install;
+
+install_share 'share';
 
 my %WriteMakefileArgs = (
     NAME             => 'Perl::Dist::APPerl',
@@ -12,11 +15,13 @@ my %WriteMakefileArgs = (
     MIN_PERL_VERSION => '5.010',
     CONFIGURE_REQUIRES => {
         'ExtUtils::MakeMaker' => '0',
+        "File::ShareDir::Install" => "0.13"
     },
     PREREQ_PM => {
         'JSON::PP'   => '2.0104',
         'File::Path' => '2.07',
         'version'    => '0.77',
+        "File::ShareDir" => 0,
     },
     TEST_REQUIRES => {
         'Test::Pod::LinkCheck::Lite' => '0',
@@ -72,4 +77,10 @@ WriteMakefile(%WriteMakefileArgs);
 sub MY::postamble {
     return "authortest: test\n\tAUTHOR_TESTING=1 "
       . $_[0]->test_via_harness( '$(FULLPERLRUN)', 'xt/author/*.t' );
+}
+
+{
+package
+MY;
+use File::ShareDir::Install qw(postamble);
 }
