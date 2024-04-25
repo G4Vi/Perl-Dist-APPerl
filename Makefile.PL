@@ -75,12 +75,7 @@ for my $parameter ( keys %min_eumm_version ) {
 WriteMakefile(%WriteMakefileArgs);
 
 sub MY::postamble {
-    return "authortest: test\n\tAUTHOR_TESTING=1 "
+    return File::ShareDir::Install::postamble(@_) . "\n"
+    ."authortest: test\n\tAUTHOR_TESTING=1 "
       . $_[0]->test_via_harness( '$(FULLPERLRUN)', 'xt/author/*.t' );
-}
-
-{
-package
-MY;
-use File::ShareDir::Install qw(postamble);
 }

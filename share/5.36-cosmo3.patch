@@ -23,7 +23,7 @@ index 8f25e9d835..8fcde9e4e2 100644
  Gene Sullivan                  <genesullivan50@yahoo.com>
  Geoffrey F. Green              <geoff-public@stuebegreen.com>
 diff --git a/Configure b/Configure
-index 67e990217d..cd8ce30511 100755
+index 67e990217d..bedad1da43 100755
 --- a/Configure
 +++ b/Configure
 @@ -2744,7 +2744,7 @@ int main(int argc, char *argv[]) {
@@ -48,7 +48,7 @@ index 67e990217d..cd8ce30511 100755
  		fi
  	fi
  
-+	if [ $COSMO_REPO ]; then
++	if [ $COSMOCC ]; then
 +		osname='cosmo'
 +		osvers=''
 +	fi
@@ -809,15 +809,15 @@ index 024c66a147..2741c895ed 100644
  
 diff --git a/hints/cosmo.sh b/hints/cosmo.sh
 new file mode 100644
-index 0000000000..e74369d214
+index 0000000000..3d7118a4f9
 --- /dev/null
 +++ b/hints/cosmo.sh
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,21 @@
 +#! /bin/sh
 +# cosmo.sh - hints for building perl using the Cosmopolitan Libc
 +#
 +
-+test -d "$COSMO_REPO" || exit 1;
++test -d "$COSMOCC" || exit 1;
 +
 +usedl='undef'
 +usenm='false'
@@ -829,12 +829,11 @@ index 0000000000..e74369d214
 +locincpth=''
 +loclibpth=''
 +glibpth=''
-+#cc="/home/sample/repos/cosmocc/bin/x86_64-unknown-cosmo-cc"
-+cc="/home/sample/repos/cosmopolitan/cosmocc/bin/x86_64-unknown-cosmo-cc"
++cc="$COSMOCC/bin/x86_64-unknown-cosmo-cc"
 +ccflags="-fno-stack-protector -D_COSMO_SOURCE"
 +ldflags="-fno-stack-protector"
 +libs=''
-+unset COSMO_REPO
++unset COSMOCC
 diff --git a/lib/.gitignore b/lib/.gitignore
 index cb6a26cfcc..8d99235088 100644
 --- a/lib/.gitignore

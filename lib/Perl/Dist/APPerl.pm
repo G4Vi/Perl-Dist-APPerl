@@ -35,6 +35,19 @@ use constant {
 use constant {
     SITE_CONFIG_FILE => (SITE_CONFIG_DIR."/site.json"),
 };
+use constant {
+    SHARE_DIR => sub {
+        my $thispath = abs_path(__FILE__);
+        defined($thispath) or die(__FILE__.'issues?');
+        my $sharedir = dirname($thispath)."/../../../share";
+        if (! -d $sharedir) {
+            require 'File::ShareDir';
+            $sharedir = File::ShareDir::dist_dir('Perl-Dist-APPerl');
+        }
+        $sharedir = abs_path($sharedir) // die "Failed to load sharedir";
+        return $sharedir;
+    }->()
+};
 
 sub _load_apperl_configs {
 
@@ -659,47 +672,55 @@ my %defconfig = (
             zip_extra_files => {},
             nobuild_perl_bin => ['src/perl.com', $^X],
         },
-        'v5.36.0-full-v0.1.0' => {
-            desc => 'Full perl v5.36.0 built with Cosmopolitan Libc 2.2',
+        'v5.36.0-full-v0.1.0-vista' => {
+            desc => 'Full perl v5.36.0, but with non-standard Cosmopolitan Libc that still supports vista',
             perl_id => 'b22da6b83c37604132694ead0bdcf61690f74a53',
-            cosmo_id => '52f1db7220935cfcf2c8e583678f5ccc4b5bbacd',
+            cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
             cosmo_mode => '',
             cosmo_ape_loader => 'ape-no-modify-self.o',
+            dest => 'perl-vista.com',
             perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
             perl_extra_flags => ['-Doptimize=-Os', '-de'],
-            dest => 'perl.com',
             MANIFEST => ['lib', 'bin'],
             'include_Perl-Dist-APPerl' => 1,
             perl_repo_files => {},
             zip_extra_files => {},
         },
-        'v5.36.0-full-v0.1.0-vista' => {
-            desc => 'Full perl v5.36.0, but with non-standard Cosmopolitan Libc that still supports vista',
-            base => 'v5.36.0-full-v0.1.0',
-            cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
-            dest => 'perl-vista.com',
-        },
-        'v5.36.0-small-v0.1.0' => {
-            desc => 'small perl v5.36.0 built with Cosmopolitan Libc 2.2',
-            base => 'v5.36.0-full-v0.1.0',
+        'v5.36.0-small-v0.1.0-vista' => {
+            desc => 'small perl v5.36.0, but with non-standard Cosmopolitan Libc that still supports vista',
+            base => 'v5.36.0-full-v0.1.0-vista',
             perl_onlyextensions => [qw(Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
-            perl_extra_flags => ['-Doptimize=-Os', '-de'],
+            MANIFEST => \@smallmanifest,
+            'include_Perl-Dist-APPerl' => 0,
+            dest => 'perl-small-vista.com',
+        },
+        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
+        'full' => {
+            desc => 'moving target: full',
+            perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
+            perl_extra_flags => ['-Doptimize=-Os', '-de', '-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo'],
+            MANIFEST => ['lib', 'bin'],
+            'include_Perl-Dist-APPerl' => 1,
+            perl_repo_files => {},
+            zip_extra_files => {},
+            cosmo3 => 1,
+            dest => 'perl.com',
+            perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.36.3.tar.gz',
+            patches => ['__sharedir__/5.36-cosmo3.patch', '__sharedir__/5.36-cosmo-apperl.patch'],
+            install_modules => ['File-ShareDir-1.118.tar.gz'],
+        },
+        'small' => {
+            desc => 'moving target: small',
+            base => 'full',
+            perl_onlyextensions => [qw(Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
             MANIFEST => \@smallmanifest,
             'include_Perl-Dist-APPerl' => 0,
             dest => 'perl-small.com',
+            install_modules => [],
         },
-        'v5.36.0-small-v0.1.0-vista' => {
-            desc => 'small perl v5.36.0, but with non-standard Cosmopolitan Libc that still supports vista',
-            base => 'v5.36.0-small-v0.1.0',
-            cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
-            dest => 'perl-small-vista.com',
-        },
-        'full' => { desc => 'moving target: full', base => 'v5.36.0-full-v0.1.0', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo'], cosmo3 => 1, perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.36.3.tar.gz', patches => ['../Perl-Dist-APPerl/5.36-cosmo.patch', '../Perl-Dist-APPerl/5.36-cosmo-apperl.patch']},
-        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'small' => { desc => 'moving target: small', base => 'v5.36.0-small-v0.1.0', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'eb69a42863ef602a951249b801ceed5f74cbb11c', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         # development configs
-        'dbg' => { base => 'full', perl_extra_flags => ['-Doptimize=-g3 -gdwarf-4', '-de'], cosmo_mode => 'dbg', cosmo_id => '52f1db7220935cfcf2c8e583678f5ccc4b5bbacd'},
+        'dbg' => { base => 'full', perl_extra_flags => ['-Doptimize=-g3 -gdwarf-4', '-de']},
         dontuse_threads => {
             desc => "not recommended, threaded build is buggy",
             base => 'full',
@@ -709,26 +730,14 @@ my %defconfig = (
         perl_cosmo_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'full',
-            perl_id => 'cosmo',
-            patches => ['../Perl-Dist-APPerl/share/5.36-cosmo.patch']
-        },
-        perl_cosmo3_dev => {
-            desc => "For developing cosmo platform perl without apperl additions",
-            base => 'full',
             perl_id => 'v5.36.3',
             perl_url => undef,
-            patches => ['../Perl-Dist-APPerl/share/5.36-cosmo3.patch'],
-            install_modules => ['File-ShareDir-1.118.tar.gz']
-        },
-        perl_cosmo_dev_on_vista => {
-            desc => "For developing cosmo platform perl without apperl additions on vista",
-            base => "perl_cosmo_dev",
-            cosmo_id => '0740e68ea0e801168a5e354be5ad237a4795549a',
+            patches => ['__sharedir__/5.36-cosmo3.patch'],
         },
         perl_apperl_dev => {
             desc => "For developing apperl",
-            base => 'full',
-            perl_id => 'cosmo-apperl'
+            base => 'perl_cosmo3_dev',
+            '+patches' => ['__sharedir__/5.36-cosmo-apperl.patch'],
         }
     }
 );
@@ -798,7 +807,7 @@ sub NewConfig {
 }
 
 sub InstallBuildDeps {
-    my ($perlrepo, $cosmorepo) = @_;
+    my ($perlrepo, $cosmorepo, $cosmocc) = @_;
     my $SiteConfig = _load_json(SITE_CONFIG_FILE);
     # if a repo is not set, set one up by default
     if((!$SiteConfig || !exists $SiteConfig->{perl_repo}) && (!$perlrepo)) {
@@ -811,13 +820,25 @@ sub InstallBuildDeps {
         _setup_repo( $cosmorepo, _load_apperl_configs()->{cosmo_remotes});
         print "apperlm install-build-deps: setup cosmo repo\n";
     }
+    if((!$SiteConfig || !exists $SiteConfig->{cosmocc}) && (!$cosmocc)) {
+        $cosmocc = SITE_REPO_DIR."/cosmocc";
+        print "mkdir -p $cosmocc\n";
+        make_path($cosmocc);
+        print "cd $cosmocc\n";
+        chdir($cosmocc) or die "Failed to chdir $cosmocc";
+        _command_or_die('wget', 'https://cosmo.zip/pub/cosmocc/cosmocc.zip');
+        _command_or_die('unzip', 'cosmocc.zip');
+        print "apperlm install-build-deps: setup cosmocc\n";
+    }
 
     # (re)write site config
     $perlrepo //= $SiteConfig->{perl_repo};
     $cosmorepo //= $SiteConfig->{cosmo_repo};
+    $cosmocc //= $SiteConfig->{cosmocc};
     my %siteconfig = (
         perl_repo => abs_path($perlrepo),
-        cosmo_repo => abs_path($cosmorepo)
+        cosmo_repo => abs_path($cosmorepo),
+        cosmocc => abs_path($cosmocc),
     );
     $SiteConfig = \%siteconfig;
     make_path(SITE_CONFIG_DIR);
@@ -857,7 +878,7 @@ sub Status {
     }
     my @stable = grep( /v\d+\.\d+\.\d+(\-vista)?$/, @configlist);
     my @rolling = ('full', 'full-vista', 'small', 'small-vista');
-    my @internal = ('dontuse_threads', 'perl_cosmo_dev', 'perl_cosmo_dev_on_vista', 'perl_apperl_dev');
+    my @internal = ('dontuse_threads', 'perl_cosmo_dev', 'perl_apperl_dev', 'dbg');
     my @categories = (
         ['PROJECT', \@projectitems],
         ['STABLE', \@stable],
@@ -903,6 +924,8 @@ sub Set {
             print "cd ".$SiteConfig->{cosmo_repo}."\n";
             chdir($SiteConfig->{cosmo_repo}) or die "Failed to enter cosmo repo";
             _command_or_die('git', 'checkout', $itemconfig->{cosmo_id});
+        } else {
+            -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory';
         }
 
         if (! $itemconfig->{perl_url}) {
@@ -934,7 +957,8 @@ sub Set {
             chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
         }
         foreach my $patch (@{$itemconfig->{patches}}) {
-            _command_or_die('git', 'apply', $patch);
+            my $realpatch = _fix_bases($patch, {__sharedir__ => SHARE_DIR});
+            _command_or_die('git', 'apply', $realpatch);
         }
 
         print "cd ".START_WD."\n";
@@ -990,12 +1014,15 @@ sub Configure {
         );
         $ENV{COSMO_MODE} = $itemconfig->{cosmo_mode};
         $ENV{COSMO_APE_LOADER} = $itemconfig->{cosmo_ape_loader};
+        $ENV{COSMO_REPO} = $SiteConfig->{cosmo_repo};
+    } else {
+       -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory';
+       $ENV{COSMOCC} = $SiteConfig->{cosmocc};
     }
 
     # Finally Configure perl
     print "cd ".$SiteConfig->{perl_repo}."\n";
     chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
-    $ENV{COSMO_REPO} = $SiteConfig->{cosmo_repo};
     my @onlyextensions = ();
     push @onlyextensions, ("-Donlyextensions= ".join(' ', sort @{$itemconfig->{perl_onlyextensions}}).' ') if(exists $itemconfig->{perl_onlyextensions});
     _command_or_die('sh', 'Configure', @{$itemconfig->{perl_flags}}, @onlyextensions, @{$itemconfig->{perl_extra_flags}}, @_);
@@ -1038,7 +1065,11 @@ sub Build {
     # build cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
         my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot build without build deps (run apperlm install-build-deps)";
-        -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
+        if (! $itemconfig->{cosmo3}) {
+            -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
+        } else {
+            -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} .' is not directory';
+        }
         -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
         _install_perl_repo_files($itemconfig, $SiteConfig);
         print "cd ".$SiteConfig->{perl_repo}."\n";
@@ -1346,22 +1377,25 @@ END_USAGE
 apperlm install-build-deps [-h|--help] [-c|--cosmo <path>] [-p|--perl <path>]
   -c|--cosmo <path> set path to cosmopolitan repo (skips git initialization)
   -p|--perl  <path> set path to perl repo (skips git initialization)
+  -C|--cosmocc <path> set path to cosmocc
   -h|--help     Show this message
 Install build dependencies for APPerl, use -c or -p to skip initializing
 those repos by providing a path to it.
 END_USAGE
         my $cosmo;
         my $perl;
+        my $cosmocc;
         my $help;
         GetOptionsFromArray(\@_, "cosmo|c=s" => \$cosmo,
                    "perl|p=s" => \$perl,
+                   "cosmocc|C=s" => \$cosmocc,
                    "help|h" => \$help,
         ) or die($usage);
         if($help) {
             print $usage;
             exit 0;
         }
-        Perl::Dist::APPerl::InstallBuildDeps($perl, $cosmo);
+        Perl::Dist::APPerl::InstallBuildDeps($perl, $cosmo, $cosmocc);
     }
     elsif($command eq 'new-config') {
         my $usage = <<'END_USAGE';
@@ -1413,14 +1447,14 @@ sub _setup_repo {
     my ($repopath, $remotes) = @_;
     print "mkdir -p $repopath\n";
     make_path($repopath);
-    print "cd $repopath\n";
-    chdir($repopath) or die "Failed to chdir $repopath";
-    _command_or_die('git', 'init');
-    _command_or_die('git', 'checkout', '-b', 'placeholder_dont_use');
-    foreach my $remote (keys %{$remotes}) {
-        _command_or_die('git', 'remote', 'add', $remote, $remotes->{$remote});
-        _command_or_die('git', 'fetch', $remote);
-    }
+    #print "cd $repopath\n";
+    #chdir($repopath) or die "Failed to chdir $repopath";
+    #_command_or_die('git', 'init');
+    #_command_or_die('git', 'checkout', '-b', 'placeholder_dont_use');
+    #foreach my $remote (keys %{$remotes}) {
+    #    _command_or_die('git', 'remote', 'add', $remote, $remotes->{$remote});
+    #    _command_or_die('git', 'fetch', $remote);
+    #}
 }
 
 sub _write_json {
@@ -1507,22 +1541,18 @@ sub _load_apperl_config {
         defined($thispath) or die(__FILE__.'issues?');
         push @{$itemconfig{zip_extra_files}{"__perllib__/Perl/Dist"}}, $thispath;
         my $apperlm = $0;
-        my $patchdir;
         if(basename($0) ne 'apperlm') {
             $apperlm = dirname($thispath)."/../../../script/apperlm";
         }
-        $patchdir = dirname($thispath)."/../../../share";
         $apperlm = abs_path($apperlm);
         defined($apperlm) or die "error getting path to apperlm";
         my @additionalfiles = ($apperlm);
         -e $_ or die("$_ $!") foreach @additionalfiles;
         push @{$itemconfig{zip_extra_files}{bin}}, @additionalfiles;
-        $patchdir = abs_path($patchdir);
-        defined($patchdir) or die "error getting path to patchdir";
-        opendir(my $dh, $patchdir) or die "error opening patch dir";
+        opendir(my $dh, SHARE_DIR) or die "error opening patch dir";
         while(my $file = readdir $dh) {
             next if(($file eq '.') || ($file eq '..'));
-            push @{$itemconfig{zip_extra_files}{"__perllib__/auto/share/dist/Perl-Dist-APPerl"}}, "$patchdir/$file";
+            push @{$itemconfig{zip_extra_files}{"__perllib__/auto/share/dist/Perl-Dist-APPerl"}}, SHARE_DIR."/$file";
         }
     }
 

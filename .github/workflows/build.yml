@@ -18,6 +18,8 @@ jobs:
       uses: shogo82148/actions-setup-perl@v1
       with:
         perl-version: '5.36'
+        install-modules-with: cpanm
+        install-modules: File::ShareDir::Install
     - name: Test in-tree
       run: |
         cd Perl-Dist-APPerl
@@ -81,6 +83,7 @@ jobs:
         CF_EMAIL: ${{ secrets.CF_EMAIL }}
       run: |
         ls -la
+        wget https://cpan.metacpan.org/authors/id/R/RE/REHSACK/File-ShareDir-1.118.tar.gz
         apperlm install-build-deps -p perl5 -c cosmopolitan
         apperlm init --name ${{ matrix.config }}
         apperlm list
