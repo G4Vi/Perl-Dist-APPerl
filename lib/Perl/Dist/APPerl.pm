@@ -825,10 +825,12 @@ sub InstallBuildDeps {
         print "mkdir -p $cosmocc\n";
         make_path($cosmocc);
         print "cd $cosmocc\n";
+        my $before = getcwd();
         chdir($cosmocc) or die "Failed to chdir $cosmocc";
         _command_or_die('wget', 'https://cosmo.zip/pub/cosmocc/cosmocc.zip');
         _command_or_die('unzip', 'cosmocc.zip');
         print "apperlm install-build-deps: setup cosmocc\n";
+        chdir($before) or die "error resetting directory";
     }
 
     # (re)write site config
