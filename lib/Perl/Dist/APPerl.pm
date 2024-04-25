@@ -41,7 +41,7 @@ use constant {
         defined($thispath) or die(__FILE__.'issues?');
         my $sharedir = dirname($thispath)."/../../../share";
         if (! -d $sharedir) {
-            require 'File::ShareDir';
+            eval "use File::ShareDir; 1" or die "Failed to load File::ShareDir";
             $sharedir = File::ShareDir::dist_dir('Perl-Dist-APPerl');
         }
         $sharedir = abs_path($sharedir) // die "Failed to load sharedir";
