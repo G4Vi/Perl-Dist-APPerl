@@ -1117,6 +1117,11 @@ sub Build {
         my @toremove = ("$TEMPDIR$proxyConfig{installbin}/perl", "$TEMPDIR$proxyConfig{installbin}/perl$proxyConfig{version}");
         print 'rm '.join(' ', @toremove)."\n";
         unlink(@toremove) == scalar(@toremove) or die "Failed to unlink some files";
+        # HACK install Devel::PPort lib as this doesn't get done for some reason
+        if (-f "$TEMPDIR$proxyConfig{installarchlib}/Devel/PPPort.pm") {
+            _copy_recursive("lib/auto/Devel/PPPort", "$TEMPDIR$proxyConfig{installarchlib}/auto/Devel");
+            unlink("$TEMPDIR$proxyConfig{installarchlib}/auto/Devel/PPPort/.exists");
+        }
     }
     else {
         make_path($ZIP_ROOT);
@@ -1236,7 +1241,16 @@ sub Build {
                 # build a new perl binary, convert to APE, and repack zip
                 #_command_or_die('make', 'perl.com.dbg');
                 #_command_or_die(dirname($proxyConfig{cc})."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.com.dbg', 'perl.com');
-                _command_or_die('make', 'perl.com');
+                _command_or_die('make', 'Makefile.aperl');
+                # HACK, add in DynaLoader as it's missing
+                open(my $makefile, '<', 'Makefile.aperl') or die "failed to open Makefile.aperl";
+                my @newlines = map { $_ =~ s/writemain\((grep[^\)]+\))/writemain((DynaLoader, $1)/; $_} <$makefile>;
+                close($makefile);
+                open(my $newmakefile, '>', 'Makefile.aperl') or die "failed to open Makefile.aperl for writing";
+                print $newmakefile $_ foreach @newlines;
+                close($newmakefile);
+                # finally rebuild perl
+                _command_or_die('make', '-f', 'Makefile.aperl', 'perl.com');
                 $PERL_APE = abs_path('./perl.com');
             }
             else {
