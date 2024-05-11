@@ -1077,9 +1077,9 @@ sub Build {
         print "cd ".$SiteConfig->{perl_repo}."\n";
         chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
         # build using cosmo's zlib to avoid name clashes or including two versions of zlib
-        local $ENV{'BUILD_ZLIB'} = 'False';
-        local $ENV{'ZLIB_INCLUDE'} = $SiteConfig->{cosmocc} . '/include/third_party/zlib';
-        local $ENV{'ZLIB_LIB'} = '';
+        local $ENV{'BUILD_ZLIB'} = 'False' if $itemconfig->{cosmo3};
+        local $ENV{'ZLIB_INCLUDE'} = $SiteConfig->{cosmocc} . '/include/third_party/zlib' if $itemconfig->{cosmo3};
+        local $ENV{'ZLIB_LIB'} = '' if $itemconfig->{cosmo3};
         _command_or_die('make');
         $PERL_APE = "$SiteConfig->{perl_repo}/perl.com";
         @perl_config_cmd = ('./perl', '-Ilib');
