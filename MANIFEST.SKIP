@@ -74,3 +74,6 @@ apperl-project.json
 ^tests_temp
 ^.apperl
 ^Perl-Dist-APPerl-v
+
+#Avoid cpanfile
+cpanfile

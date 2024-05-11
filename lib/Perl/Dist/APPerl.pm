@@ -41,6 +41,9 @@ use constant {
         defined($thispath) or die(__FILE__.'issues?');
         my $sharedir = dirname($thispath)."/../../../share";
         if (! -d $sharedir) {
+            $sharedir = '/zip/lib/perl5/auto/share/dist/Perl-Dist-APPerl';
+        }
+        if (! -d $sharedir) {
             eval "use File::ShareDir; 1" or die "Failed to load File::ShareDir";
             $sharedir = File::ShareDir::dist_dir('Perl-Dist-APPerl');
         }
@@ -708,7 +711,7 @@ my %defconfig = (
             dest => 'perl.com',
             perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.36.3.tar.gz',
             patches => ['__sharedir__/5.36-cosmo3.patch', '__sharedir__/5.36-cosmo-apperl.patch'],
-            install_modules => ['File-ShareDir-1.118.tar.gz'],
+            install_modules => [],
         },
         'small' => {
             desc => 'moving target: small',
