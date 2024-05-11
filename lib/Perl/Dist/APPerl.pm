@@ -744,7 +744,7 @@ my %defconfig = (
         }
     }
 );
-$defconfig{defaultconfig} = $defconfig{apperl_configs}{full}{base};
+$defconfig{defaultconfig} = 'full';
 
     my $projectconfig = _load_json(PROJECT_FILE);
     if($projectconfig) {
