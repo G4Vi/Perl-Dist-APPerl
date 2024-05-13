@@ -722,14 +722,14 @@ my %defconfig = (
             dest => 'perl-small.com',
             install_modules => [],
         },
-        # development configs
-        'dbg' => { base => 'full', perl_extra_flags => ['-Doptimize=-g3 -gdwarf-4', '-de']},
-        dontuse_threads => {
-            desc => "not recommended, threaded build is buggy",
-            base => 'full',
-            perl_extra_flags => ['-Doptimize=-Os', '-Dusethreads', '-de'],
-            perl_id => 'cosmo-apperl'
+        'nobuild' => {
+            desc => 'base nobuild config',
+            dest => 'perl-nobuild.com',
+            MANIFEST => ['lib', 'bin'],
+            zip_extra_files => {},
+            nobuild_perl_bin => ['src/perl.com', $^X],
         },
+        # development configs
         perl_cosmo_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'full',
@@ -853,11 +853,22 @@ sub InstallBuildDeps {
 
 sub _remove_arr_items_from_arr {
     my ($src, $toremove) = @_;
-    foreach my $item (@{$toremove}) {
-        my $index = 0;
-        $index++ until $src->[$index] eq $item;
-        splice(@$src, $index, 1);
+    my @remove = @{$toremove};
+    foreach my $srcindex (reverse 0..$#{$src}) {
+        for my $removeindex (reverse 0..$#remove) {
+            if ($src->[$srcindex] eq $remove[$removeindex]) {
+                splice(@$src, $srcindex, 1);
+                return if (scalar(@remove) == 1);
+                splice(@remove, $removeindex, 1);
+                last;
+            }
+        }
     }
+    #foreach my $item (@{$toremove}) {
+    #    my $index = 0;
+    #    $index++ until $src->[$index] eq $item;
+    #    splice(@$src, $index, 1);
+    #}
 }
 
 sub Status {
@@ -880,14 +891,24 @@ sub Status {
     my $projectconfig = _load_json(PROJECT_FILE);
     if($projectconfig && exists $projectconfig->{apperl_configs}) {
         @projectitems = sort (keys %{$projectconfig->{apperl_configs}});
+        _remove_arr_items_from_arr(\@configlist, \@projectitems);
     }
-    my @stable = grep( /v\d+\.\d+\.\d+(\-vista)?$/, @configlist);
-    my @rolling = ('full', 'full-vista', 'small', 'small-vista');
-    my @internal = ('dontuse_threads', 'perl_cosmo_dev', 'perl_apperl_dev', 'dbg');
+    my @nobuild = grep(/nobuild/, @configlist);
+    _remove_arr_items_from_arr(\@configlist, \@nobuild);
+    my @stable = grep( /v\d+\.\d+\.\d+$/, @configlist);
+    _remove_arr_items_from_arr(\@configlist, \@stable);
+    my @rolling = grep(/^(full|small)$/, @configlist);
+    _remove_arr_items_from_arr(\@configlist, \@rolling);
+    my @deprecated = grep(/\-vista$/, @configlist);
+    _remove_arr_items_from_arr(\@configlist, \@deprecated);
+    my @internal = grep(/^(dontuse_threads|perl_cosmo_dev|perl_apperl_dev|dbg)$/, @configlist);
+    _remove_arr_items_from_arr(\@configlist, \@internal);
     my @categories = (
         ['PROJECT', \@projectitems],
         ['STABLE', \@stable],
         ['ROLLING', \@rolling],
+        ['NOBUILD', \@nobuild],
+        ['DEPRECATED', \@deprecated],
         ['UNSTABLE/INTERNAL', \@internal],
         ['UNKNOWN', \@configlist]
     );
@@ -895,7 +916,6 @@ sub Status {
         foreach my $item (@{$cat->[1]}) {
             print (sprintf "%s %-30.30s | %-17.17s |%s\n", $CurAPPerlName && ($item eq $CurAPPerlName) ? '*' : ' ', $item, $cat->[0], ($Configs->{apperl_configs}{$item}{desc} // ''));
         }
-        _remove_arr_items_from_arr(\@configlist, \@{$cat->[1]});
     }
 }
 
