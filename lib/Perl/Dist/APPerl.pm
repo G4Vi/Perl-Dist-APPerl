@@ -669,7 +669,7 @@ my %defconfig = (
     },
     apperl_configs => {
         'nobuild-v0.1.0' => {
-            desc => 'base nobuild config',
+            desc => 'use nobuild as base instead of this',
             dest => 'perl-nobuild.com',
             MANIFEST => ['lib', 'bin'],
             zip_extra_files => {},
@@ -893,21 +893,22 @@ sub Status {
         @projectitems = sort (keys %{$projectconfig->{apperl_configs}});
         _remove_arr_items_from_arr(\@configlist, \@projectitems);
     }
-    my @nobuild = grep(/nobuild/, @configlist);
-    _remove_arr_items_from_arr(\@configlist, \@nobuild);
-    my @stable = grep( /v\d+\.\d+\.\d+$/, @configlist);
-    _remove_arr_items_from_arr(\@configlist, \@stable);
-    my @rolling = grep(/^(full|small)$/, @configlist);
+    my @rolling = grep(/^(full|small|nobuild)$/, @configlist);
+    {
+        my %preferences = ( full => 0, small => 1, nobuild => 2);
+        @rolling = sort {$preferences{$a} <=> $preferences{$b}} @rolling;
+    }
     _remove_arr_items_from_arr(\@configlist, \@rolling);
-    my @deprecated = grep(/\-vista$/, @configlist);
+    my @deprecated = grep(/(\-vista|v0\.1\.0)$/, @configlist);
     _remove_arr_items_from_arr(\@configlist, \@deprecated);
     my @internal = grep(/^(dontuse_threads|perl_cosmo_dev|perl_apperl_dev|dbg)$/, @configlist);
     _remove_arr_items_from_arr(\@configlist, \@internal);
+    my @stable = grep( /v\d+\.\d+\.\d+$/, @configlist);
+    _remove_arr_items_from_arr(\@configlist, \@stable);
     my @categories = (
         ['PROJECT', \@projectitems],
         ['STABLE', \@stable],
         ['ROLLING', \@rolling],
-        ['NOBUILD', \@nobuild],
         ['DEPRECATED', \@deprecated],
         ['UNSTABLE/INTERNAL', \@internal],
         ['UNKNOWN', \@configlist]
@@ -940,6 +941,8 @@ sub Set {
     else {
         $UserProjectConfig = {};
     }
+    $UserProjectConfig->{apperl_output} //= PROJECT_TMP_DIR."/o";
+    $UserProjectConfig->{current_apperl} = $cfgname;
     my $itemconfig = _load_apperl_config(_load_apperl_configs()->{apperl_configs}, $cfgname);
     print Dumper($itemconfig);
     if(! exists $itemconfig->{nobuild_perl_bin}) {
@@ -952,7 +955,7 @@ sub Set {
         } else {
             -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory';
         }
-
+        #$UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= $SiteConfig->{perl_repo} // "$UserProjectConfig->{apperl_output}/$cfgname/tmp/perl5";
         if (! $itemconfig->{perl_url}) {
             -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
             print "cd ".$SiteConfig->{perl_repo}."\n";
@@ -1009,8 +1012,6 @@ sub Set {
         $UserProjectConfig->{nobuild_perl_bin} = $validperl;
         print "Set UserProjectConfig to nobuild_perl-bin to $validperl\n";
     }
-    $UserProjectConfig->{apperl_output} //= PROJECT_TMP_DIR."/o";
-    $UserProjectConfig->{current_apperl} = $cfgname;
     _write_user_project_config($UserProjectConfig);
     print "$0: Successfully switched to $cfgname\n";
 }
