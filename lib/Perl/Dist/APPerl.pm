@@ -922,12 +922,11 @@ sub Status {
 
 # unfortunately this needs to be called in several places to try to keep them in sync
 # as perl's make trips up when trying to build an symlinked extension
-sub _install_perl_repo_files {
-    my ($itemconfig, $SiteConfig) = @_;
+sub _install_perl_src_files {
+    my ($itemconfig, $perl_build_dir) = @_;
     foreach my $dest (keys %{$itemconfig->{perl_repo_files}}) {
         foreach my $file (@{$itemconfig->{perl_repo_files}{$dest}}) {
-            #_command_or_die('ln', '-sf', START_WD."/$file", "$SiteConfig->{perl_repo}/$dest");
-            _copy_recursive(START_WD."/$file", "$SiteConfig->{perl_repo}/$dest");
+            _copy_recursive(START_WD."/$file", "$perl_build_dir/$dest");
         }
     }
 }
@@ -955,11 +954,13 @@ sub Set {
         } else {
             -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory';
         }
-        #$UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= $SiteConfig->{perl_repo} // "$UserProjectConfig->{apperl_output}/$cfgname/tmp/perl5";
+        $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= $SiteConfig->{perl_repo} if !$itemconfig->{perl_url};
+        $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= "$UserProjectConfig->{apperl_output}/$cfgname/tmp/perl5";
+        my $perl_build_dir = $UserProjectConfig->{configs}{$cfgname}{perl_build_dir};
         if (! $itemconfig->{perl_url}) {
-            -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
-            print "cd ".$SiteConfig->{perl_repo}."\n";
-            chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
+            -d $perl_build_dir or die $perl_build_dir .' is not directory';
+            print "cd ".$perl_build_dir."\n";
+            chdir($perl_build_dir) or die "Failed to enter perl repo";
             print "make veryclean\n";
             system("make", "veryclean");
             foreach my $todelete ('miniperl.com', 'perl.com', 'miniperl.elf', 'miniperl.com.dbg', 'perl.elf', 'perl.com.dbg') {
@@ -971,27 +972,27 @@ sub Set {
             $itemconfig->{patches} //= [];
         } else {
             my $tarball_name = basename($itemconfig->{perl_url});
-            _command_or_die('mkdir', '-p', $SiteConfig->{perl_repo});
-            my $download_dir = $SiteConfig->{perl_repo} . '/..';
+            my $download_dir = $UserProjectConfig->{apperl_output};
             chdir($download_dir) or die "Failed to enter download dir";
             if (! -f $tarball_name) {
                 _command_or_die('wget', $itemconfig->{perl_url});
             }
             _command_or_die('tar', '-xf', $tarball_name);
-            _command_or_die("rm", '-rf', $SiteConfig->{perl_repo});
+            _command_or_die("rm", '-rf', $perl_build_dir);
             my ($version) = $tarball_name =~ /^v(\d+\.\d+\.\d+)\.tar/;
             my $tomove = "perl5-$version";
-            _command_or_die('mv', $tomove, 'perl5');
-            chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
+            _command_or_die('mv', $tomove, $perl_build_dir);
+            chdir($perl_build_dir) or die "Failed to enter perl repo";
         }
         foreach my $patch (@{$itemconfig->{patches}}) {
             my $realpatch = _fix_bases($patch, {__sharedir__ => SHARE_DIR});
-            _command_or_die('git', 'apply', $realpatch);
+            my $cmd = "patch -p1 < $realpatch"; # can't git apply to ignored files within a git repository :(
+            print "$cmd\n";
+            system($cmd) == 0 or die "failed to apply patch $realpatch";
         }
-
         print "cd ".START_WD."\n";
         chdir(START_WD) or die "Failed to restore cwd";
-        _install_perl_repo_files($itemconfig, $SiteConfig);
+        _install_perl_src_files($itemconfig, $perl_build_dir);
     }
     else {
         my $validperl;
@@ -1021,10 +1022,11 @@ sub Configure {
     my $UserProjectConfig = _load_valid_user_project_config_with_default($Configs) or die "cannot Configure without valid UserProjectConfig";
     my $CurAPPerlName = $UserProjectConfig->{current_apperl};
     ! exists $UserProjectConfig->{nobuild_perl_bin} or die "nobuild perl cannot be configured";
-    my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot Configure without build deps (run apperlm install-build-deps)";
-    -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
+    my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
+    $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
     my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
-    _install_perl_repo_files($itemconfig, $SiteConfig);
+    my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot Configure without build deps (run apperlm install-build-deps)";
+    _install_perl_src_files($itemconfig, $perl_build_dir);
 
     if(! $itemconfig->{cosmo3}) {
         -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
@@ -1047,8 +1049,8 @@ sub Configure {
     }
 
     # Finally Configure perl
-    print "cd ".$SiteConfig->{perl_repo}."\n";
-    chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
+    print "cd $perl_build_dir\n";
+    chdir($perl_build_dir) or die "Failed to enter perl repo";
     my @onlyextensions = ();
     push @onlyextensions, ("-Donlyextensions= ".join(' ', sort @{$itemconfig->{perl_onlyextensions}}).' ') if(exists $itemconfig->{perl_onlyextensions});
     _command_or_die('sh', 'Configure', @{$itemconfig->{perl_flags}}, @onlyextensions, @{$itemconfig->{perl_extra_flags}}, @_);
@@ -1096,16 +1098,17 @@ sub Build {
         } else {
             -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} .' is not directory';
         }
-        -d $SiteConfig->{perl_repo} or die $SiteConfig->{perl_repo} .' is not directory';
-        _install_perl_repo_files($itemconfig, $SiteConfig);
-        print "cd ".$SiteConfig->{perl_repo}."\n";
-        chdir($SiteConfig->{perl_repo}) or die "Failed to enter perl repo";
+        my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
+        $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
+        _install_perl_src_files($itemconfig, $perl_build_dir);
+        print "cd $perl_build_dir\n";
+        chdir($perl_build_dir) or die "Failed to enter perl repo";
         # build using cosmo's zlib to avoid name clashes or including two versions of zlib
         local $ENV{'BUILD_ZLIB'} = 'False' if $itemconfig->{cosmo3};
         local $ENV{'ZLIB_INCLUDE'} = $SiteConfig->{cosmocc} . '/include/third_party/zlib' if $itemconfig->{cosmo3};
         local $ENV{'ZLIB_LIB'} = '' if $itemconfig->{cosmo3};
         _command_or_die('make');
-        $PERL_APE = "$SiteConfig->{perl_repo}/perl.com";
+        $PERL_APE = "$perl_build_dir/perl.com";
         @perl_config_cmd = ('./perl', '-Ilib');
     }
     else {
@@ -1115,7 +1118,7 @@ sub Build {
 
     # prepare for install and pack
     -f $PERL_APE or die "apperlm build: perl ape not found";
-    my $OUTPUTDIR = "$UserProjectConfig->{apperl_output}/$CurAPPerlName";
+    my $OUTPUTDIR = "$UserProjectConfig->{apperl_output}/$CurAPPerlName/o";
     if(-d $OUTPUTDIR) {
         print "rm -rf $OUTPUTDIR\n";
         remove_tree($OUTPUTDIR);
