@@ -973,22 +973,28 @@ sub Set {
         } else {
             my $tarball_name = basename($itemconfig->{perl_url});
             my $download_dir = $UserProjectConfig->{apperl_output};
+            print "mkdir -p $download_dir\n";
+            make_path($download_dir);
             chdir($download_dir) or die "Failed to enter download dir";
             if (! -f $tarball_name) {
                 _command_or_die('wget', $itemconfig->{perl_url});
             }
             _command_or_die('tar', '-xf', $tarball_name);
-            _command_or_die("rm", '-rf', $perl_build_dir);
+            print "rm -rf $perl_build_dir\n";
+            remove_tree($perl_build_dir);
             my ($version) = $tarball_name =~ /^v(\d+\.\d+\.\d+)\.tar/;
+            my $perl_build_dir_dir = dirname($perl_build_dir);
+            print "mkdir -p $perl_build_dir_dir\n";
+            make_path($perl_build_dir_dir);
             my $tomove = "perl5-$version";
-            _command_or_die('mv', $tomove, $perl_build_dir);
-            chdir($perl_build_dir) or die "Failed to enter perl repo";
+            print "mv $tomove $perl_build_dir\n";
+            move($tomove, $perl_build_dir) or die "Failed to move perl src";
+            chdir($perl_build_dir) or die "Failed to enter perl build_dir";
         }
         foreach my $patch (@{$itemconfig->{patches}}) {
             my $realpatch = _fix_bases($patch, {__sharedir__ => SHARE_DIR});
-            my $cmd = "patch -p1 < $realpatch"; # can't git apply to ignored files within a git repository :(
-            print "$cmd\n";
-            system($cmd) == 0 or die "failed to apply patch $realpatch";
+            # can't `git apply` to ignored files within a git repository :(
+            _cmdinputfile_or_die('patch', '-p1', $realpatch);
         }
         print "cd ".START_WD."\n";
         chdir(START_WD) or die "Failed to restore cwd";
@@ -1478,7 +1484,7 @@ END_USAGE
 
 sub _command_or_die {
     print join(' ', @_), "\n";
-    system(@_) == 0 or die;
+    (system { $_[0] } @_) == 0 or die;
 }
 
 sub _cmdoutput_or_die {
@@ -1488,6 +1494,19 @@ sub _cmdoutput_or_die {
     waitpid($kid, 0);
     (($? >> 8) == 0) or die("child failed");
     return $output;
+}
+
+sub _cmdinputfile_or_die {
+    my $input_file = pop @_;
+    print join(' ', @_), " < $input_file\n";
+    my $kid = fork() // die "forking failed";
+    if ($kid == 0) {
+        open(STDIN, '<', $input_file) or die "Can't dup to STDIN";
+        exec { $_[0] } @_;
+        die "exec failed"
+    }
+    waitpid($kid, 0);
+    (($? >> 8) == 0) or die("child failed");
 }
 
 sub _setup_repo {
