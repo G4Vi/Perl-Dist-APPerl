@@ -65,6 +65,7 @@ my @smallmanifest = (
     '__perlarchlib__/Cwd.pm',
     '__perlarchlib__/DynaLoader.pm',
     '__perlarchlib__/Errno.pm',
+    '__perlarchlib__/ErrnoRuntime.pm',
     '__perllib__/Exporter.pm',
     '__perllib__/Exporter/Heavy.pm',
     '__perlarchlib__/Fcntl.pm',
@@ -716,7 +717,7 @@ my %defconfig = (
         'small' => {
             desc => 'moving target: small',
             base => 'full',
-            perl_onlyextensions => [qw(Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
+            perl_onlyextensions => [qw(Cwd ErrnoRuntime Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
             MANIFEST => \@smallmanifest,
             'include_Perl-Dist-APPerl' => 0,
             dest => 'perl-small.com',
@@ -807,6 +808,26 @@ sub NewConfig {
     $projectconfig->{apperl_configs}{$name} = _build_def_config($base);
     print "rewriting project\n";
     _write_json(PROJECT_FILE, $projectconfig);
+}
+
+sub _install_cosmocc {
+    my ($SiteConfig, $version) = @_;
+    $version //= '3.3.6';
+    my $cosmocc = SITE_REPO_DIR."/cosmocc";
+    print "rm -rf $cosmocc\n";
+    remove_tree($cosmocc);
+    print "mkdir -p $cosmocc\n";
+    make_path($cosmocc);
+    print "cd $cosmocc\n";
+    my $before = getcwd();
+    chdir($cosmocc) or die "Failed to chdir $cosmocc";
+    my $filename = "cosmocc-$version.zip";
+    _command_or_die('wget', "https://cosmo.zip/pub/cosmocc/$filename");
+    _command_or_die('unzip', $filename);
+    chdir($before) or die "error resetting directory";
+    $SiteConfig->{cosmocc} = $cosmocc;
+    make_path(SITE_CONFIG_DIR);
+    _write_json(SITE_CONFIG_FILE, $SiteConfig);
 }
 
 sub InstallBuildDeps {
@@ -945,13 +966,16 @@ sub Set {
     my $itemconfig = _load_apperl_config(_load_apperl_configs()->{apperl_configs}, $cfgname);
     print Dumper($itemconfig);
     if(! exists $itemconfig->{nobuild_perl_bin}) {
-        my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot set without build deps (run apperlm install-build-deps)";
+        my $SiteConfig = _load_json(SITE_CONFIG_FILE);
         if(! $itemconfig->{cosmo3}) {
+            $SiteConfig or die "cannot set without build deps (run apperlm install-build-deps)";
             -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
             print "cd ".$SiteConfig->{cosmo_repo}."\n";
             chdir($SiteConfig->{cosmo_repo}) or die "Failed to enter cosmo repo";
             _command_or_die('git', 'checkout', $itemconfig->{cosmo_id});
         } else {
+            $SiteConfig //= {};
+            exists $SiteConfig->{cosmocc} or _install_cosmocc($SiteConfig);
             -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory';
         }
         $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= $SiteConfig->{perl_repo} if !$itemconfig->{perl_url};
@@ -1031,10 +1055,10 @@ sub Configure {
     my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
     $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
     my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
-    my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot Configure without build deps (run apperlm install-build-deps)";
     _install_perl_src_files($itemconfig, $perl_build_dir);
-
+    my $SiteConfig = _load_json(SITE_CONFIG_FILE);
     if(! $itemconfig->{cosmo3}) {
+        $SiteConfig or die "cannot Configure without build deps (run apperlm install-build-deps)";
         -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
         # build toolchain
         _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j', 'toolchain', 'MODE=', 'ARCH=x86_64');
@@ -1050,8 +1074,10 @@ sub Configure {
         $ENV{COSMO_APE_LOADER} = $itemconfig->{cosmo_ape_loader};
         $ENV{COSMO_REPO} = $SiteConfig->{cosmo_repo};
     } else {
-       -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory';
-       $ENV{COSMOCC} = $SiteConfig->{cosmocc};
+        $SiteConfig //= {};
+        exists $SiteConfig->{cosmocc} or _install_cosmocc($SiteConfig);
+        -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory';
+        $ENV{COSMOCC} = $SiteConfig->{cosmocc};
     }
 
     # Finally Configure perl
