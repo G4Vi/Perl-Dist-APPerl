@@ -1328,7 +1328,7 @@ sub Build {
         foreach my $srcfile ('perl.com', 'perl.com.dbg') {
             my $destfile = $itemconfig->{dest};
             $destfile .= '.dbg' if ($srcfile =~ /dbg$/);
-            my @args = ("$UserProjectConfig->{apperl_output}/$CurAPPerlName/$srcfile", $destfile);
+            my @args = ("$UserProjectConfig->{apperl_output}/$CurAPPerlName/o/$srcfile", $destfile);
             -e $args[0] or next;
             print 'cp '.join(' ', @args)."\n";
             cp(@args) or die "copy failed: $!";
