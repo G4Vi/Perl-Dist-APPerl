@@ -830,45 +830,41 @@ sub _install_cosmocc {
     _write_json(SITE_CONFIG_FILE, $SiteConfig);
 }
 
+#sub _load_valid_site_config {
+#    my ($is_cosmo3) = @_;
+#    my $SiteConfig = _load_json(SITE_CONFIG_FILE);
+#    $SiteConfig || defined($is_cosmo3) or die "Failed to load SiteConfig";
+#    $SiteConfig //= {};
+#    defined $is_cosmo3 or return $SiteConfig;
+#    if ($is_cosmo3) {
+#
+#    }
+#}
+
 sub InstallBuildDeps {
-    my ($perlrepo, $cosmorepo, $cosmocc) = @_;
+    my ($perlrepo, $cosmorepo) = @_;
     my $SiteConfig = _load_json(SITE_CONFIG_FILE);
+    $SiteConfig //= {};
+
     # if a repo is not set, set one up by default
-    if((!$SiteConfig || !exists $SiteConfig->{perl_repo}) && (!$perlrepo)) {
+    if(!exists $SiteConfig->{perl_repo} && !$perlrepo) {
         $perlrepo = SITE_REPO_DIR."/perl5";
         _setup_repo($perlrepo, _load_apperl_configs()->{perl_remotes});
         print "apperlm install-build-deps: setup perl repo\n";
     }
-    if((!$SiteConfig || !exists $SiteConfig->{cosmo_repo}) && (!$cosmorepo)) {
+    if(!exists $SiteConfig->{cosmo_repo} && !$cosmorepo) {
         $cosmorepo = SITE_REPO_DIR."/cosmopolitan";
         _setup_repo( $cosmorepo, _load_apperl_configs()->{cosmo_remotes});
         print "apperlm install-build-deps: setup cosmo repo\n";
-    }
-    if((!$SiteConfig || !exists $SiteConfig->{cosmocc}) && (!$cosmocc)) {
-        $cosmocc = SITE_REPO_DIR."/cosmocc";
-        print "mkdir -p $cosmocc\n";
-        make_path($cosmocc);
-        print "cd $cosmocc\n";
-        my $before = getcwd();
-        chdir($cosmocc) or die "Failed to chdir $cosmocc";
-        _command_or_die('wget', 'https://cosmo.zip/pub/cosmocc/cosmocc.zip');
-        _command_or_die('unzip', 'cosmocc.zip');
-        print "apperlm install-build-deps: setup cosmocc\n";
-        chdir($before) or die "error resetting directory";
     }
 
     # (re)write site config
     $perlrepo //= $SiteConfig->{perl_repo};
     $cosmorepo //= $SiteConfig->{cosmo_repo};
-    $cosmocc //= $SiteConfig->{cosmocc};
-    my %siteconfig = (
-        perl_repo => abs_path($perlrepo),
-        cosmo_repo => abs_path($cosmorepo),
-        cosmocc => abs_path($cosmocc),
-    );
-    $SiteConfig = \%siteconfig;
+    $SiteConfig->{perl_repo} = abs_path($perlrepo);
+    $SiteConfig->{cosmo_repo} = abs_path($cosmorepo);
     make_path(SITE_CONFIG_DIR);
-    _write_json(SITE_CONFIG_FILE, \%siteconfig);
+    _write_json(SITE_CONFIG_FILE, $SiteConfig);
     print "apperlm install-build-deps: wrote site config to ".SITE_CONFIG_FILE."\n";
 }
 
@@ -1456,25 +1452,22 @@ END_USAGE
 apperlm install-build-deps [-h|--help] [-c|--cosmo <path>] [-p|--perl <path>]
   -c|--cosmo <path> set path to cosmopolitan repo (skips git initialization)
   -p|--perl  <path> set path to perl repo (skips git initialization)
-  -C|--cosmocc <path> set path to cosmocc
   -h|--help     Show this message
 Install build dependencies for APPerl, use -c or -p to skip initializing
 those repos by providing a path to it.
 END_USAGE
         my $cosmo;
         my $perl;
-        my $cosmocc;
         my $help;
         GetOptionsFromArray(\@_, "cosmo|c=s" => \$cosmo,
                    "perl|p=s" => \$perl,
-                   "cosmocc|C=s" => \$cosmocc,
                    "help|h" => \$help,
         ) or die($usage);
         if($help) {
             print $usage;
             exit 0;
         }
-        Perl::Dist::APPerl::InstallBuildDeps($perl, $cosmo, $cosmocc);
+        Perl::Dist::APPerl::InstallBuildDeps($perl, $cosmo);
     }
     elsif($command eq 'new-config') {
         my $usage = <<'END_USAGE';
@@ -1539,14 +1532,14 @@ sub _setup_repo {
     my ($repopath, $remotes) = @_;
     print "mkdir -p $repopath\n";
     make_path($repopath);
-    #print "cd $repopath\n";
-    #chdir($repopath) or die "Failed to chdir $repopath";
-    #_command_or_die('git', 'init');
-    #_command_or_die('git', 'checkout', '-b', 'placeholder_dont_use');
-    #foreach my $remote (keys %{$remotes}) {
-    #    _command_or_die('git', 'remote', 'add', $remote, $remotes->{$remote});
-    #    _command_or_die('git', 'fetch', $remote);
-    #}
+    print "cd $repopath\n";
+    chdir($repopath) or die "Failed to chdir $repopath";
+    _command_or_die('git', 'init');
+    _command_or_die('git', 'checkout', '-b', 'placeholder_dont_use');
+    foreach my $remote (keys %{$remotes}) {
+        _command_or_die('git', 'remote', 'add', $remote, $remotes->{$remote});
+        _command_or_die('git', 'fetch', $remote);
+    }
 }
 
 sub _write_json {
