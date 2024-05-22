@@ -793,7 +793,7 @@ sub Init {
     _write_json(PROJECT_FILE, \%jsondata);
 
     # checkout default config
-    Set($jsondata{defaultconfig});
+    Checkout($jsondata{defaultconfig});
 }
 
 sub NewConfig {
@@ -881,11 +881,6 @@ sub _remove_arr_items_from_arr {
             }
         }
     }
-    #foreach my $item (@{$toremove}) {
-    #    my $index = 0;
-    #    $index++ until $src->[$index] eq $item;
-    #    splice(@$src, $index, 1);
-    #}
 }
 
 sub Status {
@@ -948,7 +943,7 @@ sub _install_perl_src_files {
     }
 }
 
-sub Set {
+sub Checkout {
     my ($cfgname) = @_;
     my $UserProjectConfig = _load_user_project_config();
     if($UserProjectConfig) {
@@ -1037,7 +1032,7 @@ sub Set {
         $validperl = abs_path($validperl);
         $validperl or die "no valid perl found to use for nobuild config";
         $UserProjectConfig->{nobuild_perl_bin} = $validperl;
-        print "Set UserProjectConfig to nobuild_perl-bin to $validperl\n";
+        print "Checkout UserProjectConfig to nobuild_perl-bin to $validperl\n";
     }
     _write_user_project_config($UserProjectConfig);
     print "$0: Successfully switched to $cfgname\n";
@@ -1045,8 +1040,7 @@ sub Set {
 
 sub Configure {
     my $Configs = _load_apperl_configs();
-    my $UserProjectConfig = _load_valid_user_project_config_with_default($Configs) or die "cannot Configure without valid UserProjectConfig";
-    my $CurAPPerlName = $UserProjectConfig->{current_apperl};
+    my ($UserProjectConfig, $CurAPPerlName) = _load_valid_user_project_config_with_default($Configs) or die "cannot Configure without valid UserProjectConfig";
     ! exists $UserProjectConfig->{nobuild_perl_bin} or die "nobuild perl cannot be configured";
     my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
     $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
@@ -1111,8 +1105,7 @@ sub _find_zip {
 sub Build {
     my ($zippath) = @_;
     my $Configs = _load_apperl_configs();
-    my $UserProjectConfig = _load_valid_user_project_config_with_default($Configs) or die "cannot Build without valid UserProjectConfig";
-    my $CurAPPerlName = $UserProjectConfig->{current_apperl};
+    my ($UserProjectConfig, $CurAPPerlName) = _load_valid_user_project_config_with_default($Configs) or die "cannot Build without valid UserProjectConfig";
     my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
     my $startdir = abs_path('./');
 
@@ -1423,7 +1416,7 @@ END_USAGE
     elsif($command eq 'checkout') {
         scalar(@_) == 1 or die('bad args');
         my $cfgname = $_[0];
-        Perl::Dist::APPerl::Set($cfgname);
+        Perl::Dist::APPerl::Checkout($cfgname);
     }
     elsif($command eq 'init') {
         my $usage = <<'END_USAGE';
@@ -1661,17 +1654,21 @@ sub _load_valid_user_project_config {
         if(exists $UserProjectConfig->{current_apperl}) {
             my $CurAPPerlName = $UserProjectConfig->{current_apperl};
             exists $Configs->{apperl_configs}{$CurAPPerlName} or die("non-existent apperl config $CurAPPerlName in user project config");
-            return $UserProjectConfig;
+            return ($UserProjectConfig, $CurAPPerlName);
         }
     }
-    return undef;
+    return ();
 }
 
 sub _load_valid_user_project_config_with_default {
     my ($Configs) = @_;
-    my $UserProjectConfig = _load_valid_user_project_config($Configs);
-    return $UserProjectConfig if($UserProjectConfig || !exists $Configs->{defaultconfig});
-    Set($Configs->{defaultconfig});
+    my ($UserProjectConfig, $CurAPPerlName) = _load_valid_user_project_config($Configs);
+    if($UserProjectConfig) {
+        return ($UserProjectConfig, $CurAPPerlName);
+    } elsif(!exists $Configs->{defaultconfig}) {
+        return ();
+    }
+    Checkout($Configs->{defaultconfig});
     return _load_valid_user_project_config($Configs);
 }
 
