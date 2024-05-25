@@ -1,5 +1,23 @@
 Revision history for Perl-Dist-APPerl
-v0.5.0  2023-12-01
+v0.6.0  2024-05-XX
+        Add building with modern Cosmopolitan Libc with cosmocc
+          cosmocc automatically installs itself making running
+          `apperlm install-build-deps` unnecessary
+        Add download and building from Perl tarballs.
+          Add patch loading system so Perl changes can be maintained from
+          this repo. Can locate "share" dir even when used from APPerl.
+        Fix install_modules not linking all extensions.
+          Devel::PPort and DynaLoader weren't being linked in
+          This caused Cwd.pm to fail to load its XS
+        Improve apperlm list
+        Include ErrnoRuntime in small builds
+        Deprecate vista builds
+          Without cosmocc being avaiable on the port, they have to be
+          maintained essentially seperately.
+        Remove most of the versioned configs, they were far behind the
+        rolling release / unnamed builds and often changed with them.
+
+v0.5.0  2024-03-21
         Revert `full` and `small` targets with cosmo 3.0.2
         Base `full` and `small` (with vista) targets off of perl 5.36.3
 
