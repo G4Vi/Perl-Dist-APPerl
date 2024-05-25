@@ -830,17 +830,6 @@ sub _install_cosmocc {
     _write_json(SITE_CONFIG_FILE, $SiteConfig);
 }
 
-#sub _load_valid_site_config {
-#    my ($is_cosmo3) = @_;
-#    my $SiteConfig = _load_json(SITE_CONFIG_FILE);
-#    $SiteConfig || defined($is_cosmo3) or die "Failed to load SiteConfig";
-#    $SiteConfig //= {};
-#    defined $is_cosmo3 or return $SiteConfig;
-#    if ($is_cosmo3) {
-#
-#    }
-#}
-
 sub InstallBuildDeps {
     my ($perlrepo, $cosmorepo) = @_;
     my $SiteConfig = _load_json(SITE_CONFIG_FILE);
@@ -957,17 +946,11 @@ sub Checkout {
     my $itemconfig = _load_apperl_config(_load_apperl_configs()->{apperl_configs}, $cfgname);
     print Dumper($itemconfig);
     if(! exists $itemconfig->{nobuild_perl_bin}) {
-        my $SiteConfig = _load_json(SITE_CONFIG_FILE);
+        my $SiteConfig = _load_valid_site_config($itemconfig->{cosmo3});
         if(! $itemconfig->{cosmo3}) {
-            $SiteConfig or die "cannot set without build deps (run apperlm install-build-deps)";
-            -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
             print "cd ".$SiteConfig->{cosmo_repo}."\n";
             chdir($SiteConfig->{cosmo_repo}) or die "Failed to enter cosmo repo";
             _command_or_die('git', 'checkout', $itemconfig->{cosmo_id});
-        } else {
-            $SiteConfig //= {};
-            exists $SiteConfig->{cosmocc} or _install_cosmocc($SiteConfig);
-            -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory';
         }
         $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= $SiteConfig->{perl_repo} if !$itemconfig->{perl_url};
         $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= "$UserProjectConfig->{apperl_output}/$cfgname/tmp/perl5";
@@ -1039,17 +1022,13 @@ sub Checkout {
 }
 
 sub Configure {
-    my $Configs = _load_apperl_configs();
-    my ($UserProjectConfig, $CurAPPerlName) = _load_valid_user_project_config_with_default($Configs) or die "cannot Configure without valid UserProjectConfig";
+    my ($UserProjectConfig, $CurAPPerlName, $itemconfig) = _load_valid_configs() or die "cannot Configure without valid UserProjectConfig";
     ! exists $UserProjectConfig->{nobuild_perl_bin} or die "nobuild perl cannot be configured";
     my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
     $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
-    my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
     _install_perl_src_files($itemconfig, $perl_build_dir);
-    my $SiteConfig = _load_json(SITE_CONFIG_FILE);
+    my $SiteConfig = _load_valid_site_config($itemconfig->{cosmo3});
     if(! $itemconfig->{cosmo3}) {
-        $SiteConfig or die "cannot Configure without build deps (run apperlm install-build-deps)";
-        -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
         # build toolchain
         _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j', 'toolchain', 'MODE=', 'ARCH=x86_64');
         # build cosmo
@@ -1064,9 +1043,6 @@ sub Configure {
         $ENV{COSMO_APE_LOADER} = $itemconfig->{cosmo_ape_loader};
         $ENV{COSMO_REPO} = $SiteConfig->{cosmo_repo};
     } else {
-        $SiteConfig //= {};
-        exists $SiteConfig->{cosmocc} or _install_cosmocc($SiteConfig);
-        -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory';
         $ENV{COSMOCC} = $SiteConfig->{cosmocc};
     }
 
@@ -1104,21 +1080,14 @@ sub _find_zip {
 
 sub Build {
     my ($zippath) = @_;
-    my $Configs = _load_apperl_configs();
-    my ($UserProjectConfig, $CurAPPerlName) = _load_valid_user_project_config_with_default($Configs) or die "cannot Build without valid UserProjectConfig";
-    my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
+    my ($UserProjectConfig, $CurAPPerlName, $itemconfig) = _load_valid_configs() or die "cannot Build without valid UserProjectConfig";
     my $startdir = abs_path('./');
 
     my $PERL_APE;
     my @perl_config_cmd;
     # build cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
-        my $SiteConfig = _load_json(SITE_CONFIG_FILE) or die "cannot build without build deps (run apperlm install-build-deps)";
-        if (! $itemconfig->{cosmo3}) {
-            -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} .' is not directory';
-        } else {
-            -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} .' is not directory';
-        }
+        my $SiteConfig = _load_valid_site_config($itemconfig->{cosmo3});
         my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
         $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
         _install_perl_src_files($itemconfig, $perl_build_dir);
@@ -1654,22 +1623,37 @@ sub _load_valid_user_project_config {
         if(exists $UserProjectConfig->{current_apperl}) {
             my $CurAPPerlName = $UserProjectConfig->{current_apperl};
             exists $Configs->{apperl_configs}{$CurAPPerlName} or die("non-existent apperl config $CurAPPerlName in user project config");
-            return ($UserProjectConfig, $CurAPPerlName);
+            my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
+            return ($UserProjectConfig, $CurAPPerlName, $itemconfig);
         }
     }
     return ();
 }
 
-sub _load_valid_user_project_config_with_default {
-    my ($Configs) = @_;
-    my ($UserProjectConfig, $CurAPPerlName) = _load_valid_user_project_config($Configs);
-    if($UserProjectConfig) {
-        return ($UserProjectConfig, $CurAPPerlName);
-    } elsif(!exists $Configs->{defaultconfig}) {
-        return ();
+sub _load_valid_configs {
+    my $apperlconfigs = _load_apperl_configs();
+    my @configs = _load_valid_user_project_config($apperlconfigs);
+    return @configs if(@configs);
+    return () if(!exists $apperlconfigs->{defaultconfig});
+    Checkout($apperlconfigs->{defaultconfig});
+    return _load_valid_user_project_config($apperlconfigs);
+}
+
+sub _load_valid_site_config {
+    my ($is_cosmo3) = @_;
+    my $SiteConfig = _load_json(SITE_CONFIG_FILE);
+    if ($is_cosmo3) {
+        $SiteConfig //= {};
+        if (! exists $SiteConfig->{cosmocc}) {
+            print "cosmocc not found in " . SITE_CONFIG_FILE .  " attempting to install cosmocc\n";
+            _install_cosmocc($SiteConfig);
+        }
+        -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory, please edit or remove the entry in ' . SITE_CONFIG_FILE;
+    } else {
+        $SiteConfig or die "Failed to load SiteConfig, run apperlm install-build-deps";
+        -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} ." is not directory, reconfigure with `apperlm install-build-deps`. Note to redownload if its already there edit ".SITE_CONFIG_FILE;
     }
-    Checkout($Configs->{defaultconfig});
-    return _load_valid_user_project_config($Configs);
+    return $SiteConfig;
 }
 
 sub _write_user_project_config {
