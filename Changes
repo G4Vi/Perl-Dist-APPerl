@@ -16,6 +16,8 @@ v0.6.0  2024-05-XX
           maintained essentially seperately.
         Remove most of the versioned configs, they were far behind the
         rolling release / unnamed builds and often changed with them.
+        Make $^X more reliable by using Cosmos's GetProgramExecutableName
+        Set $Config{perlpath} to $^X (GH#6)
 
 v0.5.0  2024-03-21
         Revert `full` and `small` targets with cosmo 3.0.2

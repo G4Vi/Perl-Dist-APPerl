@@ -266,6 +266,49 @@ index 0000000000..e5b5de8952
 +The port in-progress is being done by Gavin Hayes <gahayes@cpan.org>
 +
 +Last update: 2022-10-11
+diff --git a/caretx.c b/caretx.c
+index 3d11877037..211a2e89a7 100644
+--- a/caretx.c
++++ b/caretx.c
+@@ -40,6 +40,10 @@
+ # include <mach-o/dyld.h>
+ #endif
+ 
++#if defined(__COSMOPOLITAN__)
++#  include "libc/cosmo.h"
++#endif
++
+ void
+ Perl_set_caret_X(pTHX) {
+     GV* tmpgv = gv_fetchpvs("\030", GV_ADD|GV_NOTQUAL, SVt_PV); /* $^X */
+@@ -55,6 +59,9 @@ Perl_set_caret_X(pTHX) {
+     sv_setpv(caret_x, ansi);
+     win32_free(ansi);
+     return;
++#elif defined(__COSMOPOLITAN__)
++    sv_setpv(caret_x, GetProgramExecutableName());
++    return;
+ #else
+     /* We can try a platform-specific one if possible; if it fails, or we
+      * aren't running on a suitable platform, we'll fall back to argv[0]. */
+diff --git a/configpm b/configpm
+index 94a4778037..2f7ab82600 100755
+--- a/configpm
++++ b/configpm
+@@ -585,6 +585,13 @@ $heavy_txt .= join('',
+     } @v_others, @v_forced
+ ) . "!END!\n";
+ 
++if ($^O eq 'cosmo') {
++$heavy_txt .= <<'EOT';
++
++s/perlpath=.+/perlpath='$^X'/;
++EOT
++}
++
+ # Only need the dynamic byteorder code in Config.pm if 'byteorder' is one of
+ # the precached keys
+ if ($Common{byteorder}) {
 diff --git a/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm b/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
 index 0aee5233fe..cd17c1c86f 100644
 --- a/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
@@ -481,23 +524,22 @@ index 6a7f03c289..38844079d0 100644
  #    endif /* OS2 */
  #  endif /* WIN32 */
 diff --git a/doio.c b/doio.c
-index f0d451af3c..63dce797fa 100644
+index f0d451af3c..c7e76d0512 100644
 --- a/doio.c
 +++ b/doio.c
-@@ -55,6 +55,12 @@
+@@ -55,6 +55,11 @@
  #  define OPEN_EXCL 0
  #endif
  
 +#ifdef __COSMOPOLITAN__
-+#    define _COSMO_SOURCE
 +#    include "libc/dce.h"
-+    void __paginate_file(int fd, const char *s);
++#    include "libc/runtime/runtime.h"
 +#endif
 +
  #define PERL_MODE_MAX 8
  #define PERL_FLAGS_MAX 10
  
-@@ -2512,7 +2518,24 @@ Perl_do_exec3(pTHX_ const char *incmd, int fd, int do_report)
+@@ -2512,7 +2517,24 @@ Perl_do_exec3(pTHX_ const char *incmd, int fd, int do_report)
              }
            doshell:
              PERL_FPU_PRE_EXEC
