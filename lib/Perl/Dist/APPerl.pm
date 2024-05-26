@@ -1,6 +1,6 @@
 package Perl::Dist::APPerl;
-# Copyright (c) 2022 Gavin Hayes, see LICENSE in the root of the project
-use version 0.77; our $VERSION = qv(v0.5.0);
+# Copyright (c) 2024 Gavin Hayes, see LICENSE in the root of the project
+use version 0.77; our $VERSION = qv(v0.6.0);
 use strict;
 use warnings;
 use JSON::PP 2.0104 qw(decode_json);
@@ -763,7 +763,7 @@ $defconfig{defaultconfig} = 'full';
 
 sub _build_def_config {
     return {
-        base => ($_[0] // 'nobuild-v0.1.0'),
+        base => ($_[0] // 'nobuild'),
         desc => 'description of this config',
         dest => 'perl.com'
     };
@@ -783,7 +783,7 @@ sub Init {
     }
 
     # create project config
-    my %jsondata = ( 'defaultconfig' =>  ($defaultconfig // 'nobuild-v0.1.0'));
+    my %jsondata = ( 'defaultconfig' =>  ($defaultconfig // 'nobuild'));
     if($defaultconfig && ! exists $Configs->{apperl_configs}{$defaultconfig}) {
         $jsondata{apperl_configs} = {
             $defaultconfig => _build_def_config($base),
@@ -1731,8 +1731,8 @@ L<https://computoid.com/posts/Perl-is-Actually-Portable.html>.
 
 =head1 SYNOPSIS
 
-    apperlm install-build-deps
-    apperlm-list
+    apperlm list
+    apperlm checkout full
     apperlm configure
     apperlm build
     ./perl.com /zip/bin/perldoc Perl::Dist::APPerl
@@ -1743,7 +1743,6 @@ L<https://computoid.com/posts/Perl-is-Actually-Portable.html>.
 
 To build small APPerl from scratch:
 
-    apperlm install-build-deps
     apperlm checkout small
     apperlm configure
     apperlm build
@@ -1752,12 +1751,11 @@ To start an APPerl project from an existing APPerl and build it:
 
     mkdir src
     mv perl.com src/
-    apperlm init --name your_config_name --base nobuild-v0.1.0
+    apperlm init --name your_config_name --base nobuild
     apperlm build
 
 To start an APPerl project and build from scratch:
 
-    apperlm install-build-deps
     apperlm init --name your_config_name --base small
     apperlm configure
     apperlm build
@@ -1770,17 +1768,6 @@ and building APPerl.
 =head2 COMMAND REFERENCE
 
 =over 4
-
-=item *
-
-C<apperlm install-build-deps> installs APPerl build dependencies,
-currently, a fork of the perl5 source and the Cosmopolitan Libc. This
-is only necessary if you are building APPerl from scratch (not using a
-nobuild configuration). Initialization of the repos can be skipped by
-passing the path to them locally. The cosmopolitan repo
-initialization can be skipped with -c <path_to_repo> . The perl5 repo
-initialization can be skipped with -p <path_to_repo>. This install is
-done user specific, installs to $XDG_CONFIG_HOME/apperl .
 
 =item *
 
@@ -1802,16 +1789,16 @@ release of Perl::Dist::APPerl.
 
 =item *
 
-C<apperlm checkout> sets the current APPerl config, this includes a
-C<make veryclean> in the Perl repo and C<git checkout> in both Perl and
-cosmo repos. The current config name is written to
+C<apperlm checkout> sets the current APPerl config, including cleaning
+or reestablishing the build dirs. The current config name is written to
 C<.apperl/user-project.json> .
 
 =item *
 
 C<apperlm new-config> creates a new config and adds to to the project
 config. -n specifies the name of the new config and must be provided.
--b specifies the base of the new config.
+-b specifies the base of the new config. Alternatively, you can modify
+C<apperl-project.json> directly.
 
 =item *
 
@@ -1826,6 +1813,17 @@ C<apperl-project.json> to customize output binary path and name. A
 C<zip> binary is required to build, see README.md for details. The
 C<zip> binary path may be explictly set by passing in
 --zippath <zip_binary_path> .
+
+=item *
+
+C<apperlm install-build-deps> installs APPerl build git dependencies.
+This is now unnecessary unless you are doing vista builds or developing
+APPerl itself. Note, vista builds are deprecated, see Changes.
+Initialization of the repos can be skipped by passing the path to them
+locally. The cosmopolitan repo initialization can be skipped with
+-c <path_to_repo> . The perl5 repo initialization can be skipped with
+-p <path_to_repo>. This install is done user specific, installs to
+$XDG_CONFIG_HOME/apperl .
 
 =back
 
@@ -2074,7 +2072,7 @@ the parent config.
 
 Build it and try it out. apperlm checkout is needed as Perl must be
 rebuilt from scratch as the Configure flags changed and new files were
-added to the perl5 repo.
+added to the perl5 build dir.
 
   apperlm checkout my_src_build_config
   apperlm configure
@@ -2147,7 +2145,7 @@ Gavin Hayes, C<< <gahayes at cpan.org> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-This software is copyright (c) 2022 by Gavin Hayes.
+This software is copyright (c) 2024 by Gavin Hayes.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
