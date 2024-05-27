@@ -812,7 +812,7 @@ sub NewConfig {
 
 sub _install_cosmocc {
     my ($SiteConfig, $version) = @_;
-    $version //= '3.3.6';
+    $version //= '3.3.10';
     my $cosmocc = SITE_REPO_DIR."/cosmocc";
     print "rm -rf $cosmocc\n";
     remove_tree($cosmocc);
@@ -1093,10 +1093,6 @@ sub Build {
         _install_perl_src_files($itemconfig, $perl_build_dir);
         print "cd $perl_build_dir\n";
         chdir($perl_build_dir) or die "Failed to enter perl repo";
-        # build using cosmo's zlib to avoid name clashes or including two versions of zlib
-        local $ENV{'BUILD_ZLIB'} = 'False' if $itemconfig->{cosmo3};
-        local $ENV{'ZLIB_INCLUDE'} = $SiteConfig->{cosmocc} . '/include/third_party/zlib' if $itemconfig->{cosmo3};
-        local $ENV{'ZLIB_LIB'} = '' if $itemconfig->{cosmo3};
         _command_or_die('make');
         $PERL_APE = "$perl_build_dir/perl.com";
         @perl_config_cmd = ('./perl', '-Ilib');
@@ -1288,11 +1284,12 @@ sub Build {
         my $fsize = (stat($fh))[7];
         my $bread = read($fh, my $outdata, $fsize);
         $bread && $bread == $fsize or die "failed to read full file $APPPATH";
-        my $sentinel = "APPERL_DEFAULT_SCRIPT";
+        my $sentinel = "APPERL_DEFAULT_SCRIPT\x00";
         my $sentinelpos = index($outdata, $sentinel);
         $sentinelpos != -1 or die "Failed to find APPERL_DEFAULT_SCRIPT, is this an old APPerl binary?";
-        print "patching default script at " . ($sentinelpos+length($sentinel)+1) . "\n";
-        seek($fh, $sentinelpos+length($sentinel)+1, SEEK_SET) or die "$!";
+        my $patchpos = $sentinelpos+length($sentinel);
+        print "patching default script at $patchpos\n";
+        seek($fh, $patchpos, SEEK_SET) or die "$!";
         print $fh $itemconfig->{default_script}."\0" or die "$!";
         close($fh);
     }

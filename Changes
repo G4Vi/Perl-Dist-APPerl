@@ -1,6 +1,6 @@
 Revision history for Perl-Dist-APPerl
-v0.6.0  2024-05-XX
-        Add building with modern Cosmopolitan Libc with cosmocc
+v0.6.0  2024-05-27
+        Add building with modern Cosmopolitan Libc with cosmocc 3.3.10
           cosmocc automatically installs itself making running
           `apperlm install-build-deps` unnecessary
         Add download and building from Perl tarballs.
@@ -15,9 +15,10 @@ v0.6.0  2024-05-XX
           Without cosmocc being avaiable on the port, they have to be
           maintained essentially seperately.
         Remove most of the versioned configs, they were far behind the
-        rolling release / unnamed builds and often changed with them.
+          rolling release / unnamed builds and often changed with them.
         Make $^X more reliable by using Cosmos's GetProgramExecutableName
         Set $Config{perlpath} to $^X (GH#6)
+        Fix APPERL_DEFAULT_SCRIPT search by including nul in string.
 
 v0.5.0  2024-03-21
         Revert `full` and `small` targets with cosmo 3.0.2
