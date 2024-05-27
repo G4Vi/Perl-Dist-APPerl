@@ -930,3 +930,16 @@ index 6a14569758..5db5882a9c 100644
      perlcygwin		Perl notes for Cygwin
      perlfreebsd 	Perl notes for FreeBSD
      perlhaiku		Perl notes for Haiku
+diff --git a/t/op/magic.t b/t/op/magic.t
+index 2004a5055c..a33548c71f 100644
+--- a/t/op/magic.t
++++ b/t/op/magic.t
+@@ -276,7 +276,7 @@ $$ = $pid; # Tests below use $$
+ # $^X and $0
+ {
+     my $is_abs = $Config{d_procselfexe} || $Config{usekernprocpathname}
+-      || $Config{usensgetexecutablepath};
++      || $Config{usensgetexecutablepath} || ($^O eq 'cosmo');
+     if ($^O eq 'qnx') {
+ 	chomp($wd = `/usr/bin/fullpath -t`);
+     }
