@@ -1309,6 +1309,12 @@ sub Build {
         foreach my $srcfile ('perl.com', 'perl.com.dbg') {
             my $destfile = $itemconfig->{dest};
             $destfile .= '.dbg' if ($srcfile =~ /dbg$/);
+            if (-f $destfile) {
+                # avoid bus error by renaming the existing executable
+                my $olddest = "$destfile.old";
+                print "mv $destfile $olddest\n";
+                move($destfile, $olddest) or die "move failed: $!";
+            }
             my @args = ("$UserProjectConfig->{apperl_output}/$CurAPPerlName/o/$srcfile", $destfile);
             -e $args[0] or next;
             print 'cp '.join(' ', @args)."\n";
@@ -1477,14 +1483,11 @@ sub _cmdoutput_or_die {
 sub _cmdinputfile_or_die {
     my $input_file = pop @_;
     print join(' ', @_), " < $input_file\n";
-    my $kid = fork() // die "forking failed";
-    if ($kid == 0) {
-        open(STDIN, '<', $input_file) or die "Can't dup to STDIN";
-        exec { $_[0] } @_;
-        die "exec failed"
-    }
-    waitpid($kid, 0);
-    (($? >> 8) == 0) or die("child failed");
+    $SIG{PIPE} = "IGNORE";
+    open(my $to_kid, '|-', @_) or die "Can't fork: $!";
+    copy($input_file, $to_kid) or die "failed to copy $!";
+    close($to_kid);
+    (($? >> 8) == 0) or die "child failed $?";
 }
 
 sub _setup_repo {
