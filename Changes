@@ -1,4 +1,12 @@
 Revision history for Perl-Dist-APPerl
+v0.6.1  2024-08-29
+        Fix bootstrapped builds by opening pipe to `patch` stdin instead
+        of redirecting stdin to file. (redirecting to /zip is
+        impossible)
+        If output files exist rename them with `.old` to avoid bus error
+        when one of the output files is the same as the running
+        executable.
+
 v0.6.0  2024-05-27
         Add building with modern Cosmopolitan Libc with cosmocc 3.3.10
           cosmocc automatically installs itself making running

@@ -1,6 +1,6 @@
 package Perl::Dist::APPerl;
 # Copyright (c) 2024 Gavin Hayes, see LICENSE in the root of the project
-use version 0.77; our $VERSION = qv(v0.6.0);
+use version 0.77; our $VERSION = qv(v0.6.1);
 use strict;
 use warnings;
 use JSON::PP 2.0104 qw(decode_json);
