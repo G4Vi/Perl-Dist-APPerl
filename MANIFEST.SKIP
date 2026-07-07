@@ -74,6 +74,9 @@ apperl-project.json
 ^tests_temp
 ^.apperl
 ^Perl-Dist-APPerl-v
+\.log$
+makepatch.sh
+test.sh
 
 #Avoid cpanfile
 cpanfile

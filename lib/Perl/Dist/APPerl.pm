@@ -738,11 +738,31 @@ my %defconfig = (
             perl_url => undef,
             patches => ['__sharedir__/5.36-cosmo3.patch'],
         },
+        # static builds on 5.38 are broken https://github.com/Perl/perl5/issues/21319
+        perl_cosmo_dev_538 => {
+            desc => "For developing cosmo platform perl without apperl additions",
+            base => 'full',
+            perl_id => 'v5.38.5',
+            perl_url => undef,
+            patches => ['__sharedir__/5.38-cosmo3.patch'],
+        },
+        perl_cosmo_dev_540 => {
+            desc => "For developing cosmo platform perl without apperl additions",
+            base => 'full',
+            perl_id => 'v5.40.4',
+            perl_url => undef,
+            patches => ['__sharedir__/5.40-cosmo3.patch'],
+        },
         perl_apperl_dev => {
             desc => "For developing apperl",
-            base => 'perl_cosmo3_dev',
+            base => 'perl_cosmo_dev',
             '+patches' => ['__sharedir__/5.36-cosmo-apperl.patch'],
-        }
+        },
+        perl_apperl_dev_540 => {
+            desc => "For developing apperl",
+            base => 'perl_cosmo_dev_540',
+            '+patches' => ['__sharedir__/5.36-cosmo-apperl.patch'],
+        },
     }
 );
 $defconfig{defaultconfig} = 'full';
@@ -992,7 +1012,7 @@ sub Checkout {
         foreach my $patch (@{$itemconfig->{patches}}) {
             my $realpatch = _fix_bases($patch, {__sharedir__ => SHARE_DIR});
             # can't `git apply` to ignored files within a git repository :(
-            _cmdinputfile_or_die('patch', '-p1', $realpatch);
+            _cmdinputfile_or_die('patch', '-p1', '--merge', $realpatch);
         }
         print "cd ".START_WD."\n";
         chdir(START_WD) or die "Failed to restore cwd";
