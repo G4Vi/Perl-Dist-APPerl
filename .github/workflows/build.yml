@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Fetch repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v7
       with:
         path: 'Perl-Dist-APPerl'
     - name: Install Perl
@@ -32,11 +32,12 @@ jobs:
         make dist
         mv Perl-Dist-APPerl-v*.tar.gz ../
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v7
       with:
         name: cpan
         if-no-files-found: error
         path: Perl-Dist-APPerl-v*.tar.gz
+        archive: false
 
   build-apperl:
     name:    Build perl.com
@@ -47,10 +48,10 @@ jobs:
         config: [full, small, full-vista, small-vista]
     steps:
     - name: Fetch build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v8
     - name: prepare for installing module
       run: |
-        mv cpan/Perl-Dist-APPerl-v*.tar.gz Perl-Dist-APPerl.tar.gz
+        mv Perl-Dist-APPerl-v*.tar.gz Perl-Dist-APPerl.tar.gz
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
       with:
@@ -64,13 +65,13 @@ jobs:
           echo "DEST_BIN=$(apperlm get-config-key ${{ matrix.config }} dest)" >> $GITHUB_ENV
           echo "REL_NAME=APPerl-$(perl -MPerl::Dist::APPerl -e 'print $Perl::Dist::APPerl::VERSION')-${{ matrix.config }}.zip" >> $GITHUB_ENV
     - name: Fetch Perl fork
-      uses: actions/checkout@v3
+      uses: actions/checkout@v7
       with:
         repository: 'G4Vi/perl5'
         ref: ${{ env.PERL_ID }}
         path: 'perl5'
     - name: Fetch cosmopolitan
-      uses: actions/checkout@v3
+      uses: actions/checkout@v7
       with:
         repository: 'jart/cosmopolitan'
         ref: ${{ env.COSMO_ID }}
@@ -90,7 +91,7 @@ jobs:
         apperlm build
         zip -r ${{ env.REL_NAME }} ${{ env.DEST_BIN }} ${{ env.DEST_BIN }}.dbg
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.config }}
         if-no-files-found: error
@@ -108,7 +109,7 @@ jobs:
         version: ['5.10', '5.36']
     steps:
     - name: Fetch repo
-      uses: actions/checkout@v3
+      uses: actions/checkout@v7
       with:
         path: 'Perl-Dist-APPerl'
     - name: Install Perl
@@ -118,16 +119,15 @@ jobs:
         install-modules-with: cpanm
         install-modules: B::Keywords HTTP::Tiny Test::Pod::LinkCheck::Lite
     - name: download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v8
+      with:
+        merge-multiple: true
     - name: Setup for tests
       run: |
         cd Perl-Dist-APPerl
         cpanm --installdeps --notest .
-        mv ../full/perl.com* ./
+        mv ../*.com* ./
         chmod +x perl.com
-        mv ../small/perl-small.com* ./
-        mv ../full-vista/perl-vista.com* ./
-        mv ../small-vista/perl-small-vista.com* ./
         sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
     - name: Run tests
       run: |
@@ -137,7 +137,7 @@ jobs:
         make authortest
     - name: Archive CPAN logs
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v7
       with:
         name: cpan_log
         path: /home/runner/.cpanm/work/*/build.log
@@ -151,13 +151,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Fetch build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v8
+      with:
+        merge-multiple: true
     - name: support ape bins
       run: sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
     - name: Try nobuild build
       run: |
         mkdir src
-        cp full/perl.com src/
+        cp perl.com src/
         chmod +x src/perl.com
         src/perl.com /zip/bin/apperlm list
 
@@ -168,7 +170,7 @@ jobs:
     steps:
     - name: Fetch build artifacts
       if:   ${{ github.ref_type == 'tag' }}
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v8
     - name: Build binary amalgamation for uploading to microsoft
       if:   ${{ github.ref_type == 'tag' }}
       run: |
@@ -183,7 +185,7 @@ jobs:
         fail_on_unmatched_files: true
         draft: true
         files: |
-          cpan/Perl-Dist-APPerl-v*.tar.gz
+          Perl-Dist-APPerl-v*.tar.gz/Perl-Dist-APPerl-v*.tar.gz
           full/*
           small/*
           full-vista/*
