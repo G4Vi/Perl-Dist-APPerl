@@ -1244,6 +1244,19 @@ sub Build {
         local $ENV{PERL_MM_OPT} = $mmopt;
         local $ENV{PERL5LIB} = $perllib;
         local $ENV{PERL_LOCAL_LIB_ROOT} = '';
+        # Some distributions such as CPanel-JSON-XS depend on the core perl
+        # scripts (such as pod2text). Add apperl's versions of them to PATH so
+        # they get picked up instead of the system's versions.
+        my $perlbindir = "$TEMPDIR/perlbin";
+        print "mkdir -p $perlbindir\n";
+        make_path($perlbindir);
+        opendir(my $dh, $perlbin) or die "failed to open perlbin";
+        while (my $file = readdir($dh)) {
+            next if ($file eq '.' || $file eq '..');
+            print "ln -s $APPPATH $perlbindir/$file\n";
+            symlink($APPPATH, "$perlbindir/$file") or die "failed to setup perlbins";
+        }
+        local $ENV{PATH} = "$perlbindir:".$ENV{PATH};
         foreach my $module (@{$itemconfig->{install_modules}}) {
             my $modulepath = "$startdir/$module";
             if(-d $modulepath) {
