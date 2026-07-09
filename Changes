@@ -1,4 +1,15 @@
 Revision history for Perl-Dist-APPerl
+v0.7.0  2026-07-09
+        Add Perl 5.40 builds. 5.38 is skipped as static builds were
+          broken on Perl 5.38,
+          https://github.com/Perl/perl5/issues/21319
+        Use build versions of core Perl scripts instead of system
+          versions. Cpanel-JSON-XS uses pod2text which errored out when
+          system pod2text was used with build libraries.
+        Add make test results to releases
+        Deprecate 5.36 builds, report if anything that worked on 5.36
+          APPerl doesn't work on 5.40.
+
 v0.6.1  2024-08-29
         Fix bootstrapped builds by opening pipe to `patch` stdin instead
         of redirecting stdin to file. (redirecting to /zip is

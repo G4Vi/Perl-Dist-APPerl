@@ -1,6 +1,6 @@
 package Perl::Dist::APPerl;
-# Copyright (c) 2024 Gavin Hayes, see LICENSE in the root of the project
-use version 0.77; our $VERSION = qv(v0.6.1);
+# Copyright (c) 2026 Gavin Hayes, see LICENSE in the root of the project
+use version 0.77; our $VERSION = qv(v0.7.0);
 use strict;
 use warnings;
 use JSON::PP 2.0104 qw(decode_json);
@@ -1454,7 +1454,7 @@ END_USAGE
     elsif($command =~ /^(\-)*(version|v)$/i) {
         my $message = <<"END_USAGE";
 apperlm $VERSION
-Copyright (C) 2022 Gavin Arthur Hayes
+Copyright (C) 2026 Gavin Arthur Hayes
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.
 END_USAGE
@@ -2221,7 +2221,7 @@ Gavin Hayes, C<< <gahayes at cpan.org> >>
 
 =head1 LICENSE AND COPYRIGHT
 
-This software is copyright (c) 2024 by Gavin Hayes.
+This software is copyright (c) 2026 by Gavin Hayes.
 
 This is free software; you can redistribute it and/or modify it under
 the same terms as the Perl 5 programming language system itself.

@@ -17,7 +17,7 @@ jobs:
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
       with:
-        perl-version: '5.36'
+        perl-version: '5.42'
         install-modules-with: cpanm
         install-modules: File::ShareDir::Install
     - name: Test in-tree
@@ -55,7 +55,7 @@ jobs:
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
       with:
-        perl-version: '5.36'
+        perl-version: '5.42'
         install-modules-with: cpanm
         install-modules: Perl-Dist-APPerl.tar.gz
     - name: Load config
@@ -114,7 +114,7 @@ jobs:
     needs:   build-apperl
     strategy:
       matrix:
-        version: ['5.10', '5.36']
+        version: ['5.10', '5.36', '5.38', '5.40', '5.42']
     steps:
     - name: Fetch repo
       uses: actions/checkout@v7
