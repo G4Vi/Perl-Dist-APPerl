@@ -1007,6 +1007,7 @@ sub Checkout {
             my $tomove = "perl5-$version";
             print "mv $tomove $perl_build_dir\n";
             move($tomove, $perl_build_dir) or die "Failed to move perl src";
+            print "cd $perl_build_dir\n";
             chdir($perl_build_dir) or die "Failed to enter perl build_dir";
         }
         foreach my $patch (@{$itemconfig->{patches}}) {
