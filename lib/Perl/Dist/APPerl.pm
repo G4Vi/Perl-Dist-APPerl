@@ -1491,6 +1491,7 @@ END_USAGE
     elsif($command eq 'get-config-key') {
         scalar(@_) == 2 or die('bad args');
         my $itemconfig = _load_apperl_config(_load_apperl_configs()->{apperl_configs}, $_[0]);
+        exists $itemconfig->{$_[1]} or die "'".$_[1]."'".' does not exist in config '."'".$_[0]."'";
         print $itemconfig->{$_[1]};
     }
     else {

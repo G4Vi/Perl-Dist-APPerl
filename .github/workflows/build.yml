@@ -60,17 +60,19 @@ jobs:
         install-modules: Perl-Dist-APPerl.tar.gz
     - name: Load config
       run: |
-          echo "PERL_ID=$(apperlm get-config-key ${{ matrix.config }} perl_id)" >> $GITHUB_ENV
-          echo "COSMO_ID=$(apperlm get-config-key ${{ matrix.config }} cosmo_id)" >> $GITHUB_ENV
-          echo "DEST_BIN=$(apperlm get-config-key ${{ matrix.config }} dest)" >> $GITHUB_ENV
-          echo "REL_NAME=APPerl-$(perl -MPerl::Dist::APPerl -e 'print $Perl::Dist::APPerl::VERSION')-${{ matrix.config }}.zip" >> $GITHUB_ENV
+          PERL_ID=$(apperlm get-config-key ${{ matrix.config }} perl_id) && echo "PERL_ID=$PERL_ID" >> $GITHUB_ENV || true
+          COSMO_ID=$(apperlm get-config-key ${{ matrix.config }} cosmo_id) && echo "COSMO_ID=$COSMO_ID" >> $GITHUB_ENV || true
+          DEST_BIN=$(apperlm get-config-key ${{ matrix.config }} dest) && echo "DEST_BIN=$DEST_BIN" >> $GITHUB_ENV
+          REL_NAME=APPerl-$(perl -MPerl::Dist::APPerl -e 'print $Perl::Dist::APPerl::VERSION')-${{ matrix.config }}.zip && echo "REL_NAME=$REL_NAME" >> $GITHUB_ENV
     - name: Fetch Perl fork
       uses: actions/checkout@v7
+      if: env.PERL_ID != ''
       with:
         repository: 'G4Vi/perl5'
         ref: ${{ env.PERL_ID }}
         path: 'perl5'
     - name: Fetch cosmopolitan
+      if: env.COSMO_ID != ''
       uses: actions/checkout@v7
       with:
         repository: 'jart/cosmopolitan'
