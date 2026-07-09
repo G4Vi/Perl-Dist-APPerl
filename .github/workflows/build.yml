@@ -96,7 +96,7 @@ jobs:
       run: |
         dir=$(jq -r --arg cfg "${{ matrix.config }}" '.configs[$cfg].perl_build_dir' .apperl/user-project.json)
         echo "$dir"
-        make -C $dir test 2>&1 | tee make-test.log
+        make -C $dir test 2>&1 | tee ${{ matrix.config }}-make-test.log
     - name: Upload build artifacts
       uses: actions/upload-artifact@v7
       with:
@@ -106,7 +106,7 @@ jobs:
           ${{ env.DEST_BIN }}
           ${{ env.DEST_BIN }}.dbg
           ${{ env.REL_NAME }}
-          make-test.log
+          ${{ matrix.config }}-make-test.log
 
   test-Perl-Dist-APPerl:
     name:    test Perl-Dist-APPerl
