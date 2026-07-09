@@ -700,8 +700,8 @@ my %defconfig = (
         },
         'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'full' => {
-            desc => 'moving target: full',
+        'full-536' => {
+            desc => 'moving target: full-536',
             perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
             perl_extra_flags => ['-Doptimize=-Os', '-de', '-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo'],
             MANIFEST => ['lib', 'bin'],
@@ -709,19 +709,52 @@ my %defconfig = (
             perl_repo_files => {},
             zip_extra_files => {},
             cosmo3 => 1,
-            dest => 'perl.com',
+            dest => 'perl-536.com',
             perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.36.3.tar.gz',
             patches => ['__sharedir__/5.36-cosmo3.patch', '__sharedir__/5.36-cosmo-apperl.patch'],
             install_modules => [],
         },
-        'small' => {
-            desc => 'moving target: small',
-            base => 'full',
+        'small-536' => {
+            desc => 'moving target: small-536',
+            base => 'full-536',
             perl_onlyextensions => [qw(Cwd ErrnoRuntime Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
             MANIFEST => \@smallmanifest,
             'include_Perl-Dist-APPerl' => 0,
-            dest => 'perl-small.com',
+            dest => 'perl-536-small.com',
             install_modules => [],
+        },
+        'full-540' => {
+            desc => 'moving target: full-540',
+            perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
+            perl_extra_flags => ['-Doptimize=-Os', '-de', '-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo'],
+            MANIFEST => ['lib', 'bin'],
+            'include_Perl-Dist-APPerl' => 1,
+            perl_repo_files => {},
+            zip_extra_files => {},
+            cosmo3 => 1,
+            dest => 'perl-540.com',
+            perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.40.4.tar.gz',
+            patches => ['__sharedir__/5.40-cosmo3.patch', '__sharedir__/5.36-cosmo-apperl.patch'],
+            install_modules => [],
+        },
+        'small-540' => {
+            desc => 'moving target: small-540',
+            base => 'full-540',
+            perl_onlyextensions => [qw(Cwd ErrnoRuntime Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
+            MANIFEST => \@smallmanifest,
+            'include_Perl-Dist-APPerl' => 0,
+            dest => 'perl-540-small.com',
+            install_modules => [],
+        },
+        'full' => {
+            desc => 'moving target: full',
+            base => 'full-540',
+            dest => 'perl.com',
+        },
+        'small' => {
+            desc => 'moving target: small',
+            base => 'small-540',
+            dest => 'perl-small.com',
         },
         'nobuild' => {
             desc => 'base nobuild config',
@@ -731,7 +764,7 @@ my %defconfig = (
             nobuild_perl_bin => ['src/perl.com', $^X],
         },
         # development configs
-        perl_cosmo_dev => {
+        perl_cosmo_dev_536 => {
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'full',
             perl_id => 'v5.36.3',
@@ -753,7 +786,11 @@ my %defconfig = (
             perl_url => undef,
             patches => ['__sharedir__/5.40-cosmo3.patch'],
         },
-        perl_apperl_dev => {
+        perl_cosmo_dev => {
+            desc => "For developing cosmo platform perl without apperl additions",
+            base => 'perl_cosmo_dev_540',
+        },
+        perl_apperl_dev_536 => {
             desc => "For developing apperl",
             base => 'perl_cosmo_dev',
             '+patches' => ['__sharedir__/5.36-cosmo-apperl.patch'],
@@ -762,6 +799,10 @@ my %defconfig = (
             desc => "For developing apperl",
             base => 'perl_cosmo_dev_540',
             '+patches' => ['__sharedir__/5.36-cosmo-apperl.patch'],
+        },
+        perl_apperl_dev => {
+            desc => "For developing apperl",
+            base => 'perl_apperl_dev_540',
         },
     }
 );
@@ -914,16 +955,16 @@ sub Status {
         @projectitems = sort (keys %{$projectconfig->{apperl_configs}});
         _remove_arr_items_from_arr(\@configlist, \@projectitems);
     }
-    my @rolling = grep(/^(full|small|nobuild)$/, @configlist);
+    my @rolling = grep(/^(full|small|nobuild|full-540|small-540)$/, @configlist);
     {
-        my %preferences = ( full => 0, small => 1, nobuild => 2);
+        my %preferences = ( full => 0, small => 1, 'full-540' => 2, 'small-540' => 3, nobuild => 4);
         @rolling = sort {$preferences{$a} <=> $preferences{$b}} @rolling;
     }
     _remove_arr_items_from_arr(\@configlist, \@rolling);
-    my @deprecated = grep(/(\-vista|v0\.1\.0)$/, @configlist);
-    _remove_arr_items_from_arr(\@configlist, \@deprecated);
-    my @internal = grep(/^(dontuse_threads|perl_cosmo_dev|perl_apperl_dev|dbg)$/, @configlist);
+    my @internal = grep(/^(perl_cosmo_dev|perl_apperl_dev|dbg)/, @configlist);
     _remove_arr_items_from_arr(\@configlist, \@internal);
+    my @deprecated = grep(/(\-vista|v0\.1\.0|536)$/, @configlist);
+    _remove_arr_items_from_arr(\@configlist, \@deprecated);
     my @stable = grep( /v\d+\.\d+\.\d+$/, @configlist);
     _remove_arr_items_from_arr(\@configlist, \@stable);
     my @categories = (

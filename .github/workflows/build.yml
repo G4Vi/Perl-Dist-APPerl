@@ -45,7 +45,7 @@ jobs:
     needs:   build-linux
     strategy:
       matrix:
-        config: [full, small, full-vista, small-vista]
+        config: [full, small, full-vista, small-vista, full-536, small-536]
     steps:
     - name: Fetch build artifacts
       uses: actions/download-artifact@v8
@@ -198,4 +198,6 @@ jobs:
           small/*
           full-vista/*
           small-vista/*
+          full-536/*
+          small-536/*
           APPerl-*-all.zip
