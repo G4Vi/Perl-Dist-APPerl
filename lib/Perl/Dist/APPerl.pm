@@ -1286,6 +1286,7 @@ sub Build {
 
     # pack
     my $APPPATH = "$TEMPDIR/".basename($PERL_APE);
+    my $PERLPATH = "$TEMPDIR/perl";
     my $packAPE = sub {
         my $copyexe = sub {
             my ($srcpath, $destpath) = @_;
@@ -1309,6 +1310,8 @@ sub Build {
             chdir($ZIP_ROOT) or die "failed to enter ziproot";
             _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
         }
+        $copyexe->($APPPATH, $PERLPATH);
+        _command_or_die($PERLPATH, '--assimilate');
     };
     $packAPE->();
 
@@ -1362,11 +1365,21 @@ sub Build {
         my $perlbindir = "$TEMPDIR/perlbin";
         print "mkdir -p $perlbindir\n";
         make_path($perlbindir);
+        print "Mapping core scripts to run with $PERLPATH\n";
         opendir(my $dh, $perlbin) or die "failed to open perlbin";
         while (my $file = readdir($dh)) {
             next if ($file eq '.' || $file eq '..');
-            print "ln -s $APPPATH $perlbindir/$file\n";
-            symlink($APPPATH, "$perlbindir/$file") or die "failed to setup perlbins";
+            my $rdpath = "$perlbin/$file";
+            open(my $rh, '<', $rdpath) or die "failed to open $rdpath";
+            <$rh>;
+            my $wrpath = "$perlbindir/$file";
+            open(my $wh, '>', $wrpath) or die "failed to open $wrpath";
+            print $wh "#!$PERLPATH\n";
+            local $/;
+            my $script = <$rh>;
+            print $wh $script;
+            print "chmod 755 $wrpath\n";
+            chmod(0755, $wrpath) or die $!;
         }
         local $ENV{PATH} = "$perlbindir:".$ENV{PATH};
         foreach my $module (@{$itemconfig->{install_modules}}) {
