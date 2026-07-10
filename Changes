@@ -1,4 +1,7 @@
 Revision history for Perl-Dist-APPerl
+v0.8.0  2026-07-10
+        Add Perl 5.42 builds.
+
 v0.7.0  2026-07-09
         Add Perl 5.40 builds. 5.38 is skipped as static builds were
           broken on Perl 5.38,
