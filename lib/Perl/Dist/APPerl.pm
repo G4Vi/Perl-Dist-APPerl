@@ -1111,7 +1111,7 @@ sub Checkout {
             _command_or_die('tar', '-xf', $tarball_name);
             print "rm -rf $perl_build_dir\n";
             remove_tree($perl_build_dir);
-            my ($version) = $tarball_name =~ /^v(\d+\.\d+\.\d+)\.tar/;
+            my ($version) = $tarball_name =~ /^v(\d+\.\d+\.\d+(?:\-RC\d+)?)\.tar/;
             my $perl_build_dir_dir = dirname($perl_build_dir);
             print "mkdir -p $perl_build_dir_dir\n";
             make_path($perl_build_dir_dir);
