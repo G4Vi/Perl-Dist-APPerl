@@ -807,14 +807,14 @@ index 264f4f59a7..da6a82a0b9 100644
  /perldos.pod
  /perlfreebsd.pod
 diff --git a/pod/perl.pod b/pod/perl.pod
-index eee74c0a80..e45595ccae 100644
+index eee74c0a80..16c765ab0d 100644
 --- a/pod/perl.pod
 +++ b/pod/perl.pod
 @@ -295,6 +295,7 @@ aux h2ph h2xs perlbug pl2pm pod2html pod2man splain xsubpp
      perlamiga           Perl notes for AmigaOS
      perlandroid         Perl notes for Android
      perlbs2000          Perl notes for POSIX-BC BS2000
-+    perlcosmo		Perl notes for the Cosmopolitan Libc
++    perlcosmo           Perl notes for the Cosmopolitan Libc
      perlcygwin          Perl notes for Cygwin
      perlfreebsd         Perl notes for FreeBSD
      perlhaiku           Perl notes for Haiku
