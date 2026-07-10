@@ -1,0 +1,69 @@
+diff --git a/patchlevel.h b/patchlevel.h
+index 8073fc0867..041a9fcc19 100644
+--- a/patchlevel.h
++++ b/patchlevel.h
+@@ -157,6 +157,7 @@ static const char * const local_patches[] = {
+         NULL
+ 		, "RC2"
+ 		, "Perl-Dist-APPerl-v0.8.0/5.44-cosmo3.patch - https://github.com/G4Vi/Perl-Dist-APPerl/blob/v0.8.0/share/5.44-cosmo3.patch various changes to support building with the Cosmopolitan Libc"
++		, "Perl-Dist-APPerl-v0.8.0/5.44-apperl.patch - https://github.com/G4Vi/Perl-Dist-APPerl/blob/v0.8.0/share/5.44-apperl.patch argv[0] /zip/bin, APPERL_DEFAULT_SCRIPT, and APPERL_SCRIPTNAME script launching"
+ #ifdef PERL_GIT_UNCOMMITTED_CHANGES
+         ,"uncommitted-changes"
+ #endif
+diff --git a/perl.c b/perl.c
+index 59dd10fe3a..4ab5360159 100644
+--- a/perl.c
++++ b/perl.c
+@@ -2231,6 +2231,52 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
+ 
+     init_main_stash();
+ 
++    // check for APPERL_SCRIPTNAME or argv[0] or default script execution
++    do {
++        const char *envscriptname = getenv("APPERL_SCRIPTNAME");
++        const char *programname = envscriptname ? envscriptname : argv[0];
++        const char *slash = strrchr(programname, '/');
++        if(slash != NULL)
++        {
++            programname = slash + 1;
++        }
++        const char *dot = strrchr(programname, '.');
++        const unsigned namelen = dot ? dot - programname : strlen(programname);
++
++        // shortcut for normal execution
++        if((namelen == 4) && (memcmp("perl", programname, 4) == 0))
++        {
++            break;
++        }
++
++        // /zip/bin/ script execution
++        #define SCRIPTPATH "/zip/bin/"
++        static char name[256] = SCRIPTPATH;
++        if(sizeof(SCRIPTPATH)+namelen <= sizeof(name))
++        {
++            memcpy(name + sizeof(SCRIPTPATH) - 1, programname, namelen);
++            name[sizeof(SCRIPTPATH)-1+namelen] = '\0';
++            struct stat st;
++            if((stat(name, &st) == 0) && S_ISREG(st.st_mode))
++            {
++                scriptname = name;
++                break;
++            }
++        }
++        #undef SCRIPTPATH
++
++        // default script
++        #define DEFAULT_SCRIPT_SENTINEL "APPERL_DEFAULT_SCRIPT"
++        volatile static const char default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)+256] = DEFAULT_SCRIPT_SENTINEL;
++        if(default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)])
++        {
++            scriptname = &default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)];
++            break;
++        }
++        #undef DEFAULT_SCRIPT_SENTINEL
++    } while(0);
++
++    if(scriptname == NULL)
+     {
+         const char *s;
+     for (argc--,argv++; argc > 0; argc--,argv++) {

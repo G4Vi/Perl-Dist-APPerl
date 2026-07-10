@@ -769,14 +769,37 @@ my %defconfig = (
             dest => 'perl-542-small.com',
             install_modules => [],
         },
+        'full-544' => {
+            desc => 'moving target: full-544',
+            perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
+            perl_extra_flags => ['-Doptimize=-Os', '-de', '-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo'],
+            MANIFEST => ['lib', 'bin'],
+            'include_Perl-Dist-APPerl' => 1,
+            perl_repo_files => {},
+            zip_extra_files => {},
+            cosmo3 => 1,
+            dest => 'perl-544.com',
+            perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.44.0-RC2.tar.gz',
+            patches => ['__sharedir__/5.44-cosmo3.patch', '__sharedir__/5.44-apperl.patch'],
+            install_modules => [],
+        },
+        'small-544' => {
+            desc => 'moving target: small-544',
+            base => 'full-544',
+            perl_onlyextensions => [qw(Cwd ErrnoRuntime Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
+            MANIFEST => \@smallmanifest,
+            'include_Perl-Dist-APPerl' => 0,
+            dest => 'perl-544-small.com',
+            install_modules => [],
+        },
         'full' => {
             desc => 'moving target: full',
-            base => 'full-542',
+            base => 'full-544',
             dest => 'perl.com',
         },
         'small' => {
             desc => 'moving target: small',
-            base => 'small-542',
+            base => 'small-544',
             dest => 'perl-small.com',
         },
         'nobuild' => {
@@ -816,9 +839,16 @@ my %defconfig = (
             perl_url => undef,
             patches => ['__sharedir__/5.40-cosmo3.patch'],
         },
+        perl_cosmo_dev_544 => {
+            desc => "For developing cosmo platform perl without apperl additions",
+            base => 'full',
+            perl_id => 'v5.44.0-RC2',
+            perl_url => undef,
+            patches => ['__sharedir__/5.44-cosmo3.patch'],
+        },
         perl_cosmo_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
-            base => 'perl_cosmo_dev_542',
+            base => 'perl_cosmo_dev_544',
         },
         perl_apperl_dev_536 => {
             desc => "For developing apperl",
@@ -835,9 +865,14 @@ my %defconfig = (
             base => 'perl_cosmo_dev_542',
             '+patches' => ['__sharedir__/5.36-cosmo-apperl.patch'],
         },
+        perl_apperl_dev_544 => {
+            desc => "For developing apperl",
+            base => 'perl_cosmo_dev_544',
+            '+patches' => ['__sharedir__/5.44-apperl.patch'],
+        },
         perl_apperl_dev => {
             desc => "For developing apperl",
-            base => 'perl_apperl_dev_542',
+            base => 'perl_apperl_dev_544',
         },
     }
 );
