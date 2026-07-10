@@ -382,75 +382,6 @@ index a72dd024b5..a0f2606137 100644
  
    dos         Windows
    MSWin32     Windows
-diff --git a/cpan/Socket/Socket.xs b/cpan/Socket/Socket.xs
-index c6772990af..e60f4492a0 100644
---- a/cpan/Socket/Socket.xs
-+++ b/cpan/Socket/Socket.xs
-@@ -1171,7 +1171,7 @@ inet_ntop(af, ip_address_sv)
-         STRLEN addrlen;
- #ifdef AF_INET6
-         struct in6_addr addr;
--        char str[INET6_ADDRSTRLEN];
-+        char str[65];
- #else
-         struct in_addr addr;
-         char str[INET_ADDRSTRLEN];
-@@ -1183,20 +1183,19 @@ inet_ntop(af, ip_address_sv)
- 
-         ip_address = SvPVbyte(ip_address_sv, addrlen);
- 
--        switch(af) {
--            case AF_INET:
--                if(addrlen != 4)
--                    croak("Bad address length for Socket::inet_ntop on AF_INET;"
--                            " got %" UVuf ", should be 4", (UV)addrlen);
--                break;
-+        if(af == AF_INET) {
-+            if(addrlen != 4)
-+                croak("Bad address length for Socket::inet_ntop on AF_INET;"
-+                        " got %" UVuf ", should be 4", (UV)addrlen);
-+        }
- #ifdef AF_INET6
--            case AF_INET6:
--                if(addrlen != 16)
--                    croak("Bad address length for Socket::inet_ntop on AF_INET6;"
--                            " got %" UVuf ", should be 16", (UV)addrlen);
--                break;
-+        else if(af == AF_INET6) {
-+            if(addrlen != 16)
-+                croak("Bad address length for Socket::inet_ntop on AF_INET6;"
-+                        " got %" UVuf ", should be 16", (UV)addrlen);
-+        }
- #endif
--            default:
-+        else {
- #ifdef AF_INET6
- #    define WANT_FAMILY "either AF_INET or AF_INET6"
- #else
-@@ -1239,16 +1238,15 @@ inet_pton(af, host)
-         struct in_addr ip_address;
- #endif
- 
--        switch(af) {
--            case AF_INET:
--                addrlen = 4;
--                break;
-+        if(af == AF_INET) {
-+            addrlen = 4;
-+        }
- #ifdef AF_INET6
--            case AF_INET6:
--                addrlen = 16;
--                break;
-+        else if(af == AF_INET6) {
-+            addrlen = 16;
-+        }
- #endif
--            default:
-+        else {
- #ifdef AF_INET6
- #    define WANT_FAMILY "either AF_INET or AF_INET6"
- #else
 diff --git a/dist/IO/t/cachepropagate-unix.t b/dist/IO/t/cachepropagate-unix.t
 index 718d01da1d..8024a10474 100644
 --- a/dist/IO/t/cachepropagate-unix.t
@@ -486,39 +417,6 @@ index ac56d8df27..3fe55c007e 100644
              unless defined $cccmd;
  
         if ($^O eq 'VMS') {
-diff --git a/dist/threads-shared/shared.xs b/dist/threads-shared/shared.xs
-index 85700fec79..b5fcdfe3f1 100644
---- a/dist/threads-shared/shared.xs
-+++ b/dist/threads-shared/shared.xs
-@@ -783,20 +783,17 @@ Perl_sharedsv_cond_timedwait(perl_cond *cond, perl_mutex *mut, double abs)
- 
-     CLANG_DIAG_IGNORE(-Wthread-safety)
-     /* warning: calling function 'pthread_cond_timedwait' requires holding mutex 'mut' exclusively [-Wthread-safety-analysis] */
--    switch (pthread_cond_timedwait(cond, mut, &ts)) {
-+    const int ecode = pthread_cond_timedwait(cond, mut, &ts);
- 	CLANG_DIAG_RESTORE
--
--        case 0:         got_it = 1; break;
--        case ETIMEDOUT:             break;
-+    if(ecode == 0)
-+        got_it = 1;
-+    else if((ecode != ETIMEDOUT)
- #ifdef OEMVS
--        case -1:
--            if (errno == ETIMEDOUT || errno == EAGAIN)
--                break;
-+    && ((ecode != -1) || (errno != ETIMEDOUT && errno != EAGAIN))
- #endif
--        default:
--            Perl_croak_nocontext("panic: cond_timedwait");
--            break;
--    }
-+    )
-+        Perl_croak_nocontext("panic: cond_timedwait");
-+
-     return (got_it);
- #    endif /* OS2 */
- #  endif /* WIN32 */
 diff --git a/doio.c b/doio.c
 index 87b9e8498d..54c497a8bc 100644
 --- a/doio.c
