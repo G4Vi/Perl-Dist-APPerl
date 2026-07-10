@@ -4,6 +4,9 @@ v0.8.0  2026-07-XX
         Add Perl 5.44 RC2 builds.
         Cleanup patchlevel patch list.
         Fix install_modules requiring apperl patch.
+        Remove remove unnecessary constant refactoring in
+          dist/threads-shared/shared.xs and cpan/Socket/Socket.xs, not
+          needed withcosmo3 compiler.
 
 v0.7.0  2026-07-09
         Add Perl 5.40 builds. 5.38 is skipped as static builds were
