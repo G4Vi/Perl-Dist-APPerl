@@ -845,6 +845,7 @@ my %defconfig = (
             perl_id => 'v5.44.0',
             perl_url => undef,
             patches => ['__sharedir__/5.44-cosmo3.patch'],
+            'cosmocc-version' => '4.0.2',
         },
         perl_cosmo_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
@@ -1077,8 +1078,8 @@ sub Checkout {
     my $itemconfig = _load_apperl_config(_load_apperl_configs()->{apperl_configs}, $cfgname);
     print Dumper($itemconfig);
     if(! exists $itemconfig->{nobuild_perl_bin}) {
-        my $SiteConfig = _load_valid_site_config($itemconfig->{cosmo3});
-        if(! $itemconfig->{cosmo3}) {
+        my $SiteConfig = _load_valid_site_config($itemconfig->{'cosmocc-version'});
+        if (! $itemconfig->{'cosmocc-version'}) {
             print "cd ".$SiteConfig->{cosmo_repo}."\n";
             chdir($SiteConfig->{cosmo_repo}) or die "Failed to enter cosmo repo";
             _command_or_die('git', 'checkout', $itemconfig->{cosmo_id});
@@ -1159,8 +1160,8 @@ sub Configure {
     my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
     $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
     _install_perl_src_files($itemconfig, $perl_build_dir);
-    my $SiteConfig = _load_valid_site_config($itemconfig->{cosmo3});
-    if(! $itemconfig->{cosmo3}) {
+    my $SiteConfig = _load_valid_site_config($itemconfig->{'cosmocc-version'});
+    if(! $itemconfig->{'cosmocc-version'}) {
         # build toolchain
         _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j', 'toolchain', 'MODE=', 'ARCH=x86_64');
         # build cosmo
@@ -1219,7 +1220,7 @@ sub Build {
     my @perl_config_cmd;
     # build cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
-        my $SiteConfig = _load_valid_site_config($itemconfig->{cosmo3});
+        my $SiteConfig = _load_valid_site_config($itemconfig->{'cosmocc-version'});
         my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
         $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
         _install_perl_src_files($itemconfig, $perl_build_dir);
@@ -1762,6 +1763,13 @@ sub _load_apperl_config {
         }
     }
 
+    # set cosmocc-version default values
+    if (!exists $itemconfig{'cosmocc-version'} && exists $itemconfig{cosmo3} && $itemconfig{cosmo3}) {
+        print "setting cosmocc-version to 3.3.10\n";
+        $itemconfig{'cosmocc-version'} = '3.3.10';
+    }
+    delete $itemconfig{cosmo3};
+
     # verify apperl config sanity
     if(! exists $itemconfig{nobuild_perl_bin}) {
         $itemconfig{cosmo_ape_loader} //= 'ape-no-modify-self.o';
@@ -1799,13 +1807,13 @@ sub _load_valid_configs {
 }
 
 sub _load_valid_site_config {
-    my ($is_cosmo3) = @_;
+    my ($cosmocc_version) = @_;
     my $SiteConfig = _load_json(SITE_CONFIG_FILE);
-    if ($is_cosmo3) {
+    if ($cosmocc_version) {
         $SiteConfig //= {};
         if (! exists $SiteConfig->{cosmocc}) {
             print "cosmocc not found in " . SITE_CONFIG_FILE .  " attempting to install cosmocc\n";
-            _install_cosmocc($SiteConfig);
+            _install_cosmocc($SiteConfig, $cosmocc_version);
         }
         -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory, please edit or remove the entry in ' . SITE_CONFIG_FILE;
     } else {
