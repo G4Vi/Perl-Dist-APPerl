@@ -676,30 +676,6 @@ my %defconfig = (
             zip_extra_files => {},
             nobuild_perl_bin => ['src/perl.com', $^X],
         },
-        'v5.36.0-full-v0.1.0-vista' => {
-            desc => 'Full perl v5.36.0, but with non-standard Cosmopolitan Libc that still supports vista',
-            perl_id => 'b22da6b83c37604132694ead0bdcf61690f74a53',
-            cosmo_id => '9c5a7795add7add5a214afce27d896084e0861c5',
-            cosmo_mode => '',
-            cosmo_ape_loader => 'ape-no-modify-self.o',
-            dest => 'perl-vista.com',
-            perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
-            perl_extra_flags => ['-Doptimize=-Os', '-de'],
-            MANIFEST => ['lib', 'bin'],
-            'include_Perl-Dist-APPerl' => 1,
-            perl_repo_files => {},
-            zip_extra_files => {},
-        },
-        'v5.36.0-small-v0.1.0-vista' => {
-            desc => 'small perl v5.36.0, but with non-standard Cosmopolitan Libc that still supports vista',
-            base => 'v5.36.0-full-v0.1.0-vista',
-            perl_onlyextensions => [qw(Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
-            MANIFEST => \@smallmanifest,
-            'include_Perl-Dist-APPerl' => 0,
-            dest => 'perl-small-vista.com',
-        },
-        'full-vista' => { desc => 'moving target: full for vista', base => 'v5.36.0-full-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
-        'small-vista' => { desc => 'moving target: small for vista', base => 'v5.36.0-small-v0.1.0-vista', perl_id => '239a05bbef291b8de3309c95852d41fc027cacab', cosmo_id => 'fea68b142e59b5861fe09375eb5bcb256b69b70e', '+perl_extra_flags' => ['-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo']},
         'full-536' => {
             desc => 'moving target: full-536',
             perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
@@ -963,7 +939,7 @@ sub _install_cosmocc {
 }
 
 sub InstallBuildDeps {
-    my ($perlrepo, $cosmorepo) = @_;
+    my ($perlrepo) = @_;
     my $SiteConfig = _load_json(SITE_CONFIG_FILE);
     $SiteConfig //= {};
 
@@ -973,17 +949,10 @@ sub InstallBuildDeps {
         _setup_repo($perlrepo, _load_apperl_configs()->{perl_remotes});
         print "apperlm install-build-deps: setup perl repo\n";
     }
-    if(!exists $SiteConfig->{cosmo_repo} && !$cosmorepo) {
-        $cosmorepo = SITE_REPO_DIR."/cosmopolitan";
-        _setup_repo( $cosmorepo, _load_apperl_configs()->{cosmo_remotes});
-        print "apperlm install-build-deps: setup cosmo repo\n";
-    }
 
     # (re)write site config
     $perlrepo //= $SiteConfig->{perl_repo};
-    $cosmorepo //= $SiteConfig->{cosmo_repo};
     $SiteConfig->{perl_repo} = abs_path($perlrepo);
-    $SiteConfig->{cosmo_repo} = abs_path($cosmorepo);
     make_path(SITE_CONFIG_DIR);
     _write_json(SITE_CONFIG_FILE, $SiteConfig);
     print "apperlm install-build-deps: wrote site config to ".SITE_CONFIG_FILE."\n";
@@ -1034,7 +1003,7 @@ sub Status {
     _remove_arr_items_from_arr(\@configlist, \@rolling);
     my @internal = grep(/^(perl_cosmo_dev|perl_apperl_dev|dbg)/, @configlist);
     _remove_arr_items_from_arr(\@configlist, \@internal);
-    my @deprecated = grep(/(\-vista|v0\.1\.0|536)$/, @configlist);
+    my @deprecated = grep(/(536)$/, @configlist);
     _remove_arr_items_from_arr(\@configlist, \@deprecated);
     my @stable = grep( /v\d+\.\d+\.\d+$/, @configlist);
     _remove_arr_items_from_arr(\@configlist, \@stable);
@@ -1079,11 +1048,6 @@ sub Checkout {
     print Dumper($itemconfig);
     if(! exists $itemconfig->{nobuild_perl_bin}) {
         my $SiteConfig = _load_valid_site_config($itemconfig->{'cosmocc-version'});
-        if (! $itemconfig->{'cosmocc-version'}) {
-            print "cd ".$SiteConfig->{cosmo_repo}."\n";
-            chdir($SiteConfig->{cosmo_repo}) or die "Failed to enter cosmo repo";
-            _command_or_die('git', 'checkout', $itemconfig->{cosmo_id});
-        }
         $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= $SiteConfig->{perl_repo} if !$itemconfig->{perl_url};
         $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= "$UserProjectConfig->{apperl_output}/$cfgname/tmp/perl5";
         my $perl_build_dir = $UserProjectConfig->{configs}{$cfgname}{perl_build_dir};
@@ -1161,23 +1125,7 @@ sub Configure {
     $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
     _install_perl_src_files($itemconfig, $perl_build_dir);
     my $SiteConfig = _load_valid_site_config($itemconfig->{'cosmocc-version'});
-    if(! $itemconfig->{'cosmocc-version'}) {
-        # build toolchain
-        _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j', 'toolchain', 'MODE=', 'ARCH=x86_64');
-        # build cosmo
-        print "$0: Building cosmo, COSMO_MODE=$itemconfig->{cosmo_mode} COSMO_APE_LOADER=$itemconfig->{cosmo_ape_loader}\n";
-        _command_or_die('make', '-C', $SiteConfig->{cosmo_repo}, '-j4', "MODE=$itemconfig->{cosmo_mode}",
-        "o/$itemconfig->{cosmo_mode}/cosmopolitan.a",
-        "o/$itemconfig->{cosmo_mode}/libc/crt/crt.o",
-        "o/$itemconfig->{cosmo_mode}/ape/public/ape.lds",
-        "o/$itemconfig->{cosmo_mode}/ape/$itemconfig->{cosmo_ape_loader}",
-        );
-        $ENV{COSMO_MODE} = $itemconfig->{cosmo_mode};
-        $ENV{COSMO_APE_LOADER} = $itemconfig->{cosmo_ape_loader};
-        $ENV{COSMO_REPO} = $SiteConfig->{cosmo_repo};
-    } else {
-        $ENV{COSMOCC} = $SiteConfig->{cosmocc};
-    }
+    $ENV{COSMOCC} = $SiteConfig->{cosmocc};
 
     # Finally Configure perl
     print "cd $perl_build_dir\n";
@@ -1573,17 +1521,15 @@ END_USAGE
     }
     elsif($command eq 'install-build-deps') {
         my $usage = <<'END_USAGE';
-apperlm install-build-deps [-h|--help] [-c|--cosmo <path>] [-p|--perl <path>]
-  -c|--cosmo <path> set path to cosmopolitan repo (skips git initialization)
+apperlm install-build-deps [-h|--help] [-p|--perl <path>]
   -p|--perl  <path> set path to perl repo (skips git initialization)
   -h|--help     Show this message
 Install build dependencies for APPerl, use -c or -p to skip initializing
 those repos by providing a path to it.
 END_USAGE
-        my $cosmo;
         my $perl;
         my $help;
-        GetOptionsFromArray(\@_, "cosmo|c=s" => \$cosmo,
+        GetOptionsFromArray(\@_,
                    "perl|p=s" => \$perl,
                    "help|h" => \$help,
         ) or die($usage);
@@ -1591,7 +1537,7 @@ END_USAGE
             print $usage;
             exit 0;
         }
-        Perl::Dist::APPerl::InstallBuildDeps($perl, $cosmo);
+        Perl::Dist::APPerl::InstallBuildDeps($perl);
     }
     elsif($command eq 'new-config') {
         my $usage = <<'END_USAGE';
@@ -1769,6 +1715,7 @@ sub _load_apperl_config {
         $itemconfig{'cosmocc-version'} = '3.3.10';
     }
     delete $itemconfig{cosmo3};
+    $itemconfig{'cosmocc-version'} //= '3.3.10';
 
     # verify apperl config sanity
     if(! exists $itemconfig{nobuild_perl_bin}) {
@@ -1809,17 +1756,12 @@ sub _load_valid_configs {
 sub _load_valid_site_config {
     my ($cosmocc_version) = @_;
     my $SiteConfig = _load_json(SITE_CONFIG_FILE);
-    if ($cosmocc_version) {
-        $SiteConfig //= {};
-        if (! exists $SiteConfig->{cosmocc}) {
-            print "cosmocc not found in " . SITE_CONFIG_FILE .  " attempting to install cosmocc\n";
-            _install_cosmocc($SiteConfig, $cosmocc_version);
-        }
-        -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory, please edit or remove the entry in ' . SITE_CONFIG_FILE;
-    } else {
-        $SiteConfig or die "Failed to load SiteConfig, run apperlm install-build-deps";
-        -d $SiteConfig->{cosmo_repo} or die $SiteConfig->{cosmo_repo} ." is not directory, reconfigure with `apperlm install-build-deps`. Note to redownload if its already there edit ".SITE_CONFIG_FILE;
+    $SiteConfig //= {};
+    if (! exists $SiteConfig->{cosmocc}) {
+        print "cosmocc not found in " . SITE_CONFIG_FILE .  " attempting to install cosmocc\n";
+        _install_cosmocc($SiteConfig, $cosmocc_version);
     }
+    -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory, please edit or remove the entry in ' . SITE_CONFIG_FILE;
     return $SiteConfig;
 }
 
@@ -1984,8 +1926,7 @@ C<zip> binary path may be explictly set by passing in
 =item *
 
 C<apperlm install-build-deps> installs APPerl build git dependencies.
-This is now unnecessary unless you are doing vista builds or developing
-APPerl itself. Note, vista builds are deprecated, see Changes.
+This is now unnecessary unless you are developing APPerl itself.
 Initialization of the repos can be skipped by passing the path to them
 locally. The cosmopolitan repo initialization can be skipped with
 -c <path_to_repo> . The perl5 repo initialization can be skipped with
