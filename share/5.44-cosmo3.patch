@@ -745,10 +745,10 @@ index 024c66a147..2741c895ed 100644
  
 diff --git a/hints/cosmo.sh b/hints/cosmo.sh
 new file mode 100644
-index 0000000000..3d7118a4f9
+index 0000000000..72058dddbf
 --- /dev/null
 +++ b/hints/cosmo.sh
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,22 @@
 +#! /bin/sh
 +# cosmo.sh - hints for building perl using the Cosmopolitan Libc
 +#
@@ -762,6 +762,7 @@ index 0000000000..3d7118a4f9
 +osvers=''
 +libpth=''
 +d_procselfexe='undef'
++i_stdckdint='undef'
 +locincpth=''
 +loclibpth=''
 +glibpth=''

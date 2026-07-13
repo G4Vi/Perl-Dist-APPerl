@@ -7,6 +7,7 @@ v0.8.0  2026-07-XX
         Remove remove unnecessary constant refactoring in
           dist/threads-shared/shared.xs and cpan/Socket/Socket.xs, not
           needed withcosmo3 compiler.
+        Disable stdckdint.h on Perl 5.44, fixes several tests.
 
 v0.7.0  2026-07-09
         Add Perl 5.40 builds. 5.38 is skipped as static builds were
