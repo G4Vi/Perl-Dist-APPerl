@@ -5,14 +5,12 @@ use warnings;
 use Test::More;
 use Perl::Dist::APPerl;
 use File::Copy "cp";
-my @apperlconfigs = qw(full small full-vista small-vista nobuild-v0.1.0);
+my @apperlconfigs = qw(full small nobuild-v0.1.0);
 plan tests => 3 * scalar(@apperlconfigs);
 
 my %binmapping = (
     full => 'perl.com',
     small => 'perl-small.com',
-    'full-vista' => 'perl-vista.com',
-    'small-vista' => 'perl-small-vista.com',
     'nobuild-v0.1.0' => 'perl-nobuild.com'
 );
 
