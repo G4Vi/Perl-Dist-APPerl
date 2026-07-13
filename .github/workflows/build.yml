@@ -45,7 +45,7 @@ jobs:
     needs:   build-linux
     strategy:
       matrix:
-        config: [full, small, full-vista, small-vista, full-536, small-536, full-540, small-540, full-542, small-542]
+        config: [full, small, full-536, small-536, full-540, small-540, full-542, small-542]
     steps:
     - name: Fetch build artifacts
       uses: actions/download-artifact@v8
@@ -60,24 +60,8 @@ jobs:
         install-modules: Perl-Dist-APPerl.tar.gz
     - name: Load config
       run: |
-          PERL_ID=$(apperlm get-config-key ${{ matrix.config }} perl_id) && echo "PERL_ID=$PERL_ID" >> $GITHUB_ENV || true
-          COSMO_ID=$(apperlm get-config-key ${{ matrix.config }} cosmo_id) && echo "COSMO_ID=$COSMO_ID" >> $GITHUB_ENV || true
           DEST_BIN=$(apperlm get-config-key ${{ matrix.config }} dest) && echo "DEST_BIN=$DEST_BIN" >> $GITHUB_ENV
           REL_NAME=APPerl-$(perl -MPerl::Dist::APPerl -e 'print $Perl::Dist::APPerl::VERSION')-${{ matrix.config }}.zip && echo "REL_NAME=$REL_NAME" >> $GITHUB_ENV
-    - name: Fetch Perl fork
-      uses: actions/checkout@v7
-      if: env.PERL_ID != ''
-      with:
-        repository: 'G4Vi/perl5'
-        ref: ${{ env.PERL_ID }}
-        path: 'perl5'
-    - name: Fetch cosmopolitan
-      if: env.COSMO_ID != ''
-      uses: actions/checkout@v7
-      with:
-        repository: 'jart/cosmopolitan'
-        ref: ${{ env.COSMO_ID }}
-        path: 'cosmopolitan'
     - name: support ape bins
       run: sudo sh -c "echo ':APE:M::MZqFpD::/bin/sh:' >/proc/sys/fs/binfmt_misc/register"
     - name: Configure and Build perl.com
@@ -86,7 +70,6 @@ jobs:
         CF_EMAIL: ${{ secrets.CF_EMAIL }}
       run: |
         ls -la
-        apperlm install-build-deps -p perl5 -c cosmopolitan
         apperlm init --name ${{ matrix.config }}
         apperlm list
         apperlm configure -Dcf_by="$CF_BY" -Dcf_email="$CF_EMAIL"
@@ -196,8 +179,6 @@ jobs:
           Perl-Dist-APPerl-v*.tar.gz/Perl-Dist-APPerl-v*.tar.gz
           full/*
           small/*
-          full-vista/*
-          small-vista/*
           full-536/*
           small-536/*
           full-540/*
