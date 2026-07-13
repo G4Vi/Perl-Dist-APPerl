@@ -820,8 +820,8 @@ my %defconfig = (
             base => 'full',
             perl_id => 'v5.44.0',
             perl_url => undef,
-            patches => ['__sharedir__/5.44-cosmo3.patch'],
-            'cosmocc-version' => '4.0.2',
+            patches => ['__sharedir__/5.44-cosmo4x.patch'],
+            'cosmocc-version' => 'unreleased',
         },
         perl_cosmo_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
@@ -921,7 +921,7 @@ sub NewConfig {
 sub _install_cosmocc {
     my ($SiteConfig, $version) = @_;
     $version //= '3.3.10';
-    my $cosmocc = SITE_REPO_DIR."/cosmocc";
+    my $cosmocc = SITE_REPO_DIR."/cosmocc-$version";
     print "rm -rf $cosmocc\n";
     remove_tree($cosmocc);
     print "mkdir -p $cosmocc\n";
@@ -933,8 +933,9 @@ sub _install_cosmocc {
     _command_or_die('wget', "https://cosmo.zip/pub/cosmocc/$filename");
     _command_or_die('unzip', $filename);
     chdir($before) or die "error resetting directory";
-    $SiteConfig->{cosmocc} = $cosmocc;
+    $SiteConfig->{"cosmocc-$version"} = $cosmocc;
     make_path(SITE_CONFIG_DIR);
+    delete $SiteConfig->{cosmocc};
     _write_json(SITE_CONFIG_FILE, $SiteConfig);
 }
 
@@ -954,6 +955,7 @@ sub InstallBuildDeps {
     $perlrepo //= $SiteConfig->{perl_repo};
     $SiteConfig->{perl_repo} = abs_path($perlrepo);
     make_path(SITE_CONFIG_DIR);
+    delete $SiteConfig->{cosmocc};
     _write_json(SITE_CONFIG_FILE, $SiteConfig);
     print "apperlm install-build-deps: wrote site config to ".SITE_CONFIG_FILE."\n";
 }
@@ -1047,7 +1049,7 @@ sub Checkout {
     my $itemconfig = _load_apperl_config(_load_apperl_configs()->{apperl_configs}, $cfgname);
     print Dumper($itemconfig);
     if(! exists $itemconfig->{nobuild_perl_bin}) {
-        my $SiteConfig = _load_valid_site_config($itemconfig->{'cosmocc-version'});
+        my $SiteConfig = _load_valid_site_config($itemconfig);
         $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= $SiteConfig->{perl_repo} if !$itemconfig->{perl_url};
         $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= "$UserProjectConfig->{apperl_output}/$cfgname/tmp/perl5";
         my $perl_build_dir = $UserProjectConfig->{configs}{$cfgname}{perl_build_dir};
@@ -1124,7 +1126,7 @@ sub Configure {
     my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
     $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
     _install_perl_src_files($itemconfig, $perl_build_dir);
-    my $SiteConfig = _load_valid_site_config($itemconfig->{'cosmocc-version'});
+    my $SiteConfig = _load_valid_site_config($itemconfig);
     $ENV{COSMOCC} = $SiteConfig->{cosmocc};
 
     # Finally Configure perl
@@ -1168,7 +1170,7 @@ sub Build {
     my @perl_config_cmd;
     # build cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
-        my $SiteConfig = _load_valid_site_config($itemconfig->{'cosmocc-version'});
+        my $SiteConfig = _load_valid_site_config($itemconfig);
         my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
         $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
         _install_perl_src_files($itemconfig, $perl_build_dir);
@@ -1753,13 +1755,15 @@ sub _load_valid_configs {
 }
 
 sub _load_valid_site_config {
-    my ($cosmocc_version) = @_;
+    my ($itemconfig) = @_;
+    my $cosmocc_version = $itemconfig->{'cosmocc-version'};
     my $SiteConfig = _load_json(SITE_CONFIG_FILE);
     $SiteConfig //= {};
-    if (! exists $SiteConfig->{cosmocc}) {
+    if (! exists $SiteConfig->{"cosmocc-$cosmocc_version"}) {
         print "cosmocc not found in " . SITE_CONFIG_FILE .  " attempting to install cosmocc\n";
         _install_cosmocc($SiteConfig, $cosmocc_version);
     }
+    $SiteConfig->{cosmocc} = $SiteConfig->{"cosmocc-$cosmocc_version"};
     -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory, please edit or remove the entry in ' . SITE_CONFIG_FILE;
     return $SiteConfig;
 }
