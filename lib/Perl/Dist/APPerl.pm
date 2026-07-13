@@ -1711,7 +1711,6 @@ sub _load_apperl_config {
 
     # set cosmocc-version default values
     if (!exists $itemconfig{'cosmocc-version'} && exists $itemconfig{cosmo3} && $itemconfig{cosmo3}) {
-        print "setting cosmocc-version to 3.3.10\n";
         $itemconfig{'cosmocc-version'} = '3.3.10';
     }
     delete $itemconfig{cosmo3};
