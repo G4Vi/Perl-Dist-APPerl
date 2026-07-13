@@ -832,3 +832,85 @@ index 929a746742..0218a8b233 100644
      if ($^O eq 'qnx') {
  	chomp($wd = `/usr/bin/fullpath -t`);
      }
+diff --git a/t/porting/known_pod_issues.dat b/t/porting/known_pod_issues.dat
+index 3f55205702..cd8bdffedc 100644
+--- a/t/porting/known_pod_issues.dat
++++ b/t/porting/known_pod_issues.dat
+@@ -262,6 +262,7 @@ pclose(3)
+ perl(1)
+ Perl4::CoreLibs
+ perl5198delta
++Perl::Dist::APPerl
+ Perl::Unsafe::Signals
+ perlbug(1)
+ PerlIO::locale
+diff --git a/win32/GNUmakefile b/win32/GNUmakefile
+index 3c3291d283..a6a46a1122 100644
+--- a/win32/GNUmakefile
++++ b/win32/GNUmakefile
+@@ -1624,6 +1624,7 @@ utils: $(HAVEMINIPERL) ..\utils\Makefile
+ 	copy ..\README.android  ..\pod\perlandroid.pod
+ 	copy ..\README.bs2000   ..\pod\perlbs2000.pod
+ 	copy ..\README.cn       ..\pod\perlcn.pod
++	copy ..\README.cosmo    ..\pod\perlcosmo.pod
+ 	copy ..\README.cygwin   ..\pod\perlcygwin.pod
+ 	copy ..\README.freebsd  ..\pod\perlfreebsd.pod
+ 	copy ..\README.haiku    ..\pod\perlhaiku.pod
+@@ -1748,14 +1749,14 @@ distclean: realclean
+ 	-if exist $(LIBDIR)\XS rmdir /s /q $(LIBDIR)\XS
+ 	-cd $(PODDIR) && del /f *.html *.bat roffitall \
+ 	    perl5440delta.pod perlaix.pod perlamiga.pod perlandroid.pod \
+-	    perlapi.pod perlbs2000.pod perlcn.pod perlcygwin.pod \
+-	    perlfreebsd.pod perlhaiku.pod perlhpux.pod perlhurd.pod \
+-	    perlintern.pod perlirix.pod perljp.pod perlko.pod perllinux.pod \
+-	    perlmacosx.pod perlmodlib.pod perlopenbsd.pod perlos2.pod \
+-	    perlos390.pod perlos400.pod perlplan9.pod perlqnx.pod \
+-	    perlriscos.pod perlsolaris.pod perlsynology.pod perltoc.pod \
+-	    perltru64.pod perltw.pod perluniprops.pod perlvos.pod \
+-	    perlwin32.pod
++	    perlapi.pod perlbs2000.pod perlcn.pod perlcosmo.pod \
++	    perlcygwin.pod perlfreebsd.pod perlhaiku.pod perlhpux.pod \
++	    perlhurd.pod perlintern.pod perlirix.pod perljp.pod perlko.pod \
++	    perllinux.pod perlmacosx.pod perlmodlib.pod perlopenbsd.pod \
++	    perlos2.pod perlos390.pod perlos400.pod perlplan9.pod \
++	    perlqnx.pod perlriscos.pod perlsolaris.pod perlsynology.pod \
++	    perltoc.pod perltru64.pod perltw.pod perluniprops.pod \
++	    perlvos.pod perlwin32.pod
+ 	-cd ..\utils && del /f h2ph splain perlbug pl2pm h2xs \
+ 	    perldoc perlivp libnetcfg enc2xs encguess piconv cpan *.bat \
+ 	    xsubpp pod2html instmodsh json_pp prove ptar ptardiff ptargrep shasum corelist zipdetails
+diff --git a/win32/Makefile b/win32/Makefile
+index 42d452e19c..17c1304014 100644
+--- a/win32/Makefile
++++ b/win32/Makefile
+@@ -1151,6 +1151,7 @@ utils: $(PERLEXE) ..\utils\Makefile
+ 	copy ..\README.android  ..\pod\perlandroid.pod
+ 	copy ..\README.bs2000   ..\pod\perlbs2000.pod
+ 	copy ..\README.cn       ..\pod\perlcn.pod
++	copy ..\README.cosmo    ..\pod\perlcosmo.pod
+ 	copy ..\README.cygwin   ..\pod\perlcygwin.pod
+ 	copy ..\README.freebsd  ..\pod\perlfreebsd.pod
+ 	copy ..\README.haiku    ..\pod\perlhaiku.pod
+@@ -1276,14 +1277,14 @@ distclean: realclean
+ 	-if exist $(LIBDIR)\XS rmdir /s /q $(LIBDIR)\XS
+ 	-cd $(PODDIR) && del /f *.html *.bat roffitall \
+ 	    perl5440delta.pod perlaix.pod perlamiga.pod perlandroid.pod \
+-	    perlapi.pod perlbs2000.pod perlcn.pod perlcygwin.pod \
+-	    perlfreebsd.pod perlhaiku.pod perlhpux.pod perlhurd.pod \
+-	    perlintern.pod perlirix.pod perljp.pod perlko.pod perllinux.pod \
+-	    perlmacosx.pod perlmodlib.pod perlopenbsd.pod perlos2.pod \
+-	    perlos390.pod perlos400.pod perlplan9.pod perlqnx.pod \
+-	    perlriscos.pod perlsolaris.pod perlsynology.pod perltoc.pod \
+-	    perltru64.pod perltw.pod perluniprops.pod perlvos.pod \
+-	    perlwin32.pod
++	    perlapi.pod perlbs2000.pod perlcn.pod perlcosmo.pod \
++	    perlcygwin.pod perlfreebsd.pod perlhaiku.pod perlhpux.pod \
++	    perlhurd.pod perlintern.pod perlirix.pod perljp.pod perlko.pod \
++	    perllinux.pod perlmacosx.pod perlmodlib.pod perlopenbsd.pod \
++	    perlos2.pod perlos390.pod perlos400.pod perlplan9.pod \
++	    perlqnx.pod perlriscos.pod perlsolaris.pod perlsynology.pod \
++	    perltoc.pod perltru64.pod perltw.pod perluniprops.pod \
++	    perlvos.pod perlwin32.pod
+ 	-cd ..\utils && del /f h2ph splain perlbug pl2pm h2xs \
+ 	    perldoc perlivp libnetcfg enc2xs encguess piconv cpan streamzip *.bat \
+ 	    xsubpp pod2html instmodsh json_pp prove ptar ptardiff ptargrep shasum corelist zipdetails
