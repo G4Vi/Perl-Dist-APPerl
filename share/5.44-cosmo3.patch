@@ -875,6 +875,19 @@ index 3f55205702..cd8bdffedc 100644
  Perl::Unsafe::Signals
  perlbug(1)
  PerlIO::locale
+diff --git a/t/run/locale.t b/t/run/locale.t
+index 67893235e7..0658110af6 100644
+--- a/t/run/locale.t
++++ b/t/run/locale.t
+@@ -709,6 +709,8 @@ SKIP: {   # GH #20054
+                     && $Config{d_setlocale_accepts_any_locale_name} eq 'define';
+     skip "z/OS setlocale() crashes with illegal locale names", 1
+                                                            if $^O eq 'os390';
++    skip "Cosmopolitian setlocale(category, \"\") always sets locale \"C\"", 1
++                                                           if $^O eq 'cosmo';
+ 
+     my @lc_all_locales = find_locales('LC_ALL');
+     my $locale = $lc_all_locales[0];
 diff --git a/win32/GNUmakefile b/win32/GNUmakefile
 index 3c3291d283..a6a46a1122 100644
 --- a/win32/GNUmakefile
