@@ -299,6 +299,22 @@ index 0c46b9e6da..3ba9bcf527 100755
  # Only need the dynamic byteorder code in Config.pm if 'byteorder' is one of
  # the precached keys
  if ($Common{byteorder}) {
+diff --git a/cpan/Archive-Tar/t/04_resolved_issues.t b/cpan/Archive-Tar/t/04_resolved_issues.t
+index 08d339ac87..69345076ae 100644
+--- a/cpan/Archive-Tar/t/04_resolved_issues.t
++++ b/cpan/Archive-Tar/t/04_resolved_issues.t
+@@ -275,6 +275,11 @@ SKIP: {
+   ok( 1,                      "Testing bug 103279" );
+ 	my $tar = $Class->new;
+ 	isa_ok( $tar, $Class,       "   Object" );
++	if ($^O eq 'cosmo') {
++		# Cosmopolitan prevents creating files that end with space so behavior
++		# doesn't change between running on Windows and elsewhere.
++		skip 'Cosmo doesn\'t allow creating files that end with space', 7;
++	}
+ 	ok( open my $fh, '>', 'white_space   ' );
+ 	ok( close $fh );
+ 	if (-e 'white_space' && $^O eq 'MSWin32') {
 diff --git a/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm b/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
 index 0aee5233fe..cd17c1c86f 100644
 --- a/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
@@ -360,6 +376,19 @@ index 0aee5233fe..cd17c1c86f 100644
  	print $xs_fh <<"EOBOOT" if $type;
  	const struct $struct_type *$iterator{$type} = $array_name;
  EOBOOT
+diff --git a/cpan/File-Path/t/Path.t b/cpan/File-Path/t/Path.t
+index b265aeeb2d..e9812c5f69 100644
+--- a/cpan/File-Path/t/Path.t
++++ b/cpan/File-Path/t/Path.t
+@@ -370,7 +370,7 @@ SKIP: {
+   # Better to search for *nix derivatives?
+   # Not sure what else doesn't support newline in paths
+   skip "$^O doesn't allow newline in paths", 2
+-    if $^O =~ m/^(MSWin32|VMS)$/;
++    if $^O =~ m/^(MSWin32|VMS|cosmo)$/;
+ 
+   @created = make_path( $dir, $dir2 );
+ 
 diff --git a/cpan/Perl-OSType/lib/Perl/OSType.pm b/cpan/Perl-OSType/lib/Perl/OSType.pm
 index a72dd024b5..a0f2606137 100644
 --- a/cpan/Perl-OSType/lib/Perl/OSType.pm
@@ -475,12 +504,43 @@ index 024c66a147..2741c895ed 100644
      is($oldaction->{FLAGS}, 0);
  }
  
+diff --git a/ext/POSIX/t/sigset.t b/ext/POSIX/t/sigset.t
+index 864b4f528e..4d903b273e 100644
+--- a/ext/POSIX/t/sigset.t
++++ b/ext/POSIX/t/sigset.t
+@@ -34,6 +34,7 @@ sub expected_signals {
+     }
+ }
+ 
++my @fillsetsigno;
+ foreach (@POSIX::EXPORT) {
+     next unless /^SIG[A-Z0-9]+$/;
+     my $val = eval "POSIX::$_";
+@@ -41,6 +42,9 @@ foreach (@POSIX::EXPORT) {
+     $min = $val if $min > $val;
+     $max = $val if $max < $val;
+     push @signo, $val;
++     # Cosmpolitian doesn't allow adding these signals with sigfillset
++    next if $^O eq 'cosmo' && /^(?:SIGTHR|SIGABRT|SIGKILL|SIGSTOP)$/;
++    push @fillsetsigno, $val;
+ }
+ 
+ # Sanity check that we found something:
+@@ -55,7 +59,7 @@ is($sigset->fillset(), '0 but true', 'fillset');
+ # because on some systems, not all integers are valid signals...
+ # so the only thing we can really be confident about is that all the signals
+ # with names are going to be present:
+-foreach (@signo) {
++foreach (@fillsetsigno) {
+     cmp_ok($sigset->ismember($_), '==', 1, "after fillset sig $_ is a member");
+ }
+ is($sigset->emptyset(), '0 but true', 'empyset');
 diff --git a/hints/cosmo.sh b/hints/cosmo.sh
 new file mode 100644
-index 0000000000..3d7118a4f9
+index 0000000000..72058dddbf
 --- /dev/null
 +++ b/hints/cosmo.sh
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,22 @@
 +#! /bin/sh
 +# cosmo.sh - hints for building perl using the Cosmopolitan Libc
 +#
@@ -494,6 +554,7 @@ index 0000000000..3d7118a4f9
 +osvers=''
 +libpth=''
 +d_procselfexe='undef'
++i_stdckdint='undef'
 +locincpth=''
 +loclibpth=''
 +glibpth=''
@@ -563,3 +624,91 @@ index 929a746742..0218a8b233 100644
      if ($^O eq 'qnx') {
  	chomp($wd = `/usr/bin/fullpath -t`);
      }
+diff --git a/t/porting/known_pod_issues.dat b/t/porting/known_pod_issues.dat
+index 3f55205702..951e778cc5 100644
+--- a/t/porting/known_pod_issues.dat
++++ b/t/porting/known_pod_issues.dat
+@@ -1,4 +1,4 @@
+-# This file is the data file for porting/podcheck.t.
++# This file is the data file for t/porting/podcheck.t.
+ # There are three types of lines.
+ # Comment lines are white-space only or begin with a '#', like this one.  Any
+ #   changes you make to the comment lines will be lost when the file is
+@@ -262,6 +262,7 @@ pclose(3)
+ perl(1)
+ Perl4::CoreLibs
+ perl5198delta
++Perl::Dist::APPerl
+ Perl::Unsafe::Signals
+ perlbug(1)
+ PerlIO::locale
+diff --git a/win32/GNUmakefile b/win32/GNUmakefile
+index 3c3291d283..a6a46a1122 100644
+--- a/win32/GNUmakefile
++++ b/win32/GNUmakefile
+@@ -1624,6 +1624,7 @@ utils: $(HAVEMINIPERL) ..\utils\Makefile
+ 	copy ..\README.android  ..\pod\perlandroid.pod
+ 	copy ..\README.bs2000   ..\pod\perlbs2000.pod
+ 	copy ..\README.cn       ..\pod\perlcn.pod
++	copy ..\README.cosmo    ..\pod\perlcosmo.pod
+ 	copy ..\README.cygwin   ..\pod\perlcygwin.pod
+ 	copy ..\README.freebsd  ..\pod\perlfreebsd.pod
+ 	copy ..\README.haiku    ..\pod\perlhaiku.pod
+@@ -1748,14 +1749,14 @@ distclean: realclean
+ 	-if exist $(LIBDIR)\XS rmdir /s /q $(LIBDIR)\XS
+ 	-cd $(PODDIR) && del /f *.html *.bat roffitall \
+ 	    perl5440delta.pod perlaix.pod perlamiga.pod perlandroid.pod \
+-	    perlapi.pod perlbs2000.pod perlcn.pod perlcygwin.pod \
+-	    perlfreebsd.pod perlhaiku.pod perlhpux.pod perlhurd.pod \
+-	    perlintern.pod perlirix.pod perljp.pod perlko.pod perllinux.pod \
+-	    perlmacosx.pod perlmodlib.pod perlopenbsd.pod perlos2.pod \
+-	    perlos390.pod perlos400.pod perlplan9.pod perlqnx.pod \
+-	    perlriscos.pod perlsolaris.pod perlsynology.pod perltoc.pod \
+-	    perltru64.pod perltw.pod perluniprops.pod perlvos.pod \
+-	    perlwin32.pod
++	    perlapi.pod perlbs2000.pod perlcn.pod perlcosmo.pod \
++	    perlcygwin.pod perlfreebsd.pod perlhaiku.pod perlhpux.pod \
++	    perlhurd.pod perlintern.pod perlirix.pod perljp.pod perlko.pod \
++	    perllinux.pod perlmacosx.pod perlmodlib.pod perlopenbsd.pod \
++	    perlos2.pod perlos390.pod perlos400.pod perlplan9.pod \
++	    perlqnx.pod perlriscos.pod perlsolaris.pod perlsynology.pod \
++	    perltoc.pod perltru64.pod perltw.pod perluniprops.pod \
++	    perlvos.pod perlwin32.pod
+ 	-cd ..\utils && del /f h2ph splain perlbug pl2pm h2xs \
+ 	    perldoc perlivp libnetcfg enc2xs encguess piconv cpan *.bat \
+ 	    xsubpp pod2html instmodsh json_pp prove ptar ptardiff ptargrep shasum corelist zipdetails
+diff --git a/win32/Makefile b/win32/Makefile
+index 42d452e19c..17c1304014 100644
+--- a/win32/Makefile
++++ b/win32/Makefile
+@@ -1151,6 +1151,7 @@ utils: $(PERLEXE) ..\utils\Makefile
+ 	copy ..\README.android  ..\pod\perlandroid.pod
+ 	copy ..\README.bs2000   ..\pod\perlbs2000.pod
+ 	copy ..\README.cn       ..\pod\perlcn.pod
++	copy ..\README.cosmo    ..\pod\perlcosmo.pod
+ 	copy ..\README.cygwin   ..\pod\perlcygwin.pod
+ 	copy ..\README.freebsd  ..\pod\perlfreebsd.pod
+ 	copy ..\README.haiku    ..\pod\perlhaiku.pod
+@@ -1276,14 +1277,14 @@ distclean: realclean
+ 	-if exist $(LIBDIR)\XS rmdir /s /q $(LIBDIR)\XS
+ 	-cd $(PODDIR) && del /f *.html *.bat roffitall \
+ 	    perl5440delta.pod perlaix.pod perlamiga.pod perlandroid.pod \
+-	    perlapi.pod perlbs2000.pod perlcn.pod perlcygwin.pod \
+-	    perlfreebsd.pod perlhaiku.pod perlhpux.pod perlhurd.pod \
+-	    perlintern.pod perlirix.pod perljp.pod perlko.pod perllinux.pod \
+-	    perlmacosx.pod perlmodlib.pod perlopenbsd.pod perlos2.pod \
+-	    perlos390.pod perlos400.pod perlplan9.pod perlqnx.pod \
+-	    perlriscos.pod perlsolaris.pod perlsynology.pod perltoc.pod \
+-	    perltru64.pod perltw.pod perluniprops.pod perlvos.pod \
+-	    perlwin32.pod
++	    perlapi.pod perlbs2000.pod perlcn.pod perlcosmo.pod \
++	    perlcygwin.pod perlfreebsd.pod perlhaiku.pod perlhpux.pod \
++	    perlhurd.pod perlintern.pod perlirix.pod perljp.pod perlko.pod \
++	    perllinux.pod perlmacosx.pod perlmodlib.pod perlopenbsd.pod \
++	    perlos2.pod perlos390.pod perlos400.pod perlplan9.pod \
++	    perlqnx.pod perlriscos.pod perlsolaris.pod perlsynology.pod \
++	    perltoc.pod perltru64.pod perltw.pod perluniprops.pod \
++	    perlvos.pod perlwin32.pod
+ 	-cd ..\utils && del /f h2ph splain perlbug pl2pm h2xs \
+ 	    perldoc perlivp libnetcfg enc2xs encguess piconv cpan streamzip *.bat \
+ 	    xsubpp pod2html instmodsh json_pp prove ptar ptardiff ptargrep shasum corelist zipdetails
