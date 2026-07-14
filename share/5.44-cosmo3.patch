@@ -743,6 +743,37 @@ index 024c66a147..2741c895ed 100644
      is($oldaction->{FLAGS}, 0);
  }
  
+diff --git a/ext/POSIX/t/sigset.t b/ext/POSIX/t/sigset.t
+index 864b4f528e..470a483997 100644
+--- a/ext/POSIX/t/sigset.t
++++ b/ext/POSIX/t/sigset.t
+@@ -34,6 +34,7 @@ sub expected_signals {
+     }
+ }
+ 
++my @fillsetsigno;
+ foreach (@POSIX::EXPORT) {
+     next unless /^SIG[A-Z0-9]+$/;
+     my $val = eval "POSIX::$_";
+@@ -41,6 +42,9 @@ foreach (@POSIX::EXPORT) {
+     $min = $val if $min > $val;
+     $max = $val if $max < $val;
+     push @signo, $val;
++     # Cosmopolitian doesn't allow adding these signals with sigfillset
++    next if $^O eq 'cosmo' && /^(?:SIGTHR|SIGABRT|SIGKILL|SIGSTOP)$/;
++    push @fillsetsigno, $val;
+ }
+ 
+ # Sanity check that we found something:
+@@ -55,7 +59,7 @@ is($sigset->fillset(), '0 but true', 'fillset');
+ # because on some systems, not all integers are valid signals...
+ # so the only thing we can really be confident about is that all the signals
+ # with names are going to be present:
+-foreach (@signo) {
++foreach (@fillsetsigno) {
+     cmp_ok($sigset->ismember($_), '==', 1, "after fillset sig $_ is a member");
+ }
+ is($sigset->emptyset(), '0 but true', 'empyset');
 diff --git a/hints/cosmo.sh b/hints/cosmo.sh
 new file mode 100644
 index 0000000000..72058dddbf
