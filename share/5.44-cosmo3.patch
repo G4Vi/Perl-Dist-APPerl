@@ -310,66 +310,26 @@ index 0c46b9e6da..3ba9bcf527 100755
  # the precached keys
  if ($Common{byteorder}) {
 diff --git a/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm b/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
-index 0aee5233fe..cd17c1c86f 100644
+index 0aee5233fe..ec7506211e 100644
 --- a/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
 +++ b/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
-@@ -406,13 +406,14 @@ EOC
+@@ -403,12 +403,15 @@ EOC
+ 	# Give the notfound struct file scope. The others are scoped within the
+ 	# BOOT block
+ 	my $struct_fh = $type ? $xs_fh : $c_fh;
++	# not found doesn't have values so can be const, otherwise make non-const so
++	# cosmocc can replace safely.
++	my $struct_type_type = $type ? 'static struct' : 'static const struct';
  
  	print $c_fh "struct $struct_type $struct;\n";
  
-+    my $structtypetype = $type ? 'static struct' : 'static const struct';
  	print $struct_fh <<"EOBOOT";
  
 -    static const struct $struct_type $array_name\[] =
-+    $structtypetype $struct_type $array_name\[] =
++    $struct_type_type $struct_type $array_name\[] =
        {
  EOBOOT
  
--
-+    my @valuestowrite;
- 	foreach my $item (@{$found->{$type}}) {
-             my ($name, $namelen, $value, $macro)
-                  = $self->name_len_value_macro($item);
-@@ -429,8 +430,8 @@ EOBOOT
- 	    } else {
- 		print $struct_fh $ifdef;
- 	    }
--	    print $struct_fh "        { ", join (', ', "\"$name\"", $namelen,
--						 &$type_to_value($value)),
-+		push @valuestowrite, &$type_to_value($value);
-+	    print $struct_fh "        { ", join (', ', "\"$name\"", $namelen),
- 						 " },\n",
- 						 $self->macro_to_endif($macro);
- 	}
-@@ -438,6 +439,28 @@ EOBOOT
-     # Terminate the list with a NULL
- 	print $struct_fh "        { NULL, 0", (", 0" x $number_of_args), " } };\n";
- 
-+	if($type) {
-+		print $struct_fh "{\nunsigned i = 0;\n";
-+		foreach my $item (@{$found->{$type}}) {
-+            my ($name, $namelen, $value, $macro) = $self->name_len_value_macro($item);
-+	        my $ifdef = $self->macro_to_ifdef($macro);
-+	        if (!$ifdef && $item->{invert_macro}) {
-+	        carp("Attempting to supply a default for '$name' which has no conditional macro");
-+	        next;
-+	        }
-+	        if ($item->{invert_macro}) {
-+	        print $struct_fh $self->macro_to_ifndef($macro);
-+	        print $struct_fh
-+	        "        /* This is the default value: */\n" if $type;
-+	        } else {
-+	        print $struct_fh $ifdef;
-+	        }
-+			print $struct_fh $array_name,"[i++].value = ". (shift @valuestowrite) . ";\n";
-+			print $struct_fh $self->macro_to_endif($macro);
-+	    }
-+	    print $struct_fh "}\n";
-+	}
-+
- 	print $xs_fh <<"EOBOOT" if $type;
- 	const struct $struct_type *$iterator{$type} = $array_name;
- EOBOOT
 diff --git a/cpan/Perl-OSType/lib/Perl/OSType.pm b/cpan/Perl-OSType/lib/Perl/OSType.pm
 index a72dd024b5..a0f2606137 100644
 --- a/cpan/Perl-OSType/lib/Perl/OSType.pm
