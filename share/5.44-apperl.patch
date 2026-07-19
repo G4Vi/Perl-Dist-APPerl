@@ -1,10 +1,10 @@
 diff --git a/patchlevel.h b/patchlevel.h
-index 8073fc0867..041a9fcc19 100644
+index 097188a5af..659540ddb7 100644
 --- a/patchlevel.h
 +++ b/patchlevel.h
-@@ -157,6 +157,7 @@ static const char * const local_patches[] = {
+@@ -156,6 +156,7 @@ hunk.
+ static const char * const local_patches[] = {
          NULL
- 		, "RC2"
  		, "Perl-Dist-APPerl-v0.8.0/5.44-cosmo3.patch - https://github.com/G4Vi/Perl-Dist-APPerl/blob/v0.8.0/share/5.44-cosmo3.patch various changes to support building with the Cosmopolitan Libc"
 +		, "Perl-Dist-APPerl-v0.8.0/5.44-apperl.patch - https://github.com/G4Vi/Perl-Dist-APPerl/blob/v0.8.0/share/5.44-apperl.patch argv[0] /zip/bin, APPERL_DEFAULT_SCRIPT, and APPERL_SCRIPTNAME script launching"
  #ifdef PERL_GIT_UNCOMMITTED_CHANGES

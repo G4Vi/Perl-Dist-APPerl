@@ -779,7 +779,7 @@ my %defconfig = (
             zip_extra_files => {},
             cosmo3 => 1,
             dest => 'perl-544.com',
-            perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.44.0-RC2.tar.gz',
+            perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.44.0.tar.gz',
             patches => ['__sharedir__/5.44-cosmo3.patch', '__sharedir__/5.44-apperl.patch'],
             install_modules => [],
         },
@@ -842,7 +842,7 @@ my %defconfig = (
         perl_cosmo_dev_544 => {
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'full',
-            perl_id => 'v5.44.0-RC2',
+            perl_id => 'v5.44.0',
             perl_url => undef,
             patches => ['__sharedir__/5.44-cosmo3.patch'],
         },
