@@ -6,9 +6,12 @@ v0.8.0  2026-07-19
         Fix install_modules requiring apperl patch.
         Remove remove unnecessary constant refactoring in
           dist/threads-shared/shared.xs and cpan/Socket/Socket.xs, not
-          needed withcosmo3 compiler.
+          needed with cosmo3 compiler.
         Disable stdckdint.h on Perl 5.44, fixes several tests.
         Get 100% of make test passing.
+        Shorten ExtUtils/Constant/ProxySubs.pm patch as cosmo3 handles
+          patching structs too.
+        Fix apperl patch compiler warnings.
 
 v0.7.0  2026-07-09
         Add Perl 5.40 builds. 5.38 is skipped as static builds were
