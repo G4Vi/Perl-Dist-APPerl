@@ -11,7 +11,7 @@ index 097188a5af..659540ddb7 100644
          ,"uncommitted-changes"
  #endif
 diff --git a/perl.c b/perl.c
-index 59dd10fe3a..4ab5360159 100644
+index 59dd10fe3a..37745f41f7 100644
 --- a/perl.c
 +++ b/perl.c
 @@ -2231,6 +2231,52 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
@@ -28,7 +28,7 @@ index 59dd10fe3a..4ab5360159 100644
 +            programname = slash + 1;
 +        }
 +        const char *dot = strrchr(programname, '.');
-+        const unsigned namelen = dot ? dot - programname : strlen(programname);
++        const size_t namelen = dot ? (size_t)(dot - programname) : strlen(programname);
 +
 +        // shortcut for normal execution
 +        if((namelen == 4) && (memcmp("perl", programname, 4) == 0))
@@ -54,10 +54,10 @@ index 59dd10fe3a..4ab5360159 100644
 +
 +        // default script
 +        #define DEFAULT_SCRIPT_SENTINEL "APPERL_DEFAULT_SCRIPT"
-+        volatile static const char default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)+256] = DEFAULT_SCRIPT_SENTINEL;
++        static volatile const char default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)+256] = DEFAULT_SCRIPT_SENTINEL;
 +        if(default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)])
 +        {
-+            scriptname = &default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)];
++            scriptname = (const char *)&default_script[sizeof(DEFAULT_SCRIPT_SENTINEL)];
 +            break;
 +        }
 +        #undef DEFAULT_SCRIPT_SENTINEL
