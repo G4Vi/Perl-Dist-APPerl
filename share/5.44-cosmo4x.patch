@@ -316,66 +316,26 @@ index 08d339ac87..69345076ae 100644
  	ok( close $fh );
  	if (-e 'white_space' && $^O eq 'MSWin32') {
 diff --git a/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm b/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
-index 0aee5233fe..cd17c1c86f 100644
+index 0aee5233fe..ec7506211e 100644
 --- a/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
 +++ b/cpan/ExtUtils-Constant/lib/ExtUtils/Constant/ProxySubs.pm
-@@ -406,13 +406,14 @@ EOC
+@@ -403,12 +403,15 @@ EOC
+ 	# Give the notfound struct file scope. The others are scoped within the
+ 	# BOOT block
+ 	my $struct_fh = $type ? $xs_fh : $c_fh;
++	# not found doesn't have values so can be const, otherwise make non-const so
++	# cosmocc can replace safely.
++	my $struct_type_type = $type ? 'static struct' : 'static const struct';
  
  	print $c_fh "struct $struct_type $struct;\n";
  
-+    my $structtypetype = $type ? 'static struct' : 'static const struct';
  	print $struct_fh <<"EOBOOT";
  
 -    static const struct $struct_type $array_name\[] =
-+    $structtypetype $struct_type $array_name\[] =
++    $struct_type_type $struct_type $array_name\[] =
        {
  EOBOOT
  
--
-+    my @valuestowrite;
- 	foreach my $item (@{$found->{$type}}) {
-             my ($name, $namelen, $value, $macro)
-                  = $self->name_len_value_macro($item);
-@@ -429,8 +430,8 @@ EOBOOT
- 	    } else {
- 		print $struct_fh $ifdef;
- 	    }
--	    print $struct_fh "        { ", join (', ', "\"$name\"", $namelen,
--						 &$type_to_value($value)),
-+		push @valuestowrite, &$type_to_value($value);
-+	    print $struct_fh "        { ", join (', ', "\"$name\"", $namelen),
- 						 " },\n",
- 						 $self->macro_to_endif($macro);
- 	}
-@@ -438,6 +439,28 @@ EOBOOT
-     # Terminate the list with a NULL
- 	print $struct_fh "        { NULL, 0", (", 0" x $number_of_args), " } };\n";
- 
-+	if($type) {
-+		print $struct_fh "{\nunsigned i = 0;\n";
-+		foreach my $item (@{$found->{$type}}) {
-+            my ($name, $namelen, $value, $macro) = $self->name_len_value_macro($item);
-+	        my $ifdef = $self->macro_to_ifdef($macro);
-+	        if (!$ifdef && $item->{invert_macro}) {
-+	        carp("Attempting to supply a default for '$name' which has no conditional macro");
-+	        next;
-+	        }
-+	        if ($item->{invert_macro}) {
-+	        print $struct_fh $self->macro_to_ifndef($macro);
-+	        print $struct_fh
-+	        "        /* This is the default value: */\n" if $type;
-+	        } else {
-+	        print $struct_fh $ifdef;
-+	        }
-+			print $struct_fh $array_name,"[i++].value = ". (shift @valuestowrite) . ";\n";
-+			print $struct_fh $self->macro_to_endif($macro);
-+	    }
-+	    print $struct_fh "}\n";
-+	}
-+
- 	print $xs_fh <<"EOBOOT" if $type;
- 	const struct $struct_type *$iterator{$type} = $array_name;
- EOBOOT
 diff --git a/cpan/File-Path/t/Path.t b/cpan/File-Path/t/Path.t
 index b265aeeb2d..e9812c5f69 100644
 --- a/cpan/File-Path/t/Path.t
@@ -576,13 +536,13 @@ index 2107e177ec..899607478f 100644
  /Exporter/
  /ExtUtils/CBuilder.pm
 diff --git a/patchlevel.h b/patchlevel.h
-index 584d749c78..8073fc0867 100644
+index 54565dec5f..097188a5af 100644
 --- a/patchlevel.h
 +++ b/patchlevel.h
-@@ -156,6 +156,7 @@ hunk.
+@@ -155,6 +155,7 @@ hunk.
+ #  endif
  static const char * const local_patches[] = {
          NULL
- 		, "RC2"
 +		, "Perl-Dist-APPerl-v0.8.0/5.44-cosmo3.patch - https://github.com/G4Vi/Perl-Dist-APPerl/blob/v0.8.0/share/5.44-cosmo3.patch various changes to support building with the Cosmopolitan Libc"
  #ifdef PERL_GIT_UNCOMMITTED_CHANGES
          ,"uncommitted-changes"
