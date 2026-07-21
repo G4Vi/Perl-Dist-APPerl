@@ -1,4 +1,9 @@
 Revision history for Perl-Dist-APPerl
+vX.X.X  2026-XX-XX
+        Remove vista builds, building cosmopolitan as a part of build
+        Add cosmo4x dev builds
+        Add support for having multiple versions of cosmocc
+
 v0.8.0  2026-07-19
         Add Perl 5.42 builds.
         Add Perl 5.44 builds.

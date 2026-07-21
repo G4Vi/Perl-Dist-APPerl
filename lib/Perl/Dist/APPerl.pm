@@ -820,6 +820,13 @@ my %defconfig = (
             base => 'full',
             perl_id => 'v5.44.0',
             perl_url => undef,
+            patches => ['__sharedir__/5.44-cosmo3.patch'],
+        },
+        perl_cosmo_dev_544_cosmo4x => {
+            desc => "For developing cosmo platform perl without apperl additions",
+            base => 'full',
+            perl_id => 'v5.44.0',
+            perl_url => undef,
             patches => ['__sharedir__/5.44-cosmo4x.patch'],
             'cosmocc-version' => 'unreleased',
         },
@@ -845,6 +852,11 @@ my %defconfig = (
         perl_apperl_dev_544 => {
             desc => "For developing apperl",
             base => 'perl_cosmo_dev_544',
+            '+patches' => ['__sharedir__/5.44-apperl.patch'],
+        },
+        perl_apperl_dev_544_cosmo4x => {
+            desc => "For developing apperl",
+            base => 'perl_cosmo_dev_544_cosmo4x',
             '+patches' => ['__sharedir__/5.44-apperl.patch'],
         },
         perl_apperl_dev => {
