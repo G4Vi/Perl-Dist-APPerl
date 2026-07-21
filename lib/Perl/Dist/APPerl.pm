@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use JSON::PP 2.0104 qw(decode_json);
 use File::Path 2.07 qw(make_path remove_tree);
+use Config;
 use Cwd qw(abs_path getcwd);
 use Data::Dumper qw(Dumper);
 use File::Basename qw(basename dirname);
@@ -748,7 +749,7 @@ my %defconfig = (
         'full-544' => {
             desc => 'moving target: full-544',
             perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
-            perl_extra_flags => ['-Doptimize=-Os', '-de', '-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/x86_64-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/x86_64-cosmo'],
+            perl_extra_flags => ['-Doptimize=-Os', '-de', '-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/__cosmoarch__-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/__cosmoarch__-cosmo'],
             MANIFEST => ['lib', 'bin'],
             'include_Perl-Dist-APPerl' => 1,
             perl_repo_files => {},
@@ -1140,6 +1141,7 @@ sub Configure {
     _install_perl_src_files($itemconfig, $perl_build_dir);
     my $SiteConfig = _load_valid_site_config($itemconfig);
     $ENV{COSMOCC} = $SiteConfig->{cosmocc};
+    $ENV{COSMOARCH} = $itemconfig->{arch};
 
     # Finally Configure perl
     print "cd $perl_build_dir\n";
@@ -1729,6 +1731,19 @@ sub _load_apperl_config {
     }
     delete $itemconfig{cosmo3};
     $itemconfig{'cosmocc-version'} //= '3.3.10';
+
+    # set arch if not set
+    my $arch = $itemconfig{'arch'} // do {
+        my ($arch) = split('-', $Config{archname});
+        $arch;
+    };
+    $arch = lc $arch;
+    $arch = 'aarch64' if ($arch eq 'amd64');
+    $arch eq 'x86_64' || $arch eq 'aarch64' or die "unsupported arch $arch";
+    $itemconfig{'arch'} = $arch;
+    foreach my $flag (@{$itemconfig{'perl_extra_flags'}}) {
+        $flag =~ s/\_\_cosmoarch\_\_/$arch/g;
+    }
 
     # verify apperl config sanity
     if(! exists $itemconfig{nobuild_perl_bin}) {

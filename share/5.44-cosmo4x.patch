@@ -497,15 +497,16 @@ index 864b4f528e..4d903b273e 100644
  is($sigset->emptyset(), '0 but true', 'empyset');
 diff --git a/hints/cosmo.sh b/hints/cosmo.sh
 new file mode 100644
-index 0000000000..72058dddbf
+index 0000000000..482ac1cd13
 --- /dev/null
 +++ b/hints/cosmo.sh
-@@ -0,0 +1,22 @@
+@@ -0,0 +1,25 @@
 +#! /bin/sh
 +# cosmo.sh - hints for building perl using the Cosmopolitan Libc
 +#
 +
 +test -d "$COSMOCC" || exit 1;
++test -n "$COSMOARCH" || exit 1;
 +
 +usedl='undef'
 +usenm='false'
@@ -518,11 +519,13 @@ index 0000000000..72058dddbf
 +locincpth=''
 +loclibpth=''
 +glibpth=''
-+cc="$COSMOCC/bin/x86_64-unknown-cosmo-cc"
++archname="$COSMOARCH"
++cc="$COSMOCC/bin/$COSMOARCH-unknown-cosmo-cc"
 +ccflags="-fno-stack-protector -D_COSMO_SOURCE"
 +ldflags="-fno-stack-protector"
 +libs=''
 +unset COSMOCC
++unset COSMOARCH
 diff --git a/lib/.gitignore b/lib/.gitignore
 index 2107e177ec..899607478f 100644
 --- a/lib/.gitignore
