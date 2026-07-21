@@ -1009,10 +1009,10 @@ sub Status {
         @projectitems = sort (keys %{$projectconfig->{apperl_configs}});
         _remove_arr_items_from_arr(\@configlist, \@projectitems);
     }
-    my @rolling = grep(/^(full|small|nobuild|full-540|small-540|full-542|small-542)$/, @configlist);
-    {
-        my %preferences = ( full => 0, small => 1, 'full-542' => 2, 'small-542' => 3, 'full-540' => 4, 'small-540' => 5, nobuild => 6);
-        @rolling = sort {$preferences{$a} <=> $preferences{$b}} @rolling;
+    my @possiblerolling = qw(full small full-544 small-544 full-542 small-542 full-540 small-540 nobuild);
+    my @rolling;
+    foreach my $possible (@possiblerolling) {
+        push @rolling, $possible if (grep $possible, @configlist);
     }
     _remove_arr_items_from_arr(\@configlist, \@rolling);
     my @internal = grep(/^(perl_cosmo_dev|perl_apperl_dev|dbg)/, @configlist);
