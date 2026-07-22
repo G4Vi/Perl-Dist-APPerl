@@ -1262,13 +1262,8 @@ sub Build {
         };
         $copyexe->($PERL_APE, $APPPATH);
         my $srcdbg = "$PERL_APE.dbg";
-        for(1..2) {
-            if(-f $srcdbg) {
-                $copyexe->($srcdbg, "$APPPATH.dbg");
-                last;
-            }
-            $srcdbg = $PERL_APE;
-            $srcdbg =~ s/com$/elf/;
+        if(-f $srcdbg) {
+            $copyexe->($srcdbg, "$APPPATH.dbg");
         }
         if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
             print "cd $ZIP_ROOT\n";
@@ -1281,7 +1276,7 @@ sub Build {
     $packAPE->();
 
     # install modules
-    if(exists $itemconfig->{install_modules}) {
+    if(! exists $UserProjectConfig->{nobuild_perl_bin} && exists $itemconfig->{install_modules}) {
         my $perlman1 = "$TEMPDIR$proxyConfig{installman1dir}";
         my $perlman3 = "$TEMPDIR$proxyConfig{installman3dir}";
         my $perlbin = "$TEMPDIR$proxyConfig{installbin}";
