@@ -112,45 +112,6 @@ index 32eb977dc2..48d4e557d2 100644
  hints/cxux.sh				Hints for named architecture
  hints/cygwin.sh				Hints for named architecture
  hints/darwin.sh				Hints for named architecture
-diff --git a/Makefile.SH b/Makefile.SH
-index 6f1a114640..9da47e756d 100755
---- a/Makefile.SH
-+++ b/Makefile.SH
-@@ -1017,6 +1017,19 @@ lib/buildcustomize.pl: $& $(miniperl_objs) write_buildcustomize.pl
- 	    $(miniperl_objs) $(libs)
- 	$(LDLIBPTH) ./miniperl$(HOST_EXE_EXT) -w -Ilib -Idist/Exporter/lib -MExporter -e '<?>' || sh -c 'echo >&2 Failed to build miniperl.  Please run make minitest; exit 1'
- 	$(MINIPERL) -f write_buildcustomize.pl
-+!NO!SUBS!
-+		;;
-+	cosmo*)
-+		$spitshell >>$Makefile <<'!NO!SUBS!'
-+lib/buildcustomize.pl: $& $(miniperl_dep) write_buildcustomize.pl
-+	-@rm -f miniperl.xok
-+	$(CC) $(CLDFLAGS) -o miniperl.com \
-+	    $(miniperl_objs) $(libs)
-+	cp miniperl.com $(MINIPERL_EXE)
-+	chmod -w miniperl.com
-+	./miniperl --assimilate || true
-+	$(LDLIBPTH) ./miniperl$(HOST_EXE_EXT) -w -Ilib -Idist/Exporter/lib -MExporter -e '<?>' || sh -c 'echo >&2 Failed to build miniperl.  Please run make minitest; exit 1'
-+	$(MINIPERL) -f write_buildcustomize.pl
- !NO!SUBS!
- 		;;
- 	*)
-@@ -1072,7 +1085,13 @@ $(PERL_EXE): $& $(perlmain_dep) $(LIBPERL) $(static_ext) ext.libs $(PERLEXPORT)
- 	       ;;
- 	    esac
-         ;;
--
-+        cosmo) $spitshell >>$Makefile <<'!NO!SUBS!'
-+	$(SHRPENV) $(CC) -o perl.com $(CLDFLAGS) $(CCDLFLAGS) $(perlmain_objs) $(static_ext) $(LLIBPERL) `cat ext.libs` $(libs)
-+	cp perl.com $(PERL_EXE)
-+	chmod -w perl.com
-+	./perl --assimilate || true
-+!NO!SUBS!
-+        ;;
-         *) $spitshell >>$Makefile <<'!NO!SUBS!'
- 	$(SHRPENV) $(CC) -o perl $(CLDFLAGS) $(CCDLFLAGS) $(perlmain_objs) $(static_ext) $(LLIBPERL) `cat ext.libs` $(libs)
- !NO!SUBS!
 diff --git a/Porting/Maintainers.pl b/Porting/Maintainers.pl
 index 2d428d76e8..33decf99a1 100755
 --- a/Porting/Maintainers.pl

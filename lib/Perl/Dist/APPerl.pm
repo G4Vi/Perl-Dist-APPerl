@@ -1180,7 +1180,7 @@ sub Build {
     my ($UserProjectConfig, $CurAPPerlName, $itemconfig) = _load_valid_configs() or die "cannot Build without valid UserProjectConfig";
     my $startdir = abs_path('./');
 
-    my $PERL_APE;
+    my $SRC_BINARY;
     my @perl_config_cmd;
     # build cosmo perl if this isn't a nobuild config
     if(! exists $UserProjectConfig->{nobuild_perl_bin}){
@@ -1191,16 +1191,16 @@ sub Build {
         print "cd $perl_build_dir\n";
         chdir($perl_build_dir) or die "Failed to enter perl repo";
         _command_or_die('make');
-        $PERL_APE = "$perl_build_dir/perl.com";
+        $SRC_BINARY = -f "$perl_build_dir/perl.com.dbg" ? "$perl_build_dir/perl.com.dbg" : "$perl_build_dir/perl";
         @perl_config_cmd = ('./perl', '-Ilib');
     }
     else {
-        $PERL_APE = $UserProjectConfig->{nobuild_perl_bin};
-        @perl_config_cmd = ($PERL_APE);
+        $SRC_BINARY = $UserProjectConfig->{nobuild_perl_bin};
+        @perl_config_cmd = ($SRC_BINARY);
     }
 
     # prepare for install and pack
-    -f $PERL_APE or die "apperlm build: perl ape not found";
+    -f $SRC_BINARY or die "apperlm build: src binary not found";
     my $OUTPUTDIR = "$UserProjectConfig->{apperl_output}/$CurAPPerlName/o";
     if(-d $OUTPUTDIR) {
         print "rm -rf $OUTPUTDIR\n";
@@ -1250,7 +1250,7 @@ sub Build {
     }
 
     # pack
-    my $APPPATH = "$TEMPDIR/".basename($PERL_APE);
+    my $APPPATH = "$TEMPDIR/perl.com";
     my $PERLPATH = "$TEMPDIR/perl";
     my $packAPE = sub {
         my $copyexe = sub {
@@ -1260,18 +1260,31 @@ sub Build {
             print "chmod 755 $destpath\n";
             chmod(0755, $destpath) or die $!;
         };
-        $copyexe->($PERL_APE, $APPPATH);
-        my $srcdbg = "$PERL_APE.dbg";
+
+        # copy the debug elf if it exists
+        my $srcdbg = $SRC_BINARY =~ /\.com$/ ? "$SRC_BINARY.dbg" : $SRC_BINARY;
         if(-f $srcdbg) {
             $copyexe->($srcdbg, "$APPPATH.dbg");
         }
+
+        # convert to ape if necessary
+        if (! exists $UserProjectConfig->{nobuild_perl_bin}) {
+            my $SiteConfig = _load_valid_site_config($itemconfig);
+            my @objcopyflags = $itemconfig->{arch} eq 'x86_64' ? ('-S', '-O', 'binary') : ('-S');
+            _command_or_die($SiteConfig->{cosmocc}.'/bin/'.$itemconfig->{arch}.'-linux-cosmo-objcopy', @objcopyflags, $SRC_BINARY, $APPPATH);
+            _command_or_die($SiteConfig->{cosmocc}.'/bin/zipcopy', $SRC_BINARY, $APPPATH);
+        }
+
+        # copy in files
         if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
             print "cd $ZIP_ROOT\n";
             chdir($ZIP_ROOT) or die "failed to enter ziproot";
             _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
         }
+
+        # Make non-APE available to build
         $copyexe->($APPPATH, $PERLPATH);
-        _command_or_die($PERLPATH, '--assimilate');
+        _command_or_die($PERLPATH, '--assimilate') if ($itemconfig->{arch} eq 'x86_64');
     };
     $packAPE->();
 
@@ -1284,8 +1297,6 @@ sub Build {
         my $perlarchlib = "$TEMPDIR$proxyConfig{installarchlib}";
         my $mmopt = sub {
             my @mmopt = ("PERL_LIB=$perllib", "PERL_ARCHLIB=$perlarchlib",
-                #"MAP_TARGET=perl.com.dbg",
-                "MAP_TARGET=perl.com",
                 "INSTALLDIRS=perl",
                 "INSTALLARCHLIB=$perlarchlib",
                 "INSTALLPRIVLIB=$perllib",
@@ -1362,20 +1373,18 @@ sub Build {
             # Module::Build (including installing Module::Build)
             # Beware, Module::Build has no support for relinking the Perl binary like EU::MM - https://rt.cpan.org/Public/Bug/Display.html?id=47282
             if(-f 'Build.PL') {
-                _command_or_die($APPPATH, 'Build.PL');
-                _command_or_die($APPPATH, 'Build');
-                _command_or_die($APPPATH, 'Build', 'install');
+                _command_or_die($PERLPATH, 'Build.PL');
+                _command_or_die($PERLPATH, 'Build');
+                _command_or_die($PERLPATH, 'Build', 'install');
             }
             # ExtUtils::MakeMaker
             elsif( -f 'Makefile.PL') {
                 # build
-                _command_or_die($APPPATH, 'Makefile.PL');
+                _command_or_die($PERLPATH, 'Makefile.PL');
                 _command_or_die('make');
                 # install into the src tree
                 _command_or_die('make', 'install');
-                # build a new perl binary, convert to APE, and repack zip
-                #_command_or_die('make', 'perl.com.dbg');
-                #_command_or_die(dirname($proxyConfig{cc})."/x86_64-linux-musl-objcopy", '-S', '-O', 'binary', 'perl.com.dbg', 'perl.com');
+                # prepare to build perl again
                 _command_or_die('make', 'Makefile.aperl');
                 # HACK, add in DynaLoader as it's missing
                 open(my $makefile, '<', 'Makefile.aperl') or die "failed to open Makefile.aperl";
@@ -1385,8 +1394,8 @@ sub Build {
                 print $newmakefile $_ foreach @newlines;
                 close($newmakefile);
                 # finally rebuild perl
-                _command_or_die('make', '-f', 'Makefile.aperl', 'perl.com');
-                $PERL_APE = abs_path('./perl.com');
+                _command_or_die('make', '-f', 'Makefile.aperl', 'perl');
+                $SRC_BINARY = abs_path('./perl');
             }
             else {
                 die "No Makefile.PL or Build.PL found, unable to install module";
