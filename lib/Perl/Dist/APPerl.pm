@@ -690,6 +690,7 @@ my %defconfig = (
             perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.36.3.tar.gz',
             patches => ['__sharedir__/5.36-cosmo3.patch', '__sharedir__/5.36-cosmo-apperl.patch'],
             install_modules => [],
+            arch => 'x86_64',
         },
         'small-536' => {
             desc => 'moving target: small-536',
@@ -713,6 +714,7 @@ my %defconfig = (
             perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.40.4.tar.gz',
             patches => ['__sharedir__/5.40-cosmo3.patch', '__sharedir__/5.36-cosmo-apperl.patch'],
             install_modules => [],
+            arch => 'x86_64',
         },
         'small-540' => {
             desc => 'moving target: small-540',
@@ -736,6 +738,7 @@ my %defconfig = (
             perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.42.2.tar.gz',
             patches => ['__sharedir__/5.40-cosmo3.patch', '__sharedir__/5.36-cosmo-apperl.patch'],
             install_modules => [],
+            arch => 'x86_64',
         },
         'small-542' => {
             desc => 'moving target: small-542',
@@ -760,6 +763,12 @@ my %defconfig = (
             patches => ['__sharedir__/5.44-cosmo4x.patch', '__sharedir__/5.44-apperl.patch'],
             install_modules => [],
         },
+        'aarch64-full-544' => {
+            desc => 'moving target: aarch64-full-544',
+            base => 'full-544',
+            arch => 'aarch64',
+            dest => 'aarch64-perl-544.com',
+        },
         'small-544' => {
             desc => 'moving target: small-544',
             base => 'full-544',
@@ -768,6 +777,12 @@ my %defconfig = (
             'include_Perl-Dist-APPerl' => 0,
             dest => 'perl-544-small.com',
             install_modules => [],
+        },
+        'aarch64-small-544' => {
+            desc => 'moving target: aarch64-small-544',
+            base => 'small-544',
+            arch => 'aarch64',
+            dest => 'aarch64-perl-544-small.com',
         },
         'full' => {
             desc => 'moving target: full',
@@ -779,6 +794,18 @@ my %defconfig = (
             base => 'small-544',
             dest => 'perl-small.com',
         },
+        'aarch64-full' => {
+            desc => 'moving target: aarch64-full',
+            base => 'full',
+            arch => 'aarch64',
+            dest => 'aarch64-perl.com',
+        },
+        'aarch64-small' => {
+            desc => 'moving target: aarch64-small',
+            base => 'small',
+            arch => 'aarch64',
+            dest => 'aarch64-perl-small.com',
+        },
         'nobuild' => {
             desc => 'base nobuild config',
             dest => 'perl-nobuild.com',
@@ -787,6 +814,7 @@ my %defconfig = (
             nobuild_perl_bin => ['src/perl.com', $^X],
         },
         # development configs
+        # Cosmo versions
         perl_cosmo_dev_536 => {
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'full',
@@ -821,25 +849,24 @@ my %defconfig = (
             base => 'full',
             perl_id => 'v5.44.0',
             perl_url => undef,
-            patches => ['__sharedir__/5.44-cosmo3.patch'],
-        },
-        perl_cosmo_dev_544_cosmo4x => {
-            desc => "For developing cosmo platform perl without apperl additions",
-            base => 'full',
-            perl_id => 'v5.44.0',
-            perl_url => undef,
             patches => ['__sharedir__/5.44-cosmo4x.patch'],
             'cosmocc-version' => 'head',
         },
-        perl_cosmo_dev_544_cosmo4x_aarch64 => {
+        aarch64_perl_cosmo_dev_544 => {
             desc => "For developing cosmo platform perl without apperl additions",
-            base => 'perl_cosmo_dev_544_cosmo4x',
+            base => 'perl_cosmo_dev_544',
             arch => 'aarch64',
         },
+        # Cosmo aliases
         perl_cosmo_dev => {
             desc => "For developing cosmo platform perl without apperl additions",
             base => 'perl_cosmo_dev_544',
         },
+        aarch64_perl_cosmo_dev => {
+            desc => "For developing cosmo platform perl without apperl additions",
+            base => 'aarch64_perl_cosmo_dev_544',
+        },
+        # APPerl versioned names
         perl_apperl_dev_536 => {
             desc => "For developing apperl",
             base => 'perl_cosmo_dev_536',
@@ -860,19 +887,19 @@ my %defconfig = (
             base => 'perl_cosmo_dev_544',
             '+patches' => ['__sharedir__/5.44-apperl.patch'],
         },
-        perl_apperl_dev_544_cosmo4x => {
+        aarch64_perl_apperl_dev_544 => {
             desc => "For developing apperl",
-            base => 'perl_cosmo_dev_544_cosmo4x',
-            '+patches' => ['__sharedir__/5.44-apperl.patch'],
-        },
-        perl_apperl_dev_544_cosmo4x_aarch64 => {
-            desc => "For developing apperl",
-            base => 'perl_apperl_dev_544_cosmo4x',
+            base => 'perl_apperl_dev_544',
             arch => 'aarch64',
         },
+        # APPerl aliases
         perl_apperl_dev => {
             desc => "For developing apperl",
             base => 'perl_apperl_dev_544',
+        },
+        aarch64_perl_apperl_dev => {
+            desc => "For developing apperl",
+            base => 'aarch64_perl_apperl_dev_544',
         },
     }
 );
@@ -1020,13 +1047,13 @@ sub Status {
         @projectitems = sort (keys %{$projectconfig->{apperl_configs}});
         _remove_arr_items_from_arr(\@configlist, \@projectitems);
     }
-    my @possiblerolling = qw(full small full-544 small-544 full-542 small-542 full-540 small-540 nobuild);
+    my @possiblerolling = qw(full aarch64-full small aarch64-small full-544 aarch64-full-544 small-544 aarch64-small-544 full-542 small-542 full-540 small-540 nobuild);
     my @rolling;
     foreach my $possible (@possiblerolling) {
         push @rolling, $possible if (grep $possible, @configlist);
     }
     _remove_arr_items_from_arr(\@configlist, \@rolling);
-    my @internal = grep(/^(perl_cosmo_dev|perl_apperl_dev|dbg)/, @configlist);
+    my @internal = grep(/(perl_cosmo_dev|perl_apperl_dev|dbg)/, @configlist);
     _remove_arr_items_from_arr(\@configlist, \@internal);
     my @deprecated = grep(/(536)$/, @configlist);
     _remove_arr_items_from_arr(\@configlist, \@deprecated);
