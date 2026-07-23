@@ -58,6 +58,32 @@ jobs:
         perl-version: '5.42'
         install-modules-with: cpanm
         install-modules: Perl-Dist-APPerl.tar.gz
+    - name: Get Latest Successful Cosmopolitan Run ID
+      if: ${{ matrix.config == 'full' ||  matrix.config == 'small'}}
+      env:
+        GH_TOKEN: ${{ secrets.COSMOPOLITAN_TOKEN }}
+      run: |
+        RUN_ID=$(gh run list --repo jart/cosmopolitan --workflow "nightly-cosmocc.yml" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+        echo "COSMO_RUN_ID=$RUN_ID" >> $GITHUB_ENV
+    - name: Fetch cosmocc
+      if: ${{ matrix.config == 'full' ||  matrix.config == 'small'}}
+      uses: actions/download-artifact@v8
+      with:
+        repository: 'jart/cosmopolitan'
+        github-token: ${{ secrets.COSMOPOLITAN_TOKEN}}
+        run-id: ${{ env.COSMO_RUN_ID }}
+        name: 'cosmocc'
+        skip-decompress: true
+    - name: Setup cosmocc
+      if: ${{ matrix.config == 'full' ||  matrix.config == 'small'}}
+      run: |
+        mkdir -p ~/.local/share/apperl/cosmocc-head
+        mv cosmocc.zip ~/.local/share/apperl/cosmocc-head
+        cd ~/.local/share/apperl/cosmocc-head
+        unzip cosmocc.zip
+        ls -la /home/runner/.local/share/apperl/cosmocc-head/bin/
+        mkdir -p ~/.config/apperl
+        echo '{"cosmocc-head" : "/home/runner/.local/share/apperl/cosmocc-head"}' > ~/.config/apperl/site.json
     - name: Load config
       run: |
           DEST_BIN=$(apperlm get-config-key ${{ matrix.config }} dest) && echo "DEST_BIN=$DEST_BIN" >> $GITHUB_ENV
