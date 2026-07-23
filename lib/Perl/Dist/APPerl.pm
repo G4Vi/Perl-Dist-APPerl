@@ -1267,12 +1267,14 @@ sub Build {
             $copyexe->($srcdbg, "$APPPATH.dbg");
         }
 
-        # convert to ape if necessary
+        # convert to ape if necessary, otherwise copy bin before we modify
         if (! exists $UserProjectConfig->{nobuild_perl_bin}) {
             my $SiteConfig = _load_valid_site_config($itemconfig);
             my @objcopyflags = $itemconfig->{arch} eq 'x86_64' ? ('-S', '-O', 'binary') : ('-S');
             _command_or_die($SiteConfig->{cosmocc}.'/bin/'.$itemconfig->{arch}.'-linux-cosmo-objcopy', @objcopyflags, $SRC_BINARY, $APPPATH);
             _command_or_die($SiteConfig->{cosmocc}.'/bin/zipcopy', $SRC_BINARY, $APPPATH);
+        } else {
+            $copyexe->($SRC_BINARY, $APPPATH);
         }
 
         # copy in files
