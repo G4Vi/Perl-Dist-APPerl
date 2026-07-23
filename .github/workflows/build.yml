@@ -45,7 +45,7 @@ jobs:
     needs:   build-linux
     strategy:
       matrix:
-        config: [full, small, full-536, small-536, full-540, small-540, full-542, small-542]
+        config: [full, aarch64-full, aarch64-small, full-536, small-536, full-540, small-540, full-542, small-542]
     steps:
     - name: Fetch build artifacts
       uses: actions/download-artifact@v8
@@ -59,14 +59,14 @@ jobs:
         install-modules-with: cpanm
         install-modules: Perl-Dist-APPerl.tar.gz
     - name: Get Latest Successful Cosmopolitan Run ID
-      if: ${{ matrix.config == 'full' ||  matrix.config == 'small'}}
+      if: ${{ matrix.config == 'full' ||  matrix.config == 'small' || matrix.config == 'aarch64-full' ||  matrix.config == 'aarch64-small'}}
       env:
         GH_TOKEN: ${{ secrets.COSMOPOLITAN_TOKEN }}
       run: |
         RUN_ID=$(gh run list --repo jart/cosmopolitan --workflow "nightly-cosmocc.yml" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
         echo "COSMO_RUN_ID=$RUN_ID" >> $GITHUB_ENV
     - name: Fetch cosmocc
-      if: ${{ matrix.config == 'full' ||  matrix.config == 'small'}}
+      if: ${{ matrix.config == 'full' ||  matrix.config == 'small' || matrix.config == 'aarch64-full' ||  matrix.config == 'aarch64-small'}}
       uses: actions/download-artifact@v8
       with:
         repository: 'jart/cosmopolitan'
@@ -75,7 +75,7 @@ jobs:
         name: 'cosmocc'
         skip-decompress: true
     - name: Setup cosmocc
-      if: ${{ matrix.config == 'full' ||  matrix.config == 'small'}}
+      if: ${{ matrix.config == 'full' ||  matrix.config == 'small' || matrix.config == 'aarch64-full' ||  matrix.config == 'aarch64-small'}}
       run: |
         mkdir -p ~/.local/share/apperl/cosmocc-head
         mv cosmocc.zip ~/.local/share/apperl/cosmocc-head
@@ -84,6 +84,11 @@ jobs:
         ls -la /home/runner/.local/share/apperl/cosmocc-head/bin/
         mkdir -p ~/.config/apperl
         echo '{"cosmocc-head" : "/home/runner/.local/share/apperl/cosmocc-head"}' > ~/.config/apperl/site.json
+    - name: Prepare to run AARCH64 binaries
+      if: ${{ matrix.config == 'aarch64-full' ||  matrix.config == 'aarch64-small'}}
+      run: |
+        sudo apt update
+        sudo apt install qemu-user-static binfmt-support
     - name: Load config
       run: |
           DEST_BIN=$(apperlm get-config-key ${{ matrix.config }} dest) && echo "DEST_BIN=$DEST_BIN" >> $GITHUB_ENV
@@ -205,6 +210,8 @@ jobs:
           Perl-Dist-APPerl-v*.tar.gz/Perl-Dist-APPerl-v*.tar.gz
           full/*
           small/*
+          aarch64-full/*
+          aarch64-small/*
           full-536/*
           small-536/*
           full-540/*
