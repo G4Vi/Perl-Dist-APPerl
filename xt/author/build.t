@@ -5,13 +5,13 @@ use warnings;
 use Test::More;
 use Perl::Dist::APPerl;
 use File::Copy "cp";
-my @apperlconfigs = qw(full small nobuild-v0.1.0);
+my @apperlconfigs = qw(full small nobuild);
 plan tests => 3 * scalar(@apperlconfigs);
 
 my %binmapping = (
     full => 'perl.com',
     small => 'perl-small.com',
-    'nobuild-v0.1.0' => 'perl-nobuild.com'
+    nobuild => 'perl-nobuild.com'
 );
 
 foreach my $config (@apperlconfigs) {

@@ -670,13 +670,6 @@ my %defconfig = (
         origin => 'https://github.com/G4Vi/perl5',
     },
     apperl_configs => {
-        'nobuild-v0.1.0' => {
-            desc => 'use nobuild as base instead of this',
-            dest => 'perl-nobuild.com',
-            MANIFEST => ['lib', 'bin'],
-            zip_extra_files => {},
-            nobuild_perl_bin => ['src/perl.com', $^X],
-        },
         'full-536' => {
             desc => 'moving target: full-536',
             perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],

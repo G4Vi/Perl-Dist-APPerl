@@ -13,7 +13,7 @@ BEGIN {
     chdir('tests_temp');
     {
         open(my $fh, '>', 'apperl-project.json') or die "unable to write apperl-project.json";
-        print $fh '{"defaultconfig":"hello","apperl_configs":{"hello":{"dest":"hello.com","base":"nobuild-v0.1.0","default_script":"/zip/bin/hello","zip_extra_files":{"bin":["src/hello"]}}}}';
+        print $fh '{"defaultconfig":"hello","apperl_configs":{"hello":{"dest":"hello.com","base":"nobuild","default_script":"/zip/bin/hello","zip_extra_files":{"bin":["src/hello"]}}}}';
         close($fh);
     }
 }
