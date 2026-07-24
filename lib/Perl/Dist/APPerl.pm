@@ -799,6 +799,12 @@ my %defconfig = (
             arch => 'aarch64',
             dest => 'aarch64-perl-small.com',
         },
+        'fat-full' => {
+            desc => 'fat binary contains x86_64 and aarch64 perl, requires full and aarch64 being built first',
+            merge => ['full', 'aarch64-full'],
+            dest => 'fat-perl.com',
+            'cosmocc-version' => 'head',
+        },
         'nobuild' => {
             desc => 'base nobuild config',
             dest => 'perl-nobuild.com',
@@ -1091,7 +1097,9 @@ sub Checkout {
     $UserProjectConfig->{current_apperl} = $cfgname;
     my $itemconfig = _load_apperl_config(_load_apperl_configs()->{apperl_configs}, $cfgname);
     print Dumper($itemconfig);
-    if(! exists $itemconfig->{nobuild_perl_bin}) {
+    if (exists $itemconfig->{merge}) {
+        _load_valid_site_config($itemconfig);
+    } elsif(! exists $itemconfig->{nobuild_perl_bin}) {
         my $SiteConfig = _load_valid_site_config($itemconfig);
         $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= $SiteConfig->{perl_repo} if !$itemconfig->{perl_url};
         $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= "$UserProjectConfig->{apperl_output}/$cfgname/tmp/perl5";
@@ -1166,6 +1174,7 @@ sub Checkout {
 sub Configure {
     my ($UserProjectConfig, $CurAPPerlName, $itemconfig) = _load_valid_configs() or die "cannot Configure without valid UserProjectConfig";
     ! exists $UserProjectConfig->{nobuild_perl_bin} or die "nobuild perl cannot be configured";
+    ! exists $itemconfig->{merge} or die "merge perl cannot be configured";
     my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
     $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
     _install_perl_src_files($itemconfig, $perl_build_dir);
@@ -1209,28 +1218,7 @@ sub Build {
     my ($zippath) = @_;
     my ($UserProjectConfig, $CurAPPerlName, $itemconfig) = _load_valid_configs() or die "cannot Build without valid UserProjectConfig";
     my $startdir = abs_path('./');
-
-    my $SRC_BINARY;
-    my @perl_config_cmd;
-    # build cosmo perl if this isn't a nobuild config
-    if(! exists $UserProjectConfig->{nobuild_perl_bin}){
-        my $SiteConfig = _load_valid_site_config($itemconfig);
-        my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
-        $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
-        _install_perl_src_files($itemconfig, $perl_build_dir);
-        print "cd $perl_build_dir\n";
-        chdir($perl_build_dir) or die "Failed to enter perl repo";
-        _command_or_die('make');
-        $SRC_BINARY = -f "$perl_build_dir/perl.com.dbg" ? "$perl_build_dir/perl.com.dbg" : "$perl_build_dir/perl";
-        @perl_config_cmd = ('./perl', '-Ilib');
-    }
-    else {
-        $SRC_BINARY = $UserProjectConfig->{nobuild_perl_bin};
-        @perl_config_cmd = ($SRC_BINARY);
-    }
-
-    # prepare for install and pack
-    -f $SRC_BINARY or die "apperlm build: src binary not found";
+    # setup output dir
     my $OUTPUTDIR = "$UserProjectConfig->{apperl_output}/$CurAPPerlName/o";
     if(-d $OUTPUTDIR) {
         print "rm -rf $OUTPUTDIR\n";
@@ -1239,6 +1227,52 @@ sub Build {
     my $TEMPDIR = "$OUTPUTDIR/tmp";
     print "mkdir -p $TEMPDIR\n";
     make_path($TEMPDIR);
+
+    my @perl_config_cmd;
+    my $APPPATH = "$TEMPDIR/perl.com";
+    my $makeAPE = sub {
+        my ($src_binary) = @_;
+        -f $src_binary or die "Cannot make APE without $src_binary";
+
+        # copy the debug elf if it exists
+        my $srcdbg = $src_binary =~ /\.com$/ ? "$src_binary.dbg" : $src_binary;
+        if(-f $srcdbg) {
+            _copy_exe($srcdbg, "$APPPATH.dbg");
+        }
+
+        my $SiteConfig = _load_valid_site_config($itemconfig);
+        my @objcopyflags = $itemconfig->{arch} eq 'x86_64' ? ('-S', '-O', 'binary') : ('-S');
+        _command_or_die($SiteConfig->{cosmocc}.'/bin/'.$itemconfig->{arch}.'-linux-cosmo-objcopy', @objcopyflags, $src_binary, $APPPATH);
+        _command_or_die($SiteConfig->{cosmocc}.'/bin/zipcopy', $src_binary, $APPPATH);
+    };
+    # build (but not pack yet) an APE binary
+    if (exists $itemconfig->{merge}) {
+        # link
+        my $SiteConfig = _load_valid_site_config($itemconfig);
+        my $cosmoccbin = $SiteConfig->{cosmocc}.'/bin';
+        _command_or_die("$cosmoccbin/apelink", '-o', $APPPATH, '-l', "$cosmoccbin/ape-x86_64.elf", '-l', "$cosmoccbin/ape-aarch64.elf", '-M', "$cosmoccbin/ape-m1.c", $itemconfig->{'x86_64-binary'}, $itemconfig->{'aarch64-binary'});
+        @perl_config_cmd = ($itemconfig->{'x86_64-zip'});
+    } elsif(! exists $UserProjectConfig->{nobuild_perl_bin}){
+        # build cosmo perl
+        my $SiteConfig = _load_valid_site_config($itemconfig);
+        my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
+        $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
+        _install_perl_src_files($itemconfig, $perl_build_dir);
+        print "cd $perl_build_dir\n";
+        chdir($perl_build_dir) or die "Failed to enter perl repo";
+        _command_or_die('make');
+        my $src_binary = -f "$perl_build_dir/perl.com.dbg" ? "$perl_build_dir/perl.com.dbg" : "$perl_build_dir/perl";
+        $makeAPE->($src_binary);
+        @perl_config_cmd = ('./perl', '-Ilib');
+    }
+    else {
+        # nobuild
+        _copy_exe($UserProjectConfig->{nobuild_perl_bin}, $APPPATH);
+        @perl_config_cmd = ($UserProjectConfig->{nobuild_perl_bin});
+    }
+    -f $APPPATH or die "apperlm build: APE '$APPPATH' binary not found";
+
+    # prepare for install
     my %proxyConfig;
     foreach my $item (qw(prefix version archname cc installprivlib installarchlib installsitelib installsitearch installprefixexp installbin installman1dir installman3dir)) {
         $proxyConfig{$item} = _cmdoutput_or_die(@perl_config_cmd, '-e', "use Config; print \$Config{$item}");
@@ -1255,8 +1289,8 @@ sub Build {
     my @zipfiles = map { _fix_bases($_, \%aliasmap) } @{$itemconfig->{MANIFEST}};
     my $ZIP_ROOT = "$TEMPDIR$proxyConfig{installprefixexp}";
 
-    # install cosmo perl if this isn't a nobuild config
-    if(! exists $UserProjectConfig->{nobuild_perl_bin}){
+    if(! exists $UserProjectConfig->{nobuild_perl_bin} && ! exists $itemconfig->{merge}){
+        # install cosmo perl if this isn't a nobuild config
         _command_or_die('make', "DESTDIR=$TEMPDIR", 'install');
         my @toremove = ("$TEMPDIR$proxyConfig{installbin}/perl", "$TEMPDIR$proxyConfig{installbin}/perl$proxyConfig{version}");
         print 'rm '.join(' ', @toremove)."\n";
@@ -1269,6 +1303,19 @@ sub Build {
     }
     else {
         make_path($ZIP_ROOT);
+        if (exists $itemconfig->{merge}) {
+            foreach my $srcpath ($itemconfig->{'x86_64-zip'}, $itemconfig->{'aarch64-zip'}) {
+                print "cp $srcpath $ZIP_ROOT\n";
+                copy($srcpath, $ZIP_ROOT) or die "copy failed: $!";
+            }
+            print "cd $ZIP_ROOT\n";
+            chdir($ZIP_ROOT) or die "Failed to enter $ZIP_ROOT";
+            foreach my $zipfile ($itemconfig->{'x86_64-zip'}, $itemconfig->{'aarch64-zip'}) {
+                _command_or_die('unzip', '-u', basename($zipfile));
+                print 'rm ' . basename($zipfile) . "\n";
+                unlink(basename($zipfile)) or die "failed to delete";
+            }
+        }
     }
 
     # add zip_extra_files to the tree
@@ -1280,43 +1327,13 @@ sub Build {
     }
 
     # pack
-    my $APPPATH = "$TEMPDIR/perl.com";
-    my $PERLPATH = "$TEMPDIR/perl";
     my $packAPE = sub {
-        my $copyexe = sub {
-            my ($srcpath, $destpath) = @_;
-            print "cp $srcpath $destpath\n";
-            copy($srcpath, $destpath) or die "copy failed: $!";
-            print "chmod 755 $destpath\n";
-            chmod(0755, $destpath) or die $!;
-        };
-
-        # copy the debug elf if it exists
-        my $srcdbg = $SRC_BINARY =~ /\.com$/ ? "$SRC_BINARY.dbg" : $SRC_BINARY;
-        if(-f $srcdbg) {
-            $copyexe->($srcdbg, "$APPPATH.dbg");
-        }
-
-        # convert to ape if necessary, otherwise copy bin before we modify
-        if (! exists $UserProjectConfig->{nobuild_perl_bin}) {
-            my $SiteConfig = _load_valid_site_config($itemconfig);
-            my @objcopyflags = $itemconfig->{arch} eq 'x86_64' ? ('-S', '-O', 'binary') : ('-S');
-            _command_or_die($SiteConfig->{cosmocc}.'/bin/'.$itemconfig->{arch}.'-linux-cosmo-objcopy', @objcopyflags, $SRC_BINARY, $APPPATH);
-            _command_or_die($SiteConfig->{cosmocc}.'/bin/zipcopy', $SRC_BINARY, $APPPATH);
-        } else {
-            $copyexe->($SRC_BINARY, $APPPATH);
-        }
-
         # copy in files
         if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
             print "cd $ZIP_ROOT\n";
             chdir($ZIP_ROOT) or die "failed to enter ziproot";
             _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
         }
-
-        # Make non-APE available to build
-        $copyexe->($APPPATH, $PERLPATH);
-        _command_or_die($PERLPATH, '--assimilate') if ($itemconfig->{arch} eq 'x86_64');
     };
     $packAPE->();
 
@@ -1368,6 +1385,7 @@ sub Build {
         my $perlbindir = "$TEMPDIR/perlbin";
         print "mkdir -p $perlbindir\n";
         make_path($perlbindir);
+        my $PERLPATH = "$TEMPDIR/perl";
         print "Mapping core scripts to run with $PERLPATH\n";
         opendir(my $dh, $perlbin) or die "failed to open perlbin";
         while (my $file = readdir($dh)) {
@@ -1386,6 +1404,10 @@ sub Build {
         }
         local $ENV{PATH} = "$perlbindir:".$ENV{PATH};
         foreach my $module (@{$itemconfig->{install_modules}}) {
+            # Make non-APE available to build
+            _copy_exe($APPPATH, $PERLPATH);
+            _command_or_die($PERLPATH, '--assimilate') if ($itemconfig->{arch} eq 'x86_64');
+
             my $modulepath = "$startdir/$module";
             if(-d $modulepath) {
                 _copy_recursive($modulepath, $TEMPDIR);
@@ -1427,7 +1449,8 @@ sub Build {
                 close($newmakefile);
                 # finally rebuild perl
                 _command_or_die('make', '-f', 'Makefile.aperl', 'perl');
-                $SRC_BINARY = abs_path('./perl');
+                my $src_binary = abs_path('./perl');
+                $makeAPE->($src_binary);
             }
             else {
                 die "No Makefile.PL or Build.PL found, unable to install module";
@@ -1761,31 +1784,46 @@ sub _load_apperl_config {
         }
     }
 
+    if (exists $itemconfig{merge}) {
+        $itemconfig{arch} = 'fat';
+        (@{$itemconfig{merge}}) == 2 or die "too many items to merge";
+        foreach my $configname (@{$itemconfig{merge}}) {
+            my $config = _load_apperl_config($apperlconfigs, $configname);
+            my $dest = abs_path($config->{dest});
+            -f $dest or die "$configname\'s $dest does not exist";
+            my $binary = abs_path($config->{dest}.".dbg");
+            -f $binary or die "$configname\'s $binary does not exist";
+            my $arch = $config->{arch};
+            $itemconfig{"$arch-binary"} //= $binary;
+            $itemconfig{"$arch-zip"} //= $dest;
+        }
+        foreach my $arch ('x86_64', 'aarch64') {
+            $itemconfig{"$arch-binary"} && $itemconfig{"$arch-zip"} or die "$arch is missing";
+        }
+        $itemconfig{MANIFEST} //= [qw(bin lib usr .cosmo)];
+    } else {
+        # set arch if not set
+        my $arch = $itemconfig{'arch'} // do {
+            my ($arch) = split('-', $Config{archname});
+            $arch;
+        };
+        $arch = lc $arch;
+        $arch = 'aarch64' if ($arch eq 'amd64');
+        $arch eq 'x86_64' || $arch eq 'aarch64' or die "unsupported arch $arch";
+        $itemconfig{'arch'} = $arch;
+        if (exists $itemconfig{'perl_extra_flags'}) {
+            foreach my $flag (@{$itemconfig{'perl_extra_flags'}}) {
+                $flag =~ s/\_\_cosmoarch\_\_/$arch/g;
+            }
+        }
+    }
+
     # set cosmocc-version default values
     if (!exists $itemconfig{'cosmocc-version'} && exists $itemconfig{cosmo3} && $itemconfig{cosmo3}) {
         $itemconfig{'cosmocc-version'} = '3.3.10';
     }
     delete $itemconfig{cosmo3};
     $itemconfig{'cosmocc-version'} //= '3.3.10';
-
-    # set arch if not set
-    my $arch = $itemconfig{'arch'} // do {
-        my ($arch) = split('-', $Config{archname});
-        $arch;
-    };
-    $arch = lc $arch;
-    $arch = 'aarch64' if ($arch eq 'amd64');
-    $arch eq 'x86_64' || $arch eq 'aarch64' or die "unsupported arch $arch";
-    $itemconfig{'arch'} = $arch;
-    foreach my $flag (@{$itemconfig{'perl_extra_flags'}}) {
-        $flag =~ s/\_\_cosmoarch\_\_/$arch/g;
-    }
-
-    # verify apperl config sanity
-    if(! exists $itemconfig{nobuild_perl_bin}) {
-        $itemconfig{cosmo_ape_loader} //= 'ape-no-modify-self.o';
-        ($itemconfig{cosmo_ape_loader} eq 'ape-no-modify-self.o') || ($itemconfig{cosmo_ape_loader} eq 'ape.o') or die "Unknown ape loader: " . $itemconfig{cosmo_ape_loader};
-    }
 
     return \%itemconfig;
 }
@@ -1869,6 +1907,14 @@ sub _copy_recursive_inner {
         die "Unhandled file type for $src";
     }
 }
+
+sub _copy_exe {
+    my ($srcpath, $destpath) = @_;
+    print "cp $srcpath $destpath\n";
+    copy($srcpath, $destpath) or die "copy failed: $!";
+    print "chmod 755 $destpath\n";
+    chmod(0755, $destpath) or die $!;
+};
 
 1;
 
