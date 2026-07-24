@@ -45,7 +45,7 @@ jobs:
     needs:   build-linux
     strategy:
       matrix:
-        config: [full, aarch64-full, aarch64-small, full-536, small-536, full-540, small-540, full-542, small-542]
+        config: [full, small, aarch64-full, aarch64-small, full-536, small-536, full-540, small-540, full-542, small-542]
     steps:
     - name: Fetch build artifacts
       uses: actions/download-artifact@v8
