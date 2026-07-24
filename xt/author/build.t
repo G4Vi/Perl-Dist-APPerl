@@ -5,11 +5,15 @@ use warnings;
 use Test::More;
 use Perl::Dist::APPerl;
 use File::Copy "cp";
-my @apperlconfigs = qw(full small nobuild);
+my @apperlconfigs = qw(x86_64-full aarch64-full full x86_64-small aarch64-small small nobuild);
 plan tests => 3 * scalar(@apperlconfigs);
 
 my %binmapping = (
+    'x86_64-full' => 'x86_64-perl.com',
+    'aarch64-full' => 'aarch64-perl.com',
     full => 'perl.com',
+    'x86_64-small' => 'x86_64-perl-small.com',
+    'aarch64-small' => 'aarch64-perl-small.com',
     small => 'perl-small.com',
     nobuild => 'perl-nobuild.com'
 );
@@ -24,12 +28,13 @@ foreach my $config (@apperlconfigs) {
             my $perm = (stat('src/perl.com'))[2] & 07777;
             chmod($perm | 0111, 'src/perl.com');
         }
+        my $islink = $config =~ /^full|small$/;
         while(1) {
             my $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('checkout', $config); });
             ok($ret, "apperlm checkout $config");
             $ret or last;
             SKIP: {
-                skip "nobuild configs do not configure", 1 if($isnobuild );
+                skip "nobuild configs do not configure", 1 if($isnobuild || $islink);
                 $ret = hide_out_and_err(sub { Perl::Dist::APPerl::apperlm('configure'); });
                 ok($ret, "apperlm configure ($config)");
                 $ret or last;

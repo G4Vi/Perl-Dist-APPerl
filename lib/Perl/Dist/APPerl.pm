@@ -742,8 +742,9 @@ my %defconfig = (
             dest => 'perl-542-small.com',
             install_modules => [],
         },
-        'full-544' => {
-            desc => 'moving target: full-544',
+        # 5.44 full
+        'x86_64-full-544' => {
+            desc => 'moving target: x86_64-full-544',
             perl_flags => ['-Dprefix=/zip', '-Uversiononly', '-Dmyhostname=cosmo', '-Dmydomain=invalid'],
             perl_extra_flags => ['-Doptimize=-Os', '-de', '-Dprivlib=/zip/lib/perl5', '-Darchlib=/zip/lib/perl5/__cosmoarch__-cosmo', '-Dsitelib=/zip/lib/perl5/site_perl', '-Dsitearch=/zip/lib/perl5/site_perl/__cosmoarch__-cosmo'],
             MANIFEST => ['lib', 'bin'],
@@ -751,60 +752,82 @@ my %defconfig = (
             perl_repo_files => {},
             zip_extra_files => {},
             'cosmocc-version' => 'head',
-            dest => 'perl-544.com',
+            dest => 'x86_64-perl-544.com',
             perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.44.0.tar.gz',
             patches => ['__sharedir__/5.44-cosmo4x.patch', '__sharedir__/5.44-apperl.patch'],
             install_modules => [],
+            arch => 'x86_64',
         },
         'aarch64-full-544' => {
             desc => 'moving target: aarch64-full-544',
-            base => 'full-544',
+            base => 'x86_64-full-544',
             arch => 'aarch64',
             dest => 'aarch64-perl-544.com',
         },
-        'small-544' => {
-            desc => 'moving target: small-544',
-            base => 'full-544',
+        'full-544' => {
+            desc => '5.44 fat binary containing x86_64 and aarch64 perl, requires x86_64-full-544 and aarch64-full-544 being built first',
+            merge => ['x86_64-full-544', 'aarch64-full-544'],
+            dest => 'perl-544.com',
+            'cosmocc-version' => 'head',
+        },
+        # 5.44 small
+        'x86_64-small-544' => {
+            desc => 'moving target: x86_64-small-544',
+            base => 'x86_64-full-544',
             perl_onlyextensions => [qw(Cwd Fcntl File/Glob Hash/Util IO List/Util POSIX Socket attributes re)],
             MANIFEST => \@smallmanifest,
             'include_Perl-Dist-APPerl' => 0,
-            dest => 'perl-544-small.com',
+            dest => 'x86_64-perl-544-small.com',
             install_modules => [],
+            arch => 'x86_64',
         },
         'aarch64-small-544' => {
             desc => 'moving target: aarch64-small-544',
-            base => 'small-544',
+            base => 'x86_64-small-544',
             arch => 'aarch64',
             dest => 'aarch64-perl-544-small.com',
         },
-        'full' => {
-            desc => 'moving target: full',
-            base => 'full-544',
-            dest => 'perl.com',
+        'small-544' => {
+            desc => '5.44 fat binary containing x86_64 and aarch64 perl, requires x86_64-small-544 and aarch64-small-544 being built first',
+            merge => ['x86_64-small-544', 'aarch64-small-544'],
+            dest => 'perl-544-small.com',
+            'cosmocc-version' => 'head',
         },
-        'small' => {
-            desc => 'moving target: small',
-            base => 'small-544',
-            dest => 'perl-small.com',
+        # full aliases
+        'x86_64-full' => {
+            desc => 'moving target: x86_64-full',
+            base => 'x86_64-full-544',
+            dest => 'x86_64-perl.com',
         },
         'aarch64-full' => {
             desc => 'moving target: aarch64-full',
-            base => 'full',
-            arch => 'aarch64',
+            base => 'aarch64-full-544',
             dest => 'aarch64-perl.com',
+        },
+        'full' => {
+            desc => 'fat binary containing x86_64 and aarch64 perl, requires x86_64-full and aarch64-full being built first',
+            base => 'full-544',
+            dest => 'perl.com',
+            merge => ['x86_64-full', 'aarch64-full'],
+        },
+        # small aliases
+        'x86_64-small' => {
+            desc => 'moving target: x86_64-small',
+            base => 'x86_64-small-544',
+            dest => 'x86_64-perl-small.com',
         },
         'aarch64-small' => {
             desc => 'moving target: aarch64-small',
-            base => 'small',
-            arch => 'aarch64',
+            base => 'aarch64-small-544',
             dest => 'aarch64-perl-small.com',
         },
-        'fat-full' => {
-            desc => 'fat binary contains x86_64 and aarch64 perl, requires full and aarch64 being built first',
-            merge => ['full', 'aarch64-full'],
-            dest => 'fat-perl.com',
-            'cosmocc-version' => 'head',
+        'small' => {
+            desc => 'fat binary containing x86_64 and aarch64 perl, requires x86_64-small and aarch64-small being built first',
+            base => 'small-544',
+            dest => 'perl-small.com',
+            merge => ['x86_64-small', 'aarch64-small'],
         },
+        # nobuild
         'nobuild' => {
             desc => 'base nobuild config',
             dest => 'perl-nobuild.com',
@@ -816,7 +839,7 @@ my %defconfig = (
         # Cosmo versions
         perl_cosmo_dev_536 => {
             desc => "For developing cosmo platform perl without apperl additions",
-            base => 'full',
+            base => 'x86_64-full',
             perl_id => 'v5.36.3',
             perl_url => undef,
             patches => ['__sharedir__/5.36-cosmo3.patch'],
@@ -824,28 +847,28 @@ my %defconfig = (
         # static builds on 5.38 are broken https://github.com/Perl/perl5/issues/21319
         perl_cosmo_dev_538 => {
             desc => "For developing cosmo platform perl without apperl additions",
-            base => 'full',
+            base => 'x86_64-full',
             perl_id => 'v5.38.5',
             perl_url => undef,
             patches => ['__sharedir__/5.38-cosmo3.patch'],
         },
         perl_cosmo_dev_540 => {
             desc => "For developing cosmo platform perl without apperl additions",
-            base => 'full',
+            base => 'x86_64-full',
             perl_id => 'v5.40.4',
             perl_url => undef,
             patches => ['__sharedir__/5.40-cosmo3.patch'],
         },
         perl_cosmo_dev_542 => {
             desc => "For developing cosmo platform perl without apperl additions",
-            base => 'full',
+            base => 'x86_64-full',
             perl_id => 'v5.42.2',
             perl_url => undef,
             patches => ['__sharedir__/5.40-cosmo3.patch'],
         },
         perl_cosmo_dev_544 => {
             desc => "For developing cosmo platform perl without apperl additions",
-            base => 'full',
+            base => 'x86_64-full',
             perl_id => 'v5.44.0',
             perl_url => undef,
             patches => ['__sharedir__/5.44-cosmo4x.patch'],
@@ -902,7 +925,7 @@ my %defconfig = (
         },
     }
 );
-$defconfig{defaultconfig} = 'full';
+$defconfig{defaultconfig} = 'x86_64-full';
 
     my $projectconfig = _load_json(PROJECT_FILE);
     if($projectconfig) {
@@ -1024,6 +1047,16 @@ sub _remove_arr_items_from_arr {
     }
 }
 
+sub _grab_from_list {
+    my ($configlist, $expr) = @_;
+    print "expr $expr\n";
+    my @results = grep $_ =~ $expr, @$configlist;
+    print Dumper(\@results);
+    _remove_arr_items_from_arr($configlist, \@results);
+    print Dumper(\@results);
+    \@results
+}
+
 sub Status {
     my $Configs = _load_apperl_configs();
     my @configlist = sort(keys %{$Configs->{apperl_configs}});
@@ -1046,24 +1079,33 @@ sub Status {
         @projectitems = sort (keys %{$projectconfig->{apperl_configs}});
         _remove_arr_items_from_arr(\@configlist, \@projectitems);
     }
-    my @possiblerolling = qw(full aarch64-full small aarch64-small full-544 aarch64-full-544 small-544 aarch64-small-544 full-542 small-542 full-540 small-540 nobuild);
-    my @rolling;
-    foreach my $possible (@possiblerolling) {
-        push @rolling, $possible if (grep $possible, @configlist);
+    my $internal = _grab_from_list(\@configlist, qr/perl_cosmo_dev|perl_apperl_dev|dbg/);
+    my $thirtysix = _grab_from_list(\@configlist, qr/536/);
+    my $forty = _grab_from_list(\@configlist, qr/540/);
+    my $fortytwo = _grab_from_list(\@configlist, qr/542/);
+    my $fortyfour = _grab_from_list(\@configlist, qr/544/);
+    my $fortyfourlink = _grab_from_list($fortyfour, qr/^(?!x86_64|aarch64)/);
+    my @possiblenewest = qw(x86_64-full aarch64-full x86_64-small aarch64-small);
+    my @newest;
+    foreach my $item (@possiblenewest) {
+        if (@{_grab_from_list(\@configlist, $item)}) {
+            push @newest, $item;
+        }
     }
-    _remove_arr_items_from_arr(\@configlist, \@rolling);
-    my @internal = grep(/(perl_cosmo_dev|perl_apperl_dev|dbg)/, @configlist);
-    _remove_arr_items_from_arr(\@configlist, \@internal);
-    my @deprecated = grep(/(536)$/, @configlist);
-    _remove_arr_items_from_arr(\@configlist, \@deprecated);
-    my @stable = grep( /v\d+\.\d+\.\d+$/, @configlist);
-    _remove_arr_items_from_arr(\@configlist, \@stable);
+    my $newestlink = _grab_from_list(\@configlist, qr/^small|full$/);
+    my $newestnobuild = _grab_from_list(\@configlist, qr/nobuild/);
+
     my @categories = (
         ['PROJECT', \@projectitems],
-        ['STABLE', \@stable],
-        ['ROLLING', \@rolling],
-        ['DEPRECATED', \@deprecated],
-        ['UNSTABLE/INTERNAL', \@internal],
+        ['NEWEST', \@newest],
+        ['NEWEST (LINK)', $newestlink],
+        ['NEWEST (NOBUILD', $newestnobuild],
+        ['5.44', $fortyfour],
+        ['5.44 (LINK)', $fortyfourlink],
+        ['5.42', $fortytwo],
+        ['5.40', $forty],
+        ['5.36 (DEPRECATED)', $thirtysix],
+        ['UNSTABLE/INTERNAL', $internal],
         ['UNKNOWN', \@configlist]
     );
     foreach my $cat (@categories) {
