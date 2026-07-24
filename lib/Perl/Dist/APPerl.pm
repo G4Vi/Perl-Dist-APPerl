@@ -1305,15 +1305,7 @@ sub Build {
         make_path($ZIP_ROOT);
         if (exists $itemconfig->{merge}) {
             foreach my $srcpath ($itemconfig->{'x86_64-zip'}, $itemconfig->{'aarch64-zip'}) {
-                print "cp $srcpath $ZIP_ROOT\n";
-                copy($srcpath, $ZIP_ROOT) or die "copy failed: $!";
-            }
-            print "cd $ZIP_ROOT\n";
-            chdir($ZIP_ROOT) or die "Failed to enter $ZIP_ROOT";
-            foreach my $zipfile ($itemconfig->{'x86_64-zip'}, $itemconfig->{'aarch64-zip'}) {
-                _command_or_die('unzip', '-u', basename($zipfile));
-                print 'rm ' . basename($zipfile) . "\n";
-                unlink(basename($zipfile)) or die "failed to delete";
+                _command_or_die('unzip', '-n', '-d', $ZIP_ROOT, $srcpath);
             }
         }
     }
