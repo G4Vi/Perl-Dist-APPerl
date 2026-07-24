@@ -45,7 +45,7 @@ jobs:
     needs:   build-linux
     strategy:
       matrix:
-        config: [fat-full]
+        config: [full]
     steps:
     # install Perl-Dist-APPerl
     - name: Fetch build artifacts
@@ -66,6 +66,8 @@ jobs:
         wget https://lab.computoid.com/github-actions/full.zip
         unzip aarch64-full.zip
         unzip full.zip
+        mv perl.com x86_64-perl.com
+        mv perl.com.dbg x86_64-perl.com.dbg
         ls -la
     # setup cosmocc
     - name: Get Latest Successful Cosmopolitan Run ID
@@ -119,7 +121,7 @@ jobs:
     needs:   build-linux
     strategy:
       matrix:
-        config: [full, small, aarch64-full, aarch64-small, full-536, small-536, full-540, small-540, full-542, small-542]
+        config: [x86_64-full, x86_64-small, aarch64-full, aarch64-small, full-536, small-536, full-540, small-540, full-542, small-542]
     steps:
     - name: Fetch build artifacts
       uses: actions/download-artifact@v8
@@ -133,14 +135,14 @@ jobs:
         install-modules-with: cpanm
         install-modules: Perl-Dist-APPerl.tar.gz
     - name: Get Latest Successful Cosmopolitan Run ID
-      if: ${{ matrix.config == 'full' ||  matrix.config == 'small' || matrix.config == 'aarch64-full' ||  matrix.config == 'aarch64-small'}}
+      if: ${{ matrix.config == 'x86_64-full' ||  matrix.config == 'x86_64-small' || matrix.config == 'aarch64-full' ||  matrix.config == 'aarch64-small'}}
       env:
         GH_TOKEN: ${{ secrets.COSMOPOLITAN_TOKEN }}
       run: |
         RUN_ID=$(gh run list --repo jart/cosmopolitan --workflow "nightly-cosmocc.yml" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
         echo "COSMO_RUN_ID=$RUN_ID" >> $GITHUB_ENV
     - name: Fetch cosmocc
-      if: ${{ matrix.config == 'full' ||  matrix.config == 'small' || matrix.config == 'aarch64-full' ||  matrix.config == 'aarch64-small'}}
+      if: ${{ matrix.config == 'x86_64-full' ||  matrix.config == 'x86_64-small' || matrix.config == 'aarch64-full' ||  matrix.config == 'aarch64-small'}}
       uses: actions/download-artifact@v8
       with:
         repository: 'jart/cosmopolitan'
@@ -149,7 +151,7 @@ jobs:
         name: 'cosmocc'
         skip-decompress: true
     - name: Setup cosmocc
-      if: ${{ matrix.config == 'full' ||  matrix.config == 'small' || matrix.config == 'aarch64-full' ||  matrix.config == 'aarch64-small'}}
+      if: ${{ matrix.config == 'x86_64-full' ||  matrix.config == 'x86_64-small' || matrix.config == 'aarch64-full' ||  matrix.config == 'aarch64-small'}}
       run: |
         mkdir -p ~/.local/share/apperl/cosmocc-head
         mv cosmocc.zip ~/.local/share/apperl/cosmocc-head
@@ -202,7 +204,7 @@ jobs:
     needs:   build-apperl
     strategy:
       matrix:
-        config: [fat-full]
+        config: [full, small]
     steps:
     - name: Fetch build artifacts
       uses: actions/download-artifact@v8
@@ -212,7 +214,7 @@ jobs:
       run: |
         ls -la
         mv Perl-Dist-APPerl-v*.tar.gz Perl-Dist-APPerl.tar.gz
-        chmod +x perl.com
+        chmod +x *perl*.com
         ls -la
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
@@ -266,7 +268,7 @@ jobs:
   test-Perl-Dist-APPerl:
     name:    test Perl-Dist-APPerl
     runs-on: ubuntu-latest
-    needs:   build-apperl
+    needs:   [build-apperl, build-fat-apperl]
     strategy:
       matrix:
         version: ['5.10', '5.36', '5.38', '5.40', '5.42']
@@ -307,7 +309,7 @@ jobs:
 
   test-nobuild-builds:
     name:    Test building nobuild configs
-    needs:   build-apperl
+    needs:   [build-apperl, build-fat-apperl]
     strategy:
       matrix:
         os: [ubuntu-latest] #, windows-latest]
@@ -351,6 +353,8 @@ jobs:
           Perl-Dist-APPerl-v*.tar.gz/Perl-Dist-APPerl-v*.tar.gz
           full/*
           small/*
+          x86_64-full/*
+          x86_64-small/*
           aarch64-full/*
           aarch64-small/*
           full-536/*
