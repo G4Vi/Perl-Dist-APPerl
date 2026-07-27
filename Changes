@@ -6,6 +6,9 @@ vX.X.X  2026-XX-XX
           cosmopolitan/commit/3293fad0a9eac7865c019be98fb993eeb933405e)
         Add support for having multiple versions of cosmocc
         Add Perl 5.44 aarch64 builds
+        Add dualarch builds
+        Fix building Alien::Build
+        Enable including and linking from superconfigure cosmos.
 
 v0.8.0  2026-07-19
         Add Perl 5.42 builds.

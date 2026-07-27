@@ -1413,6 +1413,14 @@ sub Build {
         local $ENV{PERL_MM_OPT} = $mmopt;
         local $ENV{PERL5LIB} = $perllib;
         local $ENV{PERL_LOCAL_LIB_ROOT} = '';
+        local $ENV{CFLAGS} = "-I$perlarchlib/CORE"; # for ExtUtils::CBuilder
+        # enable including and linking from cosmos if available
+        my $PKG_CONFIG_PATH;
+        if ($ENV{COSMOS_PATH}) {
+            $PKG_CONFIG_PATH = abs_path($ENV{COSMOS_PATH}."/".$itemconfig->{arch}.'/lib/pkgconfig');
+            print "PKG_CONFIG_PATH $PKG_CONFIG_PATH\n";
+        }
+        local $ENV{PKG_CONFIG_PATH} = $PKG_CONFIG_PATH if ($PKG_CONFIG_PATH);
         # Some distributions such as CPanel-JSON-XS depend on the core perl
         # scripts (such as pod2text). Add apperl's versions of them to PATH so
         # they get picked up instead of the system's versions.
