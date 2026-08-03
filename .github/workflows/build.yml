@@ -17,7 +17,7 @@ jobs:
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
       with:
-        perl-version: '5.42'
+        perl-version: '5.44'
         install-modules-with: cpanm
         install-modules: File::ShareDir::Install
     - name: Test in-tree
@@ -56,7 +56,7 @@ jobs:
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
       with:
-        perl-version: '5.42'
+        perl-version: '5.44'
         install-modules-with: cpanm
         install-modules: Perl-Dist-APPerl.tar.gz
     # add existing binaries
@@ -131,7 +131,7 @@ jobs:
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
       with:
-        perl-version: '5.42'
+        perl-version: '5.44'
         install-modules-with: cpanm
         install-modules: Perl-Dist-APPerl.tar.gz
     - name: Get Latest Successful Cosmopolitan Run ID
@@ -219,7 +219,7 @@ jobs:
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
       with:
-        perl-version: '5.42'
+        perl-version: '5.44'
         install-modules-with: cpanm
         install-modules: Perl-Dist-APPerl.tar.gz
     - name: Get Latest Successful Cosmopolitan Run ID
@@ -271,7 +271,7 @@ jobs:
     needs:   [build-apperl, build-fat-apperl]
     strategy:
       matrix:
-        version: ['5.10', '5.36', '5.38', '5.40', '5.42']
+        version: ['5.10', '5.36', '5.38', '5.40', '5.42', '5.44']
     steps:
     - name: Fetch repo
       uses: actions/checkout@v7
