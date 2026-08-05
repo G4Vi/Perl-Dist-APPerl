@@ -1135,23 +1135,31 @@ sub Checkout {
     if (! exists $itemconfig->{nobuild_perl_bin}) {
         $SiteConfig = _load_valid_site_config($itemconfig);
         # setup cosmocc
-        my $cosmocc_version = $itemconfig->{'cosmocc-version'};
         my $cosmocc;
-        if (exists $UserProjectConfig->{cosmocc_versions}{$cosmocc_version}) {
-            $cosmocc = $UserProjectConfig->{cosmocc_versions}{$cosmocc_version};
+        if ($itemconfig->{superconfigure}) {
+            my $superconfigure_dir = $UserProjectConfig->{configs}{$cfgname}{superconfigure_dir} // $UserProjectConfig->{superconfigure_dir} // $SiteConfig->{superconfigure_dir};
+            $superconfigure_dir or die "superconfigure_dir must be set in ".PROJECT_TMP_CONFIG_FILE." (in a config or file level) or in " . SITE_CONFIG_FILE;
+            -d $superconfigure_dir or die "superconfigure_dir: $superconfigure_dir must exist";
+            $UserProjectConfig->{configs}{$cfgname}{cosmos_dir} = "$superconfigure_dir/cosmos";
+            $cosmocc = "$superconfigure_dir/cosmopolitan/cosmocc";
         } else {
-            if (! exists $SiteConfig->{"cosmocc-$cosmocc_version"}) {
-                $SiteConfig->{"cosmocc-$cosmocc_version"} //= SITE_REPO_DIR."/cosmocc-$cosmocc_version";
-                make_path(SITE_CONFIG_DIR);
-                _write_json(SITE_CONFIG_FILE, $SiteConfig);
+            my $cosmocc_version = $itemconfig->{'cosmocc-version'};
+            if (exists $UserProjectConfig->{cosmocc_versions}{$cosmocc_version}) {
+                $cosmocc = $UserProjectConfig->{cosmocc_versions}{$cosmocc_version};
+            } else {
+                if (! exists $SiteConfig->{"cosmocc-$cosmocc_version"}) {
+                    $SiteConfig->{"cosmocc-$cosmocc_version"} //= SITE_REPO_DIR."/cosmocc-$cosmocc_version";
+                    make_path(SITE_CONFIG_DIR);
+                    _write_json(SITE_CONFIG_FILE, $SiteConfig);
+                }
+                $cosmocc = $SiteConfig->{"cosmocc-$cosmocc_version"};
             }
-            $cosmocc = $SiteConfig->{"cosmocc-$cosmocc_version"};
+            if (! -d $cosmocc) {
+                print "installing cosmocc to $cosmocc\n";
+                _install_cosmocc($itemconfig->{'cosmocc-url'}, $cosmocc);
+            }
         }
-        if (! -d $cosmocc) {
-            print "installing cosmocc to $cosmocc\n";
-            _install_cosmocc($itemconfig->{'cosmocc-url'}, $cosmocc);
-        }
-        -d $cosmocc or die "failed to install $cosmocc_version to $cosmocc";
+        -d $cosmocc or die "cosmocc: $cosmocc not available";
         $UserProjectConfig->{configs}{$cfgname}{cosmocc} = $cosmocc;
     }
     if (exists $itemconfig->{merge}) {
@@ -1428,9 +1436,13 @@ sub Build {
         local $ENV{CFLAGS} = "-I$perlarchlib/CORE"; # for ExtUtils::CBuilder
         # enable including and linking from cosmos if available
         my $PKG_CONFIG_PATH;
-        if ($ENV{COSMOS_PATH}) {
-            $PKG_CONFIG_PATH = abs_path($ENV{COSMOS_PATH}."/".$itemconfig->{arch}.'/lib/pkgconfig');
-            print "PKG_CONFIG_PATH $PKG_CONFIG_PATH\n";
+        if (exists $build_config->{cosmos_dir}) {
+            if (-d $build_config->{cosmos_dir}) {
+                $PKG_CONFIG_PATH = abs_path($build_config->{cosmos_dir}."/".$itemconfig->{arch}.'/lib/pkgconfig');
+                print "PKG_CONFIG_PATH $PKG_CONFIG_PATH\n";
+            } else {
+                print "cosmos_dir: $build_config->{cosmosdir} is not available, PKG_CONFIG_PATH not set\n";
+            }
         }
         local $ENV{PKG_CONFIG_PATH} = $PKG_CONFIG_PATH if ($PKG_CONFIG_PATH);
         # Some distributions such as CPanel-JSON-XS depend on the core perl

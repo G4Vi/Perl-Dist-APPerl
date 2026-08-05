@@ -2,13 +2,19 @@ Revision history for Perl-Dist-APPerl
 vX.X.X  2026-XX-XX
         Remove vista builds, remove building cosmopolitan as a part
           of build.
-        Build Perl 5.44 with Cosmo 4x (Tested with
-          cosmopolitan/commit/3293fad0a9eac7865c019be98fb993eeb933405e)
+        Build Perl 5.44 with latest cosmopolitan,
+          cosmopolitan/commit/3293fad0a9eac7865c019be98fb993eeb933405e
+          https://github.com/G4Vi/cosmocc-releases created to host
+          cosmocc builds so APPerl can use any commit rather than
+          waiting for an official release.
         Add support for having multiple versions of cosmocc
+        Add being able to set cosmocc download url
         Add Perl 5.44 aarch64 builds
-        Add dualarch builds
+        Add dual arch fat binary builds
         Fix building Alien::Build
         Enable including and linking from superconfigure cosmos.
+        Update Perl 5.40 builds from 5.40.4 to 5.40.5
+        Update Perl 5.42 builds from 5.42.2 to 5.42.3
 
 v0.8.0  2026-07-19
         Add Perl 5.42 builds.
