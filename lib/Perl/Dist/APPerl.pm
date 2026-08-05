@@ -662,10 +662,6 @@ my @smallmanifest = (
 );
 
 my %defconfig = (
-    cosmo_remotes => {
-        origin => 'https://github.com/G4Vi/cosmopolitan',
-        upstream => 'https://github.com/jart/cosmopolitan',
-    },
     perl_remotes => {
         origin => 'https://github.com/G4Vi/perl5',
     },
@@ -991,9 +987,7 @@ sub NewConfig {
 }
 
 sub _install_cosmocc {
-    my ($SiteConfig, $version) = @_;
-    $version //= '3.3.10';
-    my $cosmocc = SITE_REPO_DIR."/cosmocc-$version";
+    my ($version, $cosmocc) = @_;
     print "rm -rf $cosmocc\n";
     remove_tree($cosmocc);
     print "mkdir -p $cosmocc\n";
@@ -1005,10 +999,6 @@ sub _install_cosmocc {
     _command_or_die('wget', "https://cosmo.zip/pub/cosmocc/$filename");
     _command_or_die('unzip', $filename);
     chdir($before) or die "error resetting directory";
-    $SiteConfig->{"cosmocc-$version"} = $cosmocc;
-    make_path(SITE_CONFIG_DIR);
-    delete $SiteConfig->{cosmocc};
-    _write_json(SITE_CONFIG_FILE, $SiteConfig);
 }
 
 sub InstallBuildDeps {
@@ -1049,11 +1039,8 @@ sub _remove_arr_items_from_arr {
 
 sub _grab_from_list {
     my ($configlist, $expr) = @_;
-    print "expr $expr\n";
     my @results = grep $_ =~ $expr, @$configlist;
-    print Dumper(\@results);
     _remove_arr_items_from_arr($configlist, \@results);
-    print Dumper(\@results);
     \@results
 }
 
@@ -1137,14 +1124,36 @@ sub Checkout {
     }
     $UserProjectConfig->{apperl_output} //= PROJECT_TMP_DIR."/o";
     $UserProjectConfig->{current_apperl} = $cfgname;
+    $UserProjectConfig->{configs}{$cfgname}{build_dir} //= "$UserProjectConfig->{apperl_output}/$cfgname";
     my $itemconfig = _load_apperl_config(_load_apperl_configs()->{apperl_configs}, $cfgname);
     print Dumper($itemconfig);
+    my $SiteConfig;
+    if (! exists $itemconfig->{nobuild_perl_bin}) {
+        $SiteConfig = _load_valid_site_config($itemconfig);
+        # setup cosmocc
+        my $cosmocc_version = $itemconfig->{'cosmocc-version'};
+        my $cosmocc;
+        if (exists $UserProjectConfig->{cosmocc_versions}{$cosmocc_version}) {
+            $cosmocc = $UserProjectConfig->{cosmocc_versions}{$cosmocc_version};
+        } else {
+            if (! exists $SiteConfig->{"cosmocc-$cosmocc_version"}) {
+                $SiteConfig->{"cosmocc-$cosmocc_version"} //= SITE_REPO_DIR."/cosmocc-$cosmocc_version";
+                make_path(SITE_CONFIG_DIR);
+                _write_json(SITE_CONFIG_FILE, $SiteConfig);
+            }
+            $cosmocc = $SiteConfig->{"cosmocc-$cosmocc_version"};
+        }
+        if (! -d $cosmocc) {
+            print "installing cosmocc to $cosmocc\n";
+            _install_cosmocc($cosmocc_version, $cosmocc);
+        }
+        -d $cosmocc or die "failed to install $cosmocc_version to $cosmocc";
+        $UserProjectConfig->{configs}{$cfgname}{cosmocc} = $cosmocc;
+    }
     if (exists $itemconfig->{merge}) {
-        _load_valid_site_config($itemconfig);
     } elsif(! exists $itemconfig->{nobuild_perl_bin}) {
-        my $SiteConfig = _load_valid_site_config($itemconfig);
         $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= $SiteConfig->{perl_repo} if !$itemconfig->{perl_url};
-        $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= "$UserProjectConfig->{apperl_output}/$cfgname/tmp/perl5";
+        $UserProjectConfig->{configs}{$cfgname}{perl_build_dir} //= "$UserProjectConfig->{configs}{$cfgname}{build_dir}/tmp/perl5";
         my $perl_build_dir = $UserProjectConfig->{configs}{$cfgname}{perl_build_dir};
         if (! $itemconfig->{perl_url}) {
             -d $perl_build_dir or die $perl_build_dir .' is not directory';
@@ -1206,22 +1215,22 @@ sub Checkout {
         $validperl or die "no valid perl found to use for nobuild config";
         $validperl = abs_path($validperl);
         $validperl or die "no valid perl found to use for nobuild config";
-        $UserProjectConfig->{nobuild_perl_bin} = $validperl;
+        $UserProjectConfig->{configs}{$cfgname}{nobuild_perl_bin} = $validperl;
         print "Checkout UserProjectConfig to nobuild_perl-bin to $validperl\n";
     }
+    print Dumper($UserProjectConfig->{configs}{$cfgname});
     _write_user_project_config($UserProjectConfig);
     print "$0: Successfully switched to $cfgname\n";
 }
 
 sub Configure {
     my ($UserProjectConfig, $CurAPPerlName, $itemconfig) = _load_valid_configs() or die "cannot Configure without valid UserProjectConfig";
-    ! exists $UserProjectConfig->{nobuild_perl_bin} or die "nobuild perl cannot be configured";
+    ! exists $UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin} or die "nobuild perl cannot be configured";
     ! exists $itemconfig->{merge} or die "merge perl cannot be configured";
     my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
     $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
     _install_perl_src_files($itemconfig, $perl_build_dir);
-    my $SiteConfig = _load_valid_site_config($itemconfig);
-    $ENV{COSMOCC} = $SiteConfig->{cosmocc};
+    $ENV{COSMOCC} = $UserProjectConfig->{configs}{$CurAPPerlName}{cosmocc};
     $ENV{COSMOARCH} = $itemconfig->{arch};
 
     # Finally Configure perl
@@ -1261,7 +1270,7 @@ sub Build {
     my ($UserProjectConfig, $CurAPPerlName, $itemconfig) = _load_valid_configs() or die "cannot Build without valid UserProjectConfig";
     my $startdir = abs_path('./');
     # setup output dir
-    my $OUTPUTDIR = "$UserProjectConfig->{apperl_output}/$CurAPPerlName/o";
+    my $OUTPUTDIR = "$UserProjectConfig->{configs}{$CurAPPerlName}{build_dir}/o";
     if(-d $OUTPUTDIR) {
         print "rm -rf $OUTPUTDIR\n";
         remove_tree($OUTPUTDIR);
@@ -1282,21 +1291,20 @@ sub Build {
             _copy_exe($srcdbg, "$APPPATH.dbg");
         }
 
-        my $SiteConfig = _load_valid_site_config($itemconfig);
+        my $cosmocc = $UserProjectConfig->{configs}{$CurAPPerlName}{cosmocc};
         my @objcopyflags = $itemconfig->{arch} eq 'x86_64' ? ('-S', '-O', 'binary') : ('-S');
-        _command_or_die($SiteConfig->{cosmocc}.'/bin/'.$itemconfig->{arch}.'-linux-cosmo-objcopy', @objcopyflags, $src_binary, $APPPATH);
-        _command_or_die($SiteConfig->{cosmocc}.'/bin/zipcopy', $src_binary, $APPPATH);
+        _command_or_die($cosmocc.'/bin/'.$itemconfig->{arch}.'-linux-cosmo-objcopy', @objcopyflags, $src_binary, $APPPATH);
+        _command_or_die($cosmocc.'/bin/zipcopy', $src_binary, $APPPATH);
     };
     # build (but not pack yet) an APE binary
     if (exists $itemconfig->{merge}) {
         # link
-        my $SiteConfig = _load_valid_site_config($itemconfig);
-        my $cosmoccbin = $SiteConfig->{cosmocc}.'/bin';
+        my $cosmocc = $UserProjectConfig->{configs}{$CurAPPerlName}{cosmocc};
+        my $cosmoccbin = $cosmocc.'/bin';
         _command_or_die("$cosmoccbin/apelink", '-o', $APPPATH, '-l', "$cosmoccbin/ape-x86_64.elf", '-l', "$cosmoccbin/ape-aarch64.elf", '-M', "$cosmoccbin/ape-m1.c", $itemconfig->{'x86_64-binary'}, $itemconfig->{'aarch64-binary'});
         @perl_config_cmd = ($itemconfig->{'x86_64-zip'});
-    } elsif(! exists $UserProjectConfig->{nobuild_perl_bin}){
+    } elsif(! exists $UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin}){
         # build cosmo perl
-        my $SiteConfig = _load_valid_site_config($itemconfig);
         my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
         $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
         _install_perl_src_files($itemconfig, $perl_build_dir);
@@ -1309,8 +1317,8 @@ sub Build {
     }
     else {
         # nobuild
-        _copy_exe($UserProjectConfig->{nobuild_perl_bin}, $APPPATH);
-        @perl_config_cmd = ($UserProjectConfig->{nobuild_perl_bin});
+        _copy_exe($UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin}, $APPPATH);
+        @perl_config_cmd = ($UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin});
     }
     -f $APPPATH or die "apperlm build: APE '$APPPATH' binary not found";
 
@@ -1331,7 +1339,7 @@ sub Build {
     my @zipfiles = map { _fix_bases($_, \%aliasmap) } @{$itemconfig->{MANIFEST}};
     my $ZIP_ROOT = "$TEMPDIR$proxyConfig{installprefixexp}";
 
-    if(! exists $UserProjectConfig->{nobuild_perl_bin} && ! exists $itemconfig->{merge}){
+    if(! exists $UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin} && ! exists $itemconfig->{merge}){
         # install cosmo perl if this isn't a nobuild config
         _command_or_die('make', "DESTDIR=$TEMPDIR", 'install');
         my @toremove = ("$TEMPDIR$proxyConfig{installbin}/perl", "$TEMPDIR$proxyConfig{installbin}/perl$proxyConfig{version}");
@@ -1363,7 +1371,7 @@ sub Build {
     # pack
     my $packAPE = sub {
         # copy in files
-        if((! exists $UserProjectConfig->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
+        if((! exists $UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
             print "cd $ZIP_ROOT\n";
             chdir($ZIP_ROOT) or die "failed to enter ziproot";
             _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
@@ -1372,7 +1380,7 @@ sub Build {
     $packAPE->();
 
     # install modules
-    if(! exists $UserProjectConfig->{nobuild_perl_bin} && exists $itemconfig->{install_modules}) {
+    if(! exists $UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin} && exists $itemconfig->{install_modules}) {
         my $perlman1 = "$TEMPDIR$proxyConfig{installman1dir}";
         my $perlman3 = "$TEMPDIR$proxyConfig{installman3dir}";
         my $perlbin = "$TEMPDIR$proxyConfig{installbin}";
@@ -1539,7 +1547,7 @@ sub Build {
                 print "mv $destfile $olddest\n";
                 move($destfile, $olddest) or die "move failed: $!";
             }
-            my @args = ("$UserProjectConfig->{apperl_output}/$CurAPPerlName/o/$srcfile", $destfile);
+            my @args = ("$UserProjectConfig->{configs}{$CurAPPerlName}{build_dir}/o/$srcfile", $destfile);
             -e $args[0] or next;
             print 'cp '.join(' ', @args)."\n";
             cp(@args) or die "copy failed: $!";
@@ -1898,16 +1906,8 @@ sub _load_valid_configs {
 }
 
 sub _load_valid_site_config {
-    my ($itemconfig) = @_;
-    my $cosmocc_version = $itemconfig->{'cosmocc-version'};
     my $SiteConfig = _load_json(SITE_CONFIG_FILE);
     $SiteConfig //= {};
-    if (! exists $SiteConfig->{"cosmocc-$cosmocc_version"}) {
-        print "cosmocc not found in " . SITE_CONFIG_FILE .  " attempting to install cosmocc\n";
-        _install_cosmocc($SiteConfig, $cosmocc_version);
-    }
-    $SiteConfig->{cosmocc} = $SiteConfig->{"cosmocc-$cosmocc_version"};
-    -d $SiteConfig->{cosmocc} or die $SiteConfig->{cosmocc} . ' is not a directory, please edit or remove the entry in ' . SITE_CONFIG_FILE;
     return $SiteConfig;
 }
 
