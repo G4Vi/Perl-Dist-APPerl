@@ -1224,13 +1224,13 @@ sub Checkout {
 }
 
 sub Configure {
-    my ($UserProjectConfig, $CurAPPerlName, $itemconfig) = _load_valid_configs() or die "cannot Configure without valid UserProjectConfig";
-    ! exists $UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin} or die "nobuild perl cannot be configured";
+    my ($build_config, $itemconfig) = _load_valid_configs() or die "cannot Configure without valid UserProjectConfig";
+    ! exists $build_config->{nobuild_perl_bin} or die "nobuild perl cannot be configured";
     ! exists $itemconfig->{merge} or die "merge perl cannot be configured";
-    my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
+    my $perl_build_dir = $build_config->{perl_build_dir};
     $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
     _install_perl_src_files($itemconfig, $perl_build_dir);
-    $ENV{COSMOCC} = $UserProjectConfig->{configs}{$CurAPPerlName}{cosmocc};
+    $ENV{COSMOCC} = $build_config->{cosmocc};
     $ENV{COSMOARCH} = $itemconfig->{arch};
 
     # Finally Configure perl
@@ -1267,10 +1267,10 @@ sub _find_zip {
 
 sub Build {
     my ($zippath) = @_;
-    my ($UserProjectConfig, $CurAPPerlName, $itemconfig) = _load_valid_configs() or die "cannot Build without valid UserProjectConfig";
+    my ($build_config, $itemconfig) = _load_valid_configs() or die "cannot Build without valid UserProjectConfig";
     my $startdir = abs_path('./');
     # setup output dir
-    my $OUTPUTDIR = "$UserProjectConfig->{configs}{$CurAPPerlName}{build_dir}/o";
+    my $OUTPUTDIR = "$build_config->{build_dir}/o";
     if(-d $OUTPUTDIR) {
         print "rm -rf $OUTPUTDIR\n";
         remove_tree($OUTPUTDIR);
@@ -1291,7 +1291,7 @@ sub Build {
             _copy_exe($srcdbg, "$APPPATH.dbg");
         }
 
-        my $cosmocc = $UserProjectConfig->{configs}{$CurAPPerlName}{cosmocc};
+        my $cosmocc = $build_config->{cosmocc};
         my @objcopyflags = $itemconfig->{arch} eq 'x86_64' ? ('-S', '-O', 'binary') : ('-S');
         _command_or_die($cosmocc.'/bin/'.$itemconfig->{arch}.'-linux-cosmo-objcopy', @objcopyflags, $src_binary, $APPPATH);
         _command_or_die($cosmocc.'/bin/zipcopy', $src_binary, $APPPATH);
@@ -1299,13 +1299,13 @@ sub Build {
     # build (but not pack yet) an APE binary
     if (exists $itemconfig->{merge}) {
         # link
-        my $cosmocc = $UserProjectConfig->{configs}{$CurAPPerlName}{cosmocc};
+        my $cosmocc = $build_config->{cosmocc};
         my $cosmoccbin = $cosmocc.'/bin';
         _command_or_die("$cosmoccbin/apelink", '-o', $APPPATH, '-l', "$cosmoccbin/ape-x86_64.elf", '-l', "$cosmoccbin/ape-aarch64.elf", '-M', "$cosmoccbin/ape-m1.c", $itemconfig->{'x86_64-binary'}, $itemconfig->{'aarch64-binary'});
         @perl_config_cmd = ($itemconfig->{'x86_64-zip'});
-    } elsif(! exists $UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin}){
+    } elsif(! exists $build_config->{nobuild_perl_bin}){
         # build cosmo perl
-        my $perl_build_dir = $UserProjectConfig->{configs}{$CurAPPerlName}{perl_build_dir};
+        my $perl_build_dir = $build_config->{perl_build_dir};
         $perl_build_dir && -d $perl_build_dir or die "$perl_build_dir is not a directory";
         _install_perl_src_files($itemconfig, $perl_build_dir);
         print "cd $perl_build_dir\n";
@@ -1317,8 +1317,8 @@ sub Build {
     }
     else {
         # nobuild
-        _copy_exe($UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin}, $APPPATH);
-        @perl_config_cmd = ($UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin});
+        _copy_exe($build_config->{nobuild_perl_bin}, $APPPATH);
+        @perl_config_cmd = ($build_config->{nobuild_perl_bin});
     }
     -f $APPPATH or die "apperlm build: APE '$APPPATH' binary not found";
 
@@ -1339,7 +1339,7 @@ sub Build {
     my @zipfiles = map { _fix_bases($_, \%aliasmap) } @{$itemconfig->{MANIFEST}};
     my $ZIP_ROOT = "$TEMPDIR$proxyConfig{installprefixexp}";
 
-    if(! exists $UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin} && ! exists $itemconfig->{merge}){
+    if(! exists $build_config->{nobuild_perl_bin} && ! exists $itemconfig->{merge}){
         # install cosmo perl if this isn't a nobuild config
         _command_or_die('make', "DESTDIR=$TEMPDIR", 'install');
         my @toremove = ("$TEMPDIR$proxyConfig{installbin}/perl", "$TEMPDIR$proxyConfig{installbin}/perl$proxyConfig{version}");
@@ -1371,7 +1371,7 @@ sub Build {
     # pack
     my $packAPE = sub {
         # copy in files
-        if((! exists $UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
+        if((! exists $build_config->{nobuild_perl_bin}) || scalar(keys %{$itemconfig->{zip_extra_files}})) {
             print "cd $ZIP_ROOT\n";
             chdir($ZIP_ROOT) or die "failed to enter ziproot";
             _command_or_die($zippath // _find_zip(), '-r', $APPPATH, @zipfiles);
@@ -1380,7 +1380,7 @@ sub Build {
     $packAPE->();
 
     # install modules
-    if(! exists $UserProjectConfig->{configs}{$CurAPPerlName}{nobuild_perl_bin} && exists $itemconfig->{install_modules}) {
+    if(! exists $build_config->{nobuild_perl_bin} && exists $itemconfig->{install_modules}) {
         my $perlman1 = "$TEMPDIR$proxyConfig{installman1dir}";
         my $perlman3 = "$TEMPDIR$proxyConfig{installman3dir}";
         my $perlbin = "$TEMPDIR$proxyConfig{installbin}";
@@ -1547,7 +1547,7 @@ sub Build {
                 print "mv $destfile $olddest\n";
                 move($destfile, $olddest) or die "move failed: $!";
             }
-            my @args = ("$UserProjectConfig->{configs}{$CurAPPerlName}{build_dir}/o/$srcfile", $destfile);
+            my @args = ("$build_config->{build_dir}/o/$srcfile", $destfile);
             -e $args[0] or next;
             print 'cp '.join(' ', @args)."\n";
             cp(@args) or die "copy failed: $!";
@@ -1882,7 +1882,7 @@ sub _load_user_project_config {
     return _load_json(PROJECT_TMP_CONFIG_FILE);
 }
 
-sub _load_valid_user_project_config {
+sub _load_valid_configs_inner {
     my ($Configs) = @_;
     my $UserProjectConfig = _load_user_project_config();
     if($UserProjectConfig) {
@@ -1890,7 +1890,8 @@ sub _load_valid_user_project_config {
             my $CurAPPerlName = $UserProjectConfig->{current_apperl};
             exists $Configs->{apperl_configs}{$CurAPPerlName} or die("non-existent apperl config $CurAPPerlName in user project config");
             my $itemconfig = _load_apperl_config($Configs->{apperl_configs}, $CurAPPerlName);
-            return ($UserProjectConfig, $CurAPPerlName, $itemconfig);
+            my $build_config = $UserProjectConfig->{configs}{$CurAPPerlName};
+            return ($build_config, $itemconfig);
         }
     }
     return ();
@@ -1898,11 +1899,11 @@ sub _load_valid_user_project_config {
 
 sub _load_valid_configs {
     my $apperlconfigs = _load_apperl_configs();
-    my @configs = _load_valid_user_project_config($apperlconfigs);
+    my @configs = _load_valid_configs_inner($apperlconfigs);
     return @configs if(@configs);
     return () if(!exists $apperlconfigs->{defaultconfig});
     Checkout($apperlconfigs->{defaultconfig});
-    return _load_valid_user_project_config($apperlconfigs);
+    return _load_valid_configs_inner($apperlconfigs);
 }
 
 sub _load_valid_site_config {
