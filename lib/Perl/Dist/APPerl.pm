@@ -1147,12 +1147,12 @@ sub Checkout {
             if (exists $UserProjectConfig->{cosmocc_versions}{$cosmocc_version}) {
                 $cosmocc = $UserProjectConfig->{cosmocc_versions}{$cosmocc_version};
             } else {
-                if (! exists $SiteConfig->{"cosmocc-$cosmocc_version"}) {
-                    $SiteConfig->{"cosmocc-$cosmocc_version"} //= SITE_REPO_DIR."/cosmocc-$cosmocc_version";
+                if (! exists $SiteConfig->{cosmocc_versions}{$cosmocc_version}) {
+                    $SiteConfig->{cosmocc_versions}{$cosmocc_version} //= SITE_REPO_DIR."/cosmocc-$cosmocc_version";
                     make_path(SITE_CONFIG_DIR);
                     _write_json(SITE_CONFIG_FILE, $SiteConfig);
                 }
-                $cosmocc = $SiteConfig->{"cosmocc-$cosmocc_version"};
+                $cosmocc = $SiteConfig->{cosmocc_versions}{$cosmocc_version}
             }
             if (! -d $cosmocc) {
                 print "installing cosmocc to $cosmocc\n";

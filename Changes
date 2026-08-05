@@ -8,11 +8,16 @@ vX.X.X  2026-XX-XX
           cosmocc builds so APPerl can use any commit rather than
           waiting for an official release.
         Add support for having multiple versions of cosmocc
-        Add being able to set cosmocc download url
-        Add Perl 5.44 aarch64 builds
-        Add dual arch fat binary builds
+          Add being able to set cosmocc download url.
+          Project configs can set cosmocc-version and cosmocc-url as
+          needed. The path of a version can be manually set/changed
+          via cosmocc_versions in both site config and
+          .apperl/user-project.json (GH#13)
+        Add Perl 5.44 aarch64 builds (GH#8)
+        Add dual arch fat binary builds (GH#8)
         Fix building Alien::Build
-        Enable including and linking from superconfigure cosmos.
+        Enable building, including and linking from superconfigure cosmos.
+          Note: when used overrides cosmocc-version and cosmocc-url.
         Update Perl 5.40 builds from 5.40.4 to 5.40.5
         Update Perl 5.42 builds from 5.42.2 to 5.42.3
 
