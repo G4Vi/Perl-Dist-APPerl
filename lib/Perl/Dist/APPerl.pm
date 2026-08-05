@@ -663,7 +663,7 @@ my @smallmanifest = (
 
 my %defconfig = (
     perl_remotes => {
-        origin => 'https://github.com/G4Vi/perl5',
+        origin => 'https://github.com/Perl/perl5',
     },
     apperl_configs => {
         'full-536' => {
@@ -747,7 +747,8 @@ my %defconfig = (
             'include_Perl-Dist-APPerl' => 1,
             perl_repo_files => {},
             zip_extra_files => {},
-            'cosmocc-version' => 'head',
+            'cosmocc-version' => '3293fad',
+            'cosmocc-url' => 'https://github.com/G4Vi/cosmocc-releases/releases/download/tag-3293fad0a9eac7865c019be98fb993eeb933405e/cosmocc-tag-3293fad0a9eac7865c019be98fb993eeb933405e.zip',
             dest => 'x86_64-perl-544.com',
             perl_url => 'https://github.com/Perl/perl5/archive/refs/tags/v5.44.0.tar.gz',
             patches => ['__sharedir__/5.44-cosmo4x.patch', '__sharedir__/5.44-apperl.patch'],
@@ -764,7 +765,8 @@ my %defconfig = (
             desc => '5.44 fat binary containing x86_64 and aarch64 perl, requires x86_64-full-544 and aarch64-full-544 being built first',
             merge => ['x86_64-full-544', 'aarch64-full-544'],
             dest => 'perl-544.com',
-            'cosmocc-version' => 'head',
+            'cosmocc-version' => '3293fad',
+            'cosmocc-url' => 'https://github.com/G4Vi/cosmocc-releases/releases/download/tag-3293fad0a9eac7865c019be98fb993eeb933405e/cosmocc-tag-3293fad0a9eac7865c019be98fb993eeb933405e.zip',
         },
         # 5.44 small
         'x86_64-small-544' => {
@@ -787,7 +789,8 @@ my %defconfig = (
             desc => '5.44 fat binary containing x86_64 and aarch64 perl, requires x86_64-small-544 and aarch64-small-544 being built first',
             merge => ['x86_64-small-544', 'aarch64-small-544'],
             dest => 'perl-544-small.com',
-            'cosmocc-version' => 'head',
+            'cosmocc-version' => '3293fad',
+            'cosmocc-url' => 'https://github.com/G4Vi/cosmocc-releases/releases/download/tag-3293fad0a9eac7865c019be98fb993eeb933405e/cosmocc-tag-3293fad0a9eac7865c019be98fb993eeb933405e.zip',
         },
         # full aliases
         'x86_64-full' => {
@@ -868,7 +871,8 @@ my %defconfig = (
             perl_id => 'v5.44.0',
             perl_url => undef,
             patches => ['__sharedir__/5.44-cosmo4x.patch'],
-            'cosmocc-version' => 'head',
+            'cosmocc-version' => '3293fad',
+            'cosmocc-url' => 'https://github.com/G4Vi/cosmocc-releases/releases/download/tag-3293fad0a9eac7865c019be98fb993eeb933405e/cosmocc-tag-3293fad0a9eac7865c019be98fb993eeb933405e.zip',
         },
         aarch64_perl_cosmo_dev_544 => {
             desc => "For developing cosmo platform perl without apperl additions",
@@ -987,16 +991,16 @@ sub NewConfig {
 }
 
 sub _install_cosmocc {
-    my ($version, $cosmocc) = @_;
-    print "rm -rf $cosmocc\n";
-    remove_tree($cosmocc);
-    print "mkdir -p $cosmocc\n";
-    make_path($cosmocc);
-    print "cd $cosmocc\n";
+    my ($url, $dest) = @_;
+    print "rm -rf $dest\n";
+    remove_tree($dest);
+    print "mkdir -p $dest\n";
+    make_path($dest);
+    print "cd $dest\n";
     my $before = getcwd();
-    chdir($cosmocc) or die "Failed to chdir $cosmocc";
-    my $filename = "cosmocc-$version.zip";
-    _command_or_die('wget', "https://cosmo.zip/pub/cosmocc/$filename");
+    chdir($dest) or die "Failed to chdir $dest";
+    _command_or_die('wget', $url);
+    my $filename = basename($url);
     _command_or_die('unzip', $filename);
     chdir($before) or die "error resetting directory";
 }
@@ -1145,7 +1149,7 @@ sub Checkout {
         }
         if (! -d $cosmocc) {
             print "installing cosmocc to $cosmocc\n";
-            _install_cosmocc($cosmocc_version, $cosmocc);
+            _install_cosmocc($itemconfig->{'cosmocc-url'}, $cosmocc);
         }
         -d $cosmocc or die "failed to install $cosmocc_version to $cosmocc";
         $UserProjectConfig->{configs}{$cfgname}{cosmocc} = $cosmocc;
@@ -1874,6 +1878,7 @@ sub _load_apperl_config {
     }
     delete $itemconfig{cosmo3};
     $itemconfig{'cosmocc-version'} //= '3.3.10';
+    $itemconfig{'cosmocc-url'} //= "https://cosmo.zip/pub/cosmocc/".'cosmocc-'.$itemconfig{'cosmocc-version'}.'.zip';
 
     return \%itemconfig;
 }
