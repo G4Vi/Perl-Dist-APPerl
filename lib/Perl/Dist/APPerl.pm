@@ -1893,7 +1893,8 @@ sub _load_apperl_config {
         $itemconfig{'cosmocc-version'} = '3293fad';
         $itemconfig{'cosmocc-url'} = 'https://github.com/G4Vi/cosmocc-releases/releases/download/tag-3293fad0a9eac7865c019be98fb993eeb933405e/cosmocc-tag-3293fad0a9eac7865c019be98fb993eeb933405e.zip',
     } else {
-        $itemconfig{'cosmocc-url'} //= "https://cosmo.zip/pub/cosmocc/".'cosmocc-'.$itemconfig{'cosmocc-version'}.'.zip';
+        #$itemconfig{'cosmocc-url'} //= "https://cosmo.zip/pub/cosmocc/".'cosmocc-'.$itemconfig{'cosmocc-version'}.'.zip';
+        $itemconfig{'cosmocc-url'} //= 'https://github.com/jart/cosmopolitan/releases/download/'. $itemconfig{'cosmocc-version'} . '/' . 'cosmocc-'.$itemconfig{'cosmocc-version'}.'.zip';
     }
 
     return \%itemconfig;

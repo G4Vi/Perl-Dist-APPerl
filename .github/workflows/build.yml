@@ -34,7 +34,6 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v7
       with:
-        name: cpan
         if-no-files-found: error
         path: Perl-Dist-APPerl-v*.tar.gz
         archive: false
@@ -50,8 +49,11 @@ jobs:
     # install Perl-Dist-APPerl
     - name: Fetch build artifacts
       uses: actions/download-artifact@v8
+      with:
+        pattern: Perl-Dist-APPerl-v*.tar.gz
     - name: prepare for installing module
       run: |
+        ls -la
         mv Perl-Dist-APPerl-v*.tar.gz Perl-Dist-APPerl.tar.gz
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
@@ -101,8 +103,11 @@ jobs:
     steps:
     - name: Fetch build artifacts
       uses: actions/download-artifact@v8
+      with:
+        pattern: Perl-Dist-APPerl-v*.tar.gz
     - name: prepare for installing module
       run: |
+        ls -la
         mv Perl-Dist-APPerl-v*.tar.gz Perl-Dist-APPerl.tar.gz
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@v1
